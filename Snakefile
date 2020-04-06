@@ -1,0 +1,275 @@
+#!/usr/local/envs/py36/bin python3
+
+import os 
+import pandas as pd
+
+# envvars:
+#     "DATADIR",
+#     "OUTDIR",
+#     "SAMPLE_FILE"
+
+# datadir = os.environ["DATADIR"]
+# outdir = os.environ["OUTDIR"]
+
+samples = pd.read_csv("/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/data/ONEK1K/Pool_Name_N_Individuals_temp.txt", sep = "\t")
+datadir = "/directflow/SCCGGroupShare/projects/data/experimental_data/CLEAN/OneK1K_scRNA/OneK1K_scRNA_V1"
+outdir = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/output/Consortium"
+FASTA="/directflow/SCCGGroupShare/projects/DrewNeavin/References/ENSEMBLfasta/GRCh38/genome.fa"
+FAI="/directflow/SCCGGroupShare/projects/DrewNeavin/References/ENSEMBLfasta/GRCh38/genome.fa.fai"
+VCF="/directflow/SCCGGroupShare/projects/DrewNeavin/References/GRCh38SNPvcfs1000genomes/MergedAutosomesFilteredGenes.recode.MAF0.01_reordered.vcf" #GENES only
+SNP_GENOTYPES="/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/data/ONEK1K/Imputed/Merged_MAF0.01.dose_GeneFiltered_hg38_nochr.vcf" #GENES only
+SNVs_list="/directflow/SCCGGroupShare/projects/DrewNeavin/References/GRCh38SNPvcfs1000genomes/MergedAutosomesFilteredGenes.recode.MAF0.01.vcf"
+
+T = 8
+# os.makedirs(outdir,exist_ok=True)
+# configfile: samples
+
+rule all:
+    input:
+        expand(outdir + "/{pool}/popscle/demuxletOUT",  pool=samples.Pool),
+        expand(outdir + "/{pool}/popscle/freemuxletOUT", pool=samples.Pool),
+        expand(outdir + "/{pool}/souporcell/", pool=samples.Pool),
+        expand(outdir + "/{pool}/vireo/results/", pool=samples.Pool),
+        expand(outdir + "/{pool}/scSplit/possort_dedup_filtered.bam.bai", pool=samples.Pool),
+        expand(outdir +  "/{pool}/scSplit/alt_filtered.csv", pool=samples.Pool),
+        expand(outdir +  "/{pool}/scSplit/demultiplex", pool=samples.Pool),
+        expand(outdir +  "/{pool}/scSplit/genotypes", pool=samples.Pool)
+
+        # expand(outdir + "/{pool}/vireo/Merged_MAF0.01.dose_GeneFiltered_hg38_individualSubset.vcf", pool=samples.Pool)
+
+
+##### scSplit Preprocessing #####
+rule scSplit_sam_header:
+    input:
+        bam=datadir + "/{pool}_V1/outs/possorted_genome_bam.bam"
+    threads: T
+    output:
+        temp(outdir + "/{pool}/scSplit/SAM_header")
+    resources:
+        mem_per_thread_gb=100
+    shell:
+        "samtools view -@ {threads} -H {input.bam} > {output}"
+
+rule scSplit_sam_body:
+    input:
+        bam=datadir + "/{pool}_V1/outs/possorted_genome_bam.bam",
+        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0]
+    threads: T
+    resources:
+        mem_per_thread_gb=1000
+    output:
+        temp(outdir + "/{pool}/scSplit/filtered_SAM_body")
+    shell:
+        "samtools view -@ {threads} -S -q 10 -F 3844 {input.bam} | LC_ALL=C grep -F -f {input.barcodes} > {output}"
+
+rule scSplit_sam_combine:
+    input:
+        header=outdir + "/{pool}/scSplit/SAM_header",
+        body=outdir + "/{pool}/scSplit/filtered_SAM_body"
+    threads: T
+    resources:
+        mem_per_thread_gb=1000
+    output:
+        temp(outdir + "/{pool}/scSplit/filtered.bam")
+    shell:
+        "cat {input.header} {input.body} | samtools view -@ {threads} -b - > {output}"
+
+rule scSplit_rmdupe:
+    input:
+        bam=outdir + "/{pool}/scSplit/filtered.bam"
+    output:
+        temp(outdir + "/{pool}/scSplit/dedup_filtered.bam")
+    resources:
+        mem_mb=20000
+    shell:
+        "samtools rmdup {input.bam} {output}"
+
+rule scSplit_sort:
+    input:
+        bam=outdir + "/{pool}/scSplit/dedup_filtered.bam"
+    threads: T
+    resources:
+        mem_per_thread_gb=1500
+    output:
+        outdir + "/{pool}/scSplit/possort_dedup_filtered.bam"
+    shell:
+        "samtools sort -@ {threads} -o {output} {input.bam}"
+
+rule scSplit_index:
+    input:
+        outdir + "/{pool}/scSplit/possort_dedup_filtered.bam"
+    output:
+        outdir + "/{pool}/scSplit/possort_dedup_filtered.bam.bai"
+    resources:
+        mem_mb=5000
+    shell:
+        "samtools index {input} {output}"
+
+##### scSplit Allele Counting #####
+rule scSplit_allele_matrices:
+    input:
+        snvs=SNVs_list,
+        vcf=SNP_GENOTYPES,
+        bam=outdir + "/{pool}/scSplit/possort_dedup_filtered.bam"
+    output:
+        ref=outdir + "/{pool}/scSplit/ref_filtered.csv",
+        alt=outdir + "/{pool}/scSplit/alt_filtered.csv"
+    params:
+        out=outdir + "/{pool}/scSplit/",
+        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0]
+    resources:
+        mem_mb=25000
+    shell:
+        "python scSplit count -c {input.snvs} -v {input.vcf} -i {input.bam} -b {params.barcodes} -r {output.ref} -a {output.alt} -o {params.out}"
+
+##### scSplit Demultiplexing #####
+rule scSplit_demultiplex:
+    input:
+        ref=outdir + "/{pool}/scSplit/ref_filtered.csv",
+        alt=outdir +  "/{pool}/scSplit/alt_filtered.csv"
+    output:
+        outdir + "/{pool}/scSplit/demultiplex"
+    params:
+        N=lambda wildcards: samples.N[samples.Pool == wildcards.pool].iloc[0]
+    resources:
+        mem_mb=25000
+    shell:
+        "python scSplit run -r {input.ref} -a ${input.alt} -n {params.N} -o {output}"
+
+##### scSplit Get Genotypes #####
+rule check_result:
+    output:
+        outdir +  "/{pool}/scSplit/scSplit_P_s_c.csv"
+
+
+##### scSplit Get Genotypes #####
+rule scSplit_genotypes:
+    input:
+        ref=outdir + "/{pool}/scSplit/ref_filtered.csv",
+        alt=outdir +  "/{pool}/scSplit/alt_filtered.csv",
+        psc=outdir +  "/{pool}/scSplit/scSplit_P_s_c.csv"
+    output:
+        outdir + "/{pool}/scSplit/genotypes"
+    resources:
+        mem_mb=25000
+    shell:
+        "python $scSplit genotype -r {input.ref} -a {input.alt} -p {input.psc} -o {output}"
+
+##### Popscle Pileup #####
+rule popscle_pileup:
+    input:
+        vcf=SNP_GENOTYPES,
+        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0],
+        bam=datadir + "/{pool}_V1/outs/possorted_genome_bam.bam"
+    output:
+        outdir + "/{pool}/popscle/pileup"
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * 40000
+    shell:
+        "popscle dsc-pileup --sam {input.bam} --vcf {input.vcf} --group-list {input.barcodes} --out {output}"
+
+##### Popscle Freemuxlet Demultiplexing #####
+rule popscle_freemuxlet:
+    input:
+        pileup=outdir + "/{pool}/popscle/pileup",
+        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0]
+    output:
+        outdir + "/{pool}/popscle/freemuxletOUT"
+    params:
+        N=lambda wildcards: samples.N[samples.Pool == wildcards.pool].iloc[0]
+    resources:
+        mem_mb=20000
+    shell:
+        "popscle freemuxlet --plp {input.pileup} --out {output} --group-list {input.barcodes} --nsample {params.N}"
+
+##### Popscle Demuxlet Individual File Generation #####
+rule popscle_demuxlet_ind_files:
+    input:
+        expand(outdir + "/{pool}/popscle/pileup",  pool=samples.Pool),
+    output:
+        temp(outdir + "/{pool}/popscle/Individuals.txt")
+    params:
+        individuals=lambda wildcards: samples.Individuals[samples.Pool == wildcards.pool].iloc[0]
+    shell:
+        "echo {params.individuals} | sed 's/,/\n/g' > {output}; ls {input}"
+
+##### Popscle Demuxlet Demultiplexing #####
+rule popscle_demuxlet:
+    input:
+        pileup=outdir + "/{pool}/popscle/pileup",
+        snps=SNP_GENOTYPES,
+        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0],
+        individuals=outdir + "/{pool}/popscle/Individuals.txt"
+    output:
+        outdir + "/{pool}/popscle/demuxletOUT"
+    params:
+        field="GP"
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * 50000
+    shell:
+        "popscle demuxlet --plp {input.pileup} --vcf {input.snps} --field {params.field} --group-list {input.barcodes} --out {output} --sm-list {input.individuals}"
+
+##### cellSNP Pileup #####
+rule cellSNP:
+    input:
+        vcf=SNP_GENOTYPES,
+        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0],
+        bam=datadir + "/{pool}_V1/outs/possorted_genome_bam.bam"
+    output:
+        outdir + "/{pool}/vireo/cellSNPpileup.vcf"
+    params:
+        p=20,
+        maf=0.01,
+        count=20
+    resources:
+        mem_mb=20000
+    shell:
+        "cellSNP -s {input.bam} -b {input.barcodes} -o {output} -R {input.vcf} -p {params.p} --minMAF {params.maf} --minCOUNT {params.count}"
+
+##### Subset the imputed genotype files by the individuals in the pools #####
+rule subset_vcf:
+    input:
+        pileup=outdir + "/{pool}/vireo/cellSNPpileup.vcf",
+        snps=SNP_GENOTYPES,
+    output:
+        outdir + "/{pool}/vireo/Merged_MAF0.01.dose_GeneFiltered_hg38_individualSubset.vcf"
+    params:
+        individuals=lambda wildcards: samples.Individuals[samples.Pool == wildcards.pool].iloc[0]
+    resources:
+        mem_mb=10000
+    shell:
+        "bcftools view -R {input.pileup} -s {params.individuals} -Oz -o {output} {input.snps}"
+
+##### Vireo demultiplexing #####
+rule vireo:
+    input:
+        pileup=outdir + "/{pool}/vireo/cellSNPpileup.vcf",
+        snps=outdir + "/{pool}/vireo/Merged_MAF0.01.dose_GeneFiltered_hg38_individualSubset.vcf"
+    output:
+        outdir + "/{pool}/vireo/results/"
+    params:
+        field="GP"
+    resources:
+        mem_mb=55000
+    shell:
+        "vireo -c {input.pileup} -d {input.snps} -o {outdir} -t {params.field}"
+
+
+##### Run the souporcell pipeline #####
+rule souporcell:
+    input:
+        bam=datadir + "/{pool}_V1/outs/possorted_genome_bam.bam",
+        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0],
+        fasta=FASTA,
+        snps=SNP_GENOTYPES
+    threads: T
+    resources:
+        mem_mb=40000
+    output:
+        outdir + "/{pool}/souporcell/"
+    params:
+        individuals=lambda wildcards: str(samples.Individuals[samples.Pool == wildcards.pool].iloc[0]).replace(",", " "),
+        N=lambda wildcards: samples.N[samples.Pool == wildcards.pool].iloc[0]
+    shell:
+        "souporcell_pipeline.py -i {input.bam} -b {input.barcodes} -f {input.fasta} -t {threads} -o {output} -k {params.N} --known_genotypes {input.snps} --known_genotypes_sample_names {params.individuals}"
+
