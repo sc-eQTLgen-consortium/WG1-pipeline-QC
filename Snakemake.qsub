@@ -9,6 +9,8 @@
 #$ -l mem_requested=40G 
 #$ -l tmp_requested=40G
 #$ -pe smp 10
+#$ -t 1:50
+#$ -tc 1
 #$ -N DemultiplexingPipeline
 #$ -e /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/output/Consortium/logs
 #$ -o /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/output/Consortium/logs
@@ -16,7 +18,8 @@
 #$ -M d.neavin@garvan.org.au
 #$ -m e
 #$ -V
+#$ -hold_jid 372357
 
 cd /directflow/SCCGGroupShare/projects/
 
-singularity exec /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/Singularity_Buckets/docker/AllSoftwares.sif snakemake --snakefile /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/scripts/ONEK1K/hg38/refSNVs/Snakefile --cores 10 --rerun-incomplete
+singularity exec /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/Singularity_Buckets/docker/AllSoftwares.sif snakemake --snakefile /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/scripts/ONEK1K/hg38/refSNVs/Snakefile --cores 10 --rerun-incomplete --restart-times 4
