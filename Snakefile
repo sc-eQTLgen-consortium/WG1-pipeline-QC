@@ -24,11 +24,11 @@ T = 8
 
 rule all:
     input:
-        # expand(outdir + "/{pool}/popscle/demuxlet/demuxletOUT.best",  pool=samples.Pool),
-        # expand(outdir + "/{pool}/popscle/freemuxlet/freemuxletOUT.clust1.samples.gz", pool=samples.Pool),
+        expand(outdir + "/{pool}/popscle/demuxlet/demuxletOUT.best",  pool=samples.Pool),
+        expand(outdir + "/{pool}/popscle/freemuxlet/freemuxletOUT.clust1.samples.gz", pool=samples.Pool),
         expand(outdir + "/{pool}/souporcell/cluster_genotypes.vcf", pool=samples.Pool),
-        # expand(outdir + "/{pool}/vireo/results/donor_ids.tsv", pool=samples.Pool),
-        # expand(outdir +  "/{pool}/scSplit/scSplit.vcf", pool=samples.Pool)
+        expand(outdir + "/{pool}/vireo/results/donor_ids.tsv", pool=samples.Pool),
+        expand(outdir +  "/{pool}/scSplit/scSplit.vcf", pool=samples.Pool)
 
 rule scSplit_sam_header:
     input:
