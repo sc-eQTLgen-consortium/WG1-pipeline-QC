@@ -1,25 +1,10 @@
 #!/bin/bash
 
 
-## SGE SETTINGS
-#$ -cwd
-#$ -S /bin/bash
-#$ -q short.q
-#$ -r yes
-#$ -l mem_requested=40G 
-#$ -l tmp_requested=40G
-#$ -pe smp 10
-#$ -t 1:50
-#$ -tc 1
-#$ -N DemultiplexingPipeline
-#$ -e /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/output/Consortium/logs
-#$ -o /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/output/Consortium/logs
-#$ -j y
-#$ -M d.neavin@garvan.org.au
-#$ -m e
-#$ -V
-#$ -hold_jid 372357
+export SINGULARITY_BINDPATH="/directflow/SCCGGroupShare/projects/,/data:/mnt"
 
-cd /directflow/SCCGGroupShare/projects/
+snakemake --snakefile /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/scripts/ONEK1K/hg38/refSNVs/Snakefile \
+    --rerun-incomplete --jobs 74 --use-singularity \
+    --cluster "qsub -S /bin/bash -q short.q -r yes -l tmp_requested=200G -l mem_requested=200G -e /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/output/Consortium/logs -o /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/output/Consortium/logs -j y -V"
 
-singularity exec /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/Singularity_Buckets/docker/AllSoftwares.sif snakemake --snakefile /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/scripts/ONEK1K/hg38/refSNVs/Snakefile --cores 10 --rerun-incomplete --restart-times 4
+
