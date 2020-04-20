@@ -24,11 +24,11 @@ T = 8
 
 rule all:
     input:
-        expand(outdir + "/{pool}/popscle/demuxlet/demuxletOUT.best",  pool=samples.Pool),
-        expand(outdir + "/{pool}/popscle/freemuxlet/freemuxletOUT.clust1.samples.gz", pool=samples.Pool),
+        # expand(outdir + "/{pool}/popscle/demuxlet/demuxletOUT.best",  pool=samples.Pool),
+        # expand(outdir + "/{pool}/popscle/freemuxlet/freemuxletOUT.clust1.samples.gz", pool=samples.Pool),
         expand(outdir + "/{pool}/souporcell/cluster_genotypes.vcf", pool=samples.Pool),
-        expand(outdir + "/{pool}/vireo/results/donor_ids.tsv", pool=samples.Pool),
-        expand(outdir +  "/{pool}/scSplit/scSplit.vcf", pool=samples.Pool)
+        # expand(outdir + "/{pool}/vireo/results/donor_ids.tsv", pool=samples.Pool),
+        # expand(outdir +  "/{pool}/scSplit/scSplit.vcf", pool=samples.Pool)
 
 rule scSplit_sam_header:
     input:
@@ -143,28 +143,31 @@ rule scSplit_vcf_qual_filt:
     input:
         vcf=outdir + "/{pool}/scSplit/freebayes_var.vcf"
     output:
-        outdir + "/{pool}/scSplit/frebayes_var_qual30.vcf"
+        outdir + "/{pool}/scSplit/frebayes_var_qual30.vcf.recode.vcf"
     group: "freebayes"
     resources:
         mem_gb=10
     params:
+        out=outdir + "/{pool}/scSplit/frebayes_var_qual30.vcf",
         sif="/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/Singularity_Buckets/docker/AllSoftwares.sif"
     shell:
         """
-            singularity exec {params.sif} vcftools --gzvcf {input.vcf} --minQ 30 --recode --recode-INFO-all --out {output}
+        singularity exec {params.sif} vcftools --gzvcf {input.vcf} --minQ 30 --recode --recode-INFO-all --out {params.out}
+        [[ -s {output} ]]
+        echo $?
         """      
 
 ##### scSplit Allele Counting #####
 rule scSplit_allele_matrices:
     input:
         snvs=SNVs_list,
-        vcf=outdir + "/{pool}/scSplit/frebayes_var_qual30.vcf",
+        vcf=outdir + "/{pool}/scSplit/frebayes_var_qual30.vcf.recode.vcf",
         bam=outdir + "/{pool}/scSplit/possort_dedup_filtered.bam"
     output:
         alt=outdir + "/{pool}/scSplit/alt_filtered.csv",
         ref=outdir + "/{pool}/scSplit/ref_filtered.csv"
     resources:
-        mem_gb=120
+        mem_gb=500
     params:
         out=outdir + "/{pool}/scSplit/",
         sif="/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/Singularity_Buckets/docker/AllSoftwares.sif",
@@ -180,7 +183,7 @@ rule scSplit_allele_matrices:
 rule scSplit_demultiplex:
     input:
         alt=outdir + "/{pool}/scSplit/alt_filtered.csv",
-        ref=outdir + "/{pool}/scSplit/alt_filtered.csv"
+        ref=outdir + "/{pool}/scSplit/ref_filtered.csv"
     output:
         outdir + "/{pool}/scSplit/scSplit_P_s_c.csv"
     resources:
@@ -358,7 +361,7 @@ rule souporcell:
         snps=SNP_GENOTYPES
     threads: T
     resources:
-        mem_gb=200
+        mem_gb=600
     output:
         outdir + "/{pool}/souporcell/cluster_genotypes.vcf"
     params:
