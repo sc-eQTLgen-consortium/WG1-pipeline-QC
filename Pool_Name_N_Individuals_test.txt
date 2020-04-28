@@ -1,0 +1,2 @@
+Pool	N	Individuals	Barcodes
+OneK1K_scRNA_Sample1	12	684_685,686_687,690_691,691_692,688_689,685_686,689_690,687_688,693_694,683_684,682_683,692_693	/directflow/SCCGGroupShare/projects/data/experimental_data/CLEAN/OneK1K_scRNA/OneK1K_scRNA_V1/OneK1K_scRNA_Sample1_V1/outs/filtered_gene_bc_matrices/Homo_sapiens_GRCh38p10/barcodes.tsv
