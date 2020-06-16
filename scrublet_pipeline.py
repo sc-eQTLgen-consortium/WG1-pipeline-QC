@@ -32,7 +32,7 @@ plt.rcParams['pdf.fonttype'] = 42
 
 ## Basic run with scrublet
 counts_matrix = scipy.io.mmread(args.counts_matrix).T.tocsc()
-genes = np.array(scr.load_genes(args.genes, delimiter='\t', column=1)) 
+genes = np.array(scr.load_genes(args.genes, delimiter='\t', column=0)) 
 print('Counts matrix shape: {} rows, {} columns'.format(counts_matrix.shape[0], counts_matrix.shape[1]))
 print('Number of genes in gene list: {}'.format(len(genes)))
 scrub = scr.Scrublet(counts_matrix, expected_doublet_rate=args.expected_doublet_rate, sim_doublet_ratio = args.sim_doublet_ratio)
