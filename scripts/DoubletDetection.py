@@ -4,6 +4,7 @@ import tarfile
 import matplotlib.pyplot as plt
 import os
 import argparse
+import read10x
 
 
 parser = argparse.ArgumentParser(
@@ -17,9 +18,9 @@ parser.add_argument("-t", "--p_thresh", required = False, default = 1e-16, help 
 parser.add_argument("-v", "--voter_thresh", required = False, default = 1e-16, help = "Voter threshold for doublet calling; default is 0.5")
 args = parser.parse_args()
 
-counts_matrix = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/output/Consortium/SimulatedPools/Size10_SimulatedPools1/matrix_out/matrix.mtx.gz"
 ### Read in data ###
-raw_counts = doubletdetection.load_mtx(args.counts_matrix)
+raw_counts = read10x.import_cellranger_mtx(args.counts_matrix_dir)
+print('Counts matrix shape: {} rows, {} columns'.format(raw_counts.shape[0], raw_counts.shape[1]))
 
 # Remove columns with all 0s
 zero_genes = (np.sum(raw_counts, axis=0) == 0).A.ravel()

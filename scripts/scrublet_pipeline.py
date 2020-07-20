@@ -2,13 +2,19 @@
 
 import argparse
 import sys
+sys.path.append('../mods') 
 import os
+import scrublet as scr
+import scipy.io
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import read10x
 
 parser = argparse.ArgumentParser(
     description="wrapper for scrublet for doublet detection of transcriptomic data.")
-parser.add_argument("-m", "--counts_matrix", required = True, help = "cell ranger counts matrix.mtx")
+parser.add_argument("-m", "--counts_matrix", required = True, help = "cell ranger counts matrix directory")
 parser.add_argument("-g", "--genes", required = True, help = "genes.tsv from cellranger")
-parser.add_argument("-d", "--expected_doublet_rate", required = False, default = 0.1, type = float, help = "expected doublet rate")
 parser.add_argument("-r", "--sim_doublet_ratio", required = False, default = 2, type = int, help = "Number of doublets to simulate relative to the number of observed transcriptomes.")
 parser.add_argument("-c", "--min_counts", required = False, default = 3, type = int, help = "Used for gene filtering prior to PCA. Genes expressed at fewer than min_counts in fewer than min_cells are excluded.")
 parser.add_argument("-e", "--min_cells", required = False, default = 3, type = int, help = "Used for gene filtering prior to PCA. Genes expressed at fewer than min_counts in fewer than are excluded.")
@@ -19,23 +25,14 @@ parser.add_argument("-o", "--outdir", required = False, default = os.getcwd(), h
 args = parser.parse_args()
 
 
-import scrublet as scr
-import scipy.io
-import matplotlib.pyplot as plt
-import numpy as np
-
-import pandas as pd
-print('scrublet' in sys.modules)
-
 plt.rc('font', size=14)
 plt.rcParams['pdf.fonttype'] = 42
 
 ## Basic run with scrublet
-counts_matrix = scipy.io.mmread(args.counts_matrix).T.tocsc()
-genes = np.array(scr.load_genes(args.genes, delimiter='\t', column=0)) 
+counts_matrix = read10x.import_cellranger_mtx(args.counts_matrix_dir)
+dbl_rate = counts_matrix.shape[0]/1000 * 0.008
 print('Counts matrix shape: {} rows, {} columns'.format(counts_matrix.shape[0], counts_matrix.shape[1]))
-print('Number of genes in gene list: {}'.format(len(genes)))
-scrub = scr.Scrublet(counts_matrix, expected_doublet_rate=args.expected_doublet_rate, sim_doublet_ratio = args.sim_doublet_ratio)
+scrub = scr.Scrublet(counts_matrix, expected_doublet_rate=dbl_rate, sim_doublet_ratio = args.sim_doublet_ratio)
 doublet_scores, predicted_doublets = scrub.scrub_doublets(min_counts=args.min_cells, 
                                                           min_cells=args.min_cells, 
                                                           min_gene_variability_pctl=args.min_gene_variability_pctl, 

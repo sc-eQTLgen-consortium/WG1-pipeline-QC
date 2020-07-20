@@ -13,11 +13,10 @@ args <- commandArgs(TRUE)
 arguments <- read.table(args, header = F)
 dir <- arguments[1,]
 pools_file <- arguments[2,]
-datadir <- arguments[3,]
-dirs_10x <- arguments[4,]
-out <- arguments[5,]
-RB_genes_file <- arguments[,8]
-MT_genes_file <- arguments[,7]
+dirs_10x <- arguments[3,]
+out <- arguments[4,]
+RB_genes_file <- arguments[5,]
+MT_genes_file <- arguments[6,]
 
 pools <- read_delim(as.character(pools_file[1]), delim = "\t", col_names = c("Pool"))
 pools_list <- pools$Pool
