@@ -1,251 +1,114 @@
 #!/usr/local/envs/py36/bin python3
 
-import os 
+import os
+import sys
 import pandas as pd
+from glob import glob
+import datetime
+from datetime import datetime
 
-# envvars:
-#     "DATADIR",
-#     "OUTDIR",
-#     "SAMPLE_FILE"
 
-# datadir = os.environ["DATADIR"]
-# outdir = os.environ["OUTDIR"]
+### Set the date and time of run starting
+date_now = datetime.date(datetime.now())
+time_now = datetime.time(datetime.now())
+datetime_now = str(date_now) + "_" + str(time_now)
 
-samples = pd.read_csv("/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/data/ONEK1K/Pool_Name_N_Individuals_temp.txt", sep = "\t")
-# samples = pd.read_csv("/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/data/ONEK1K/Pool_Name_N_Individuals_test.txt", sep = "\t")
-datadir = "/directflow/SCCGGroupShare/projects/data/experimental_data/CLEAN/OneK1K_scRNA/OneK1K_scRNA_V1"
-outdir = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/output/Consortium"
-FASTA="/directflow/SCCGGroupShare/projects/DrewNeavin/References/ENSEMBLfasta/GRCh38/genome.fa"
-FAI="/directflow/SCCGGroupShare/projects/DrewNeavin/References/ENSEMBLfasta/GRCh38/genome.fa.fai"
-SNP_GENOTYPES="/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/data/ONEK1K/Imputed/Merged_MAF0.01.dose_GeneFiltered_hg38_nochr.vcf" #GENES only
-SNVs_list="/directflow/SCCGGroupShare/projects/DrewNeavin/References/GRCh38SNPvcfs1000genomes/MergedAutosomesFilteredGenes.recode.MAF0.01.vcf"
+# Extract variables from configuration file for use within the rest of the pipeline
+input_dict = config["inputs"]
+output_dict = config["outputs"]
+ref_dict = config["refs"]
+popscle_dict = config["popscle"]
+popscle_extra_dict = config["popscle_extra"]
+souporcell_dict = config["souporcell"]
+souporcell_extra_dict = config["souporcell_extra"]
+DoubletDetection_dict = config["DoubletDetection"]
+DoubletDetection_manual_dict = config["DoubletDetection_manual"]
+DoubletDetection_extra_dict = config["DoubletDetection_extra"]
+scrublet_dict = config["scrublet"]
+scrublet_manual_dict = config["scrublet_manual"]
+scrublet_extra_dict = config["scrublet_extra"]
+scds_dict = config["scds"]
+CombineResults_dict = config["CombineResults"]
 
-T = 8
+sys.path.append(input_dict["pipeline_dir"] + '/mods') 
+import prepareArguments
+
+# Use prepareArguments.py script to retrieve exact directories of single cell files
+scrnaseq_libs_df = prepareArguments.get_scrnaseq_dirs(config)
+scrnaseq_libs_df.to_csv(os.path.join(output_dict["output_dir"],'file_directories.txt'), sep = "\t", index = False)
+
+
+# Get list of pools to process
+samples = pd.read_csv(input_dict["samplesheet_filepath"], sep = "\t")
+samples.columns = ["Pool", "N"]
+
+
+### If the scrublet_check output is present => all the contents are there that are needed to move past 
+if os.path.exists(output_dict["output_dir"] + "/scrublet/scrublet_check.done"):
+    scrublet_decisions = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet_gene_pctl.txt", sep = "\t")
+
+# Includes
+include: input_dict["pipeline_dir"] + "/includes/Snakefile_popscle.smk"
+include: input_dict["pipeline_dir"] + "/includes/Snakefile_souporcell.smk"
+include: input_dict["pipeline_dir"] + "/includes/Snakefile_scrublet.smk"
+include: input_dict["pipeline_dir"] + "/includes/Snakefile_scds.smk"
+include: input_dict["pipeline_dir"] + "/includes/Snakefile_DoubletDetection.smk"
+include: input_dict["pipeline_dir"] + "/includes/Snakefile_CombineResults.smk"
+
+
+demuxlet_files = []
+demuxlet_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/demuxlet_results.txt",  pool=samples.Pool))
+
+souporcell_files = []
+souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/souporcell_results.txt", pool=samples.Pool))
+souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz", pool=samples.Pool))
+
+scds_files = []
+scds_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/scds_results.txt", pool=samples.Pool))
+
+### the scrublet files that will be run are dependent on user inputs in the yaml file
+scrublet_files = []
+scrublet_files.append(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv")
+if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv"):
+    scrublet_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv", sep = "\t")
+    if scrublet_selection["scrublet_Percentile"].count() == len(scrublet_selection):
+        scrublet_selection["scrublet_Percentile"] = scrublet_selection["scrublet_Percentile"].astype(int)
+        scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/{pctl}_scrublet_results.txt", zip, pool=scrublet_selection.Pool, pctl = scrublet_selection.scrublet_Percentile))
+    elif scrublet_selection["scrublet_Percentile"].count() != len(scrublet_selection):
+        if scrublet_manual_dict["run_scrublet_manual"] == False:
+            scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/default_run_variables.txt", pool = samples.Pool, pctl = scrublet_dict["percentile"]))
+        elif scrublet_manual_dict["run_scrublet_manual"] == True:
+            scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables_" + datetime_now + ".txt",zip, pool = scrublet_manual_dict["scrublet_manual_threshold_pools"], pctl = scrublet_manual_dict["scrublet_manual_threshold_percentiles"]))
+
+DoubletDetection_files = []
+DoubletDetection_files.append(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv")
+if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
+    DoubletDetection_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv", sep = "\t")
+    if len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) == len(DoubletDetection_selection):
+        DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/DoubletDetection_results.txt", pool=DoubletDetection_selection.Pool))
+    elif len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) != len(DoubletDetection_selection):
+        if DoubletDetection_manual_dict["run_DoubletDetection_manual"] == False:
+            DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/default_run_variables.txt", pool = samples.Pool))
+        elif DoubletDetection_manual_dict["run_DoubletDetection_manual"] == True:
+            DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables_" + datetime_now + ".txt", pool = DoubletDetection_manual_dict["DoubletDetection_manual_pools"]))
+
+
+combined_files = []
+if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv") and os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
+    scrublet_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv", sep = "\t")
+    DoubletDetection_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv", sep = "\t")
+    if scrublet_selection["scrublet_Percentile"].count() == len(scrublet_selection) and len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) == len(DoubletDetection_selection):
+        combined_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/Final_Assignments_demultiplexing_doublets.txt", pool = samples.Pool))
+        combined_files.append(output_dict["output_dir"] + "/QC_figures/UMI_vs_Genes_QC_scatter.png")
+
 
 rule all:
     input:
-        expand(outdir + "/{pool}/popscle/demuxlet/",  pool=samples.Pool),
-        expand(outdir + "/{pool}/popscle/freemuxlet/", pool=samples.Pool),
-        expand(outdir + "/{pool}/souporcell/", pool=samples.Pool),
-        expand(outdir + "/{pool}/vireo/results/", pool=samples.Pool),
-        expand(outdir +  "/{pool}/scSplit/genotypes/", pool=samples.Pool)
+        demuxlet_files,
+        souporcell_files,
+        scds_files,
+        scrublet_files,
+        DoubletDetection_files,
+        combined_files
 
-rule scSplit_sam_header:
-    input:
-        bam=datadir + "/{pool}_V1/outs/possorted_genome_bam.bam"
-    threads: T
-    output:
-        temp(outdir + "/{pool}/scSplit/SAM_header")
-    resources:
-        mem_per_thread_gb=1
-    shell:
-        "samtools view -@ {threads} -H {input.bam} > {output}"
-
-rule scSplit_sam_body:
-    input:
-        bam=datadir + "/{pool}_V1/outs/possorted_genome_bam.bam",
-        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0]
-    threads: T
-    resources:
-        mem_per_thread_gb=1
-    output:
-        temp(outdir + "/{pool}/scSplit/filtered_SAM_body")
-    shell:
-        "samtools view -@ {threads} -S -q 10 -F 3844 {input.bam} | LC_ALL=C grep -F -f {input.barcodes} > {output}"
-
-rule scSplit_sam_combine:
-    input:
-        header=outdir + "/{pool}/scSplit/SAM_header",
-        body=outdir + "/{pool}/scSplit/filtered_SAM_body"
-    threads: T
-    resources:
-        mem_per_thread_gb=1
-    output:
-        temp(outdir + "/{pool}/scSplit/filtered.bam")
-    shell:
-        "cat {input.header} {input.body} | samtools view -@ {threads} -b - > {output}"
-
-rule scSplit_rmdupe:
-    input:
-        bam=outdir + "/{pool}/scSplit/filtered.bam"
-    output:
-        temp(outdir + "/{pool}/scSplit/dedup_filtered.bam")
-    resources:
-        mem_gb=20
-    shell:
-        "samtools rmdup {input.bam} {output}"
-
-rule scSplit_sort:
-    input:
-        outdir + "/{pool}/scSplit/dedup_filtered.bam"
-    threads: T
-    resources:
-        mem_per_thread_gb=15
-    output:
-        outdir + "/{pool}/scSplit/possort_dedup_filtered.bam"
-    shell:
-        """
-        samtools sort -@ {threads} -o {output} {input}
-        samtools index {output}
-        """
-
-##### scSplit Allele Counting #####
-rule scSplit_allele_matrices:
-    input:
-        snvs=SNVs_list,
-        vcf=SNP_GENOTYPES,
-        bam=outdir + "/{pool}/scSplit/possort_dedup_filtered.bam"
-    output:
-        directory(outdir + "/{pool}/scSplit/allele_matrices/")
-    params:
-        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0]
-    resources:
-        mem_gb=25
-    shell:
-        "scSplit count -c {input.snvs} -v {input.vcf} -i {input.bam} -b {params.barcodes} -r {output}ref_filtered.csv -a {output}alt_filtered.csv -o {output}"
-
-##### scSplit Demultiplexing #####
-rule scSplit_demultiplex:
-    input:
-        outdir + "/{pool}/scSplit/allele_matrices/"
-    output:
-        directory(outdir + "/{pool}/scSplit/demultiplex/")
-    params:
-        N=lambda wildcards: samples.N[samples.Pool == wildcards.pool].iloc[0]
-    resources:
-        mem_gb=25
-    shell:
-        "scSplit run -r {input}ref_filtered.csv -a ${input}alt_filtered.csv -n {params.N} -o {output}"
-
-##### scSplit Get Genotypes #####
-rule scSplit_genotypes:
-    input:
-        matrices=outdir + "/{pool}/scSplit/allele_matrices/",
-        demultiplex=outdir + "/{pool}/scSplit/demultiplex/"
-    output:
-        directory(outdir + "/{pool}/scSplit/genotypes/")
-    resources:
-        mem_gb=25
-    shell:
-        "scSplit genotype -r {input.matrices}ref_filtered.csv -a {input.matrices}alt_filtered.csv -p {input.demultiplex}scSplit_P_s_c.csv -o {output}"
-
-##### Popscle Pileup #####
-rule popscle_pileup:
-    input:
-        vcf=SNP_GENOTYPES,
-        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0],
-        bam=datadir + "/{pool}_V1/outs/possorted_genome_bam.bam"
-    output:
-        directory(outdir + "/{pool}/popscle/pileup/")
-    resources:
-        mem_gb=lambda wildcards, attempt: attempt * 40
-    shell:
-        "popscle dsc-pileup --sam {input.bam} --vcf {input.vcf} --group-list {input.barcodes} --out {output}pileup"
-
-##### Popscle Freemuxlet Demultiplexing #####
-rule popscle_freemuxlet:
-    input:
-        pileup=outdir + "/{pool}/popscle/pileup/",
-        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0]
-    output:
-        directory(outdir + "/{pool}/popscle/freemuxlet/")
-    params:
-        N=lambda wildcards: samples.N[samples.Pool == wildcards.pool].iloc[0]
-    resources:
-        mem_gb=ambda wildcards, attempt: attempt * 20
-    shell:
-        "popscle freemuxlet --plp {input.pileup}pileup --out {output}freemuxletOUT --group-list {input.barcodes} --nsample {params.N}"
-
-##### Popscle Demuxlet Individual File Generation #####
-rule popscle_demuxlet_ind_files:
-    input:
-        expand(outdir + "/{pool}/popscle/pileup/",  pool=samples.Pool)
-    output:
-        temp(outdir + "/{pool}/popscle/Individuals.txt")
-    params:
-        individuals=lambda wildcards: samples.Individuals[samples.Pool == wildcards.pool].iloc[0]
-    resources:
-        mem_gb=5
-    shell:
-        "echo {params.individuals} | sed 's/,/\n/g' > {output}; ls {input}"
-
-##### Popscle Demuxlet Demultiplexing #####
-rule popscle_demuxlet:
-    input:
-        pileup=outdir + "/{pool}/popscle/pileup/",
-        snps=SNP_GENOTYPES,
-        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0],
-        individuals=outdir + "/{pool}/popscle/Individuals.txt"
-    output:
-        directory(outdir + "/{pool}/popscle/demuxlet/")
-    params:
-        field="GP"
-    resources:
-        mem_gb=lambda wildcards, attempt: attempt * 50
-    shell:
-        "popscle demuxlet --plp {input.pileup}pileup --vcf {input.snps} --field {params.field} --group-list {input.barcodes} --out {output}demuxletOUT --sm-list {input.individuals}"
-
-##### cellSNP Pileup #####
-rule cellSNP:
-    input:
-        vcf=SNP_GENOTYPES,
-        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0],
-        bam=datadir + "/{pool}_V1/outs/possorted_genome_bam.bam"
-    output:
-        outdir + "/{pool}/vireo/cellSNPpileup.vcf.gz"
-    params:
-        p=20,
-        maf=0.1,
-        count=20
-    resources:
-        mem_gb=40
-    shell:
-        "cellSNP -s {input.bam} -b {input.barcodes} -o {output} -R {input.vcf} -p {params.p} --minMAF {params.maf} --minCOUNT {params.count}"
-
-##### Subset the imputed genotype files by the individuals in the pools #####
-rule subset_vcf:
-    input:
-        pileup=outdir + "/{pool}/vireo/cellSNPpileup.vcf.gz",
-        snps=SNP_GENOTYPES,
-    output:
-        outdir + "/{pool}/vireo/Merged_MAF0.01.dose_GeneFiltered_hg38_individualSubset.vcf"
-    params:
-        individuals=lambda wildcards: samples.Individuals[samples.Pool == wildcards.pool].iloc[0]
-    resources:
-        mem_gb=10
-    shell:
-        "bcftools view -R {input.pileup} -s {params.individuals} -Oz -o {output} {input.snps}"
-
-##### Vireo demultiplexing #####
-rule vireo:
-    input:
-        pileup=outdir + "/{pool}/vireo/cellSNPpileup.vcf.gz",
-        snps=outdir + "/{pool}/vireo/Merged_MAF0.01.dose_GeneFiltered_hg38_individualSubset.vcf"
-    output:
-        outdir + "/{pool}/vireo/results/"
-    params:
-        field="GP"
-    resources:
-        mem_gb=55
-    shell:
-        "vireo -c {input.pileup} -d {input.snps} -o {outdir} -t {params.field}"
-
-
-##### Run the souporcell pipeline #####
-rule souporcell:
-    input:
-        bam=datadir + "/{pool}_V1/outs/possorted_genome_bam.bam",
-        barcodes=lambda wildcards: samples.Barcodes[samples.Pool == wildcards.pool].iloc[0],
-        fasta=FASTA,
-        snps=SNP_GENOTYPES
-    threads: T
-    resources:
-        mem_gb=40
-    output:
-        directory(outdir + "/{pool}/souporcell/")
-    params:
-        individuals=lambda wildcards: str(samples.Individuals[samples.Pool == wildcards.pool].iloc[0]).replace(",", " "),
-        N=lambda wildcards: samples.N[samples.Pool == wildcards.pool].iloc[0]
-    shell:
-        "souporcell_pipeline.py -i {input.bam} -b {input.barcodes} -f {input.fasta} -t {threads} -o {output} -k {params.N} --known_genotypes {input.snps} --known_genotypes_sample_names {params.individuals}"
 
