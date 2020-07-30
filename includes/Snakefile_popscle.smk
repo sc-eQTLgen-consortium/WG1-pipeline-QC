@@ -3,13 +3,6 @@ import os
 import pandas as pd
 from glob import glob
 
-# Extract variables from configuration file for use within the rest of the pipeline
-input_dict = config["inputs"]
-output_dict = config["outputs"]
-ref_dict = config["ref_dir"]
-popscle_dict = config["popscle"]
-popscle_extra_dict = config["popscle_extra"]
-
 
 ###################################
 ############# POPSCLE #############
@@ -18,9 +11,9 @@ popscle_extra_dict = config["popscle_extra"]
 rule popscle_pileup:
     input:
         vcf = input_dict["snp_genotypes_filepath"],
-        barcodes = lambda wildcards: read_barcodes(wildcards.pool, input_dict = scrnaseq_libs),
-        bam = 
-        individuals = 
+        barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool],
+        bam = lambda wildcards: scrnaseq_libs_df["Bam_Files"][wildcards.pool],
+        individuals = lambda wildcards: scrnaseq_libs_df["Individuals_Files"][wildcards.pool]
     output:
         directory(output_dict["output_dir"] + "/{pool}/popscle/pileup/")
     resources:
@@ -37,8 +30,8 @@ rule popscle_pileup:
         min_TD = popscle_extra_dict["min_TD"],
         excl_flag = popscle_extra_dict["excl_flag"],
         min_total = popscle_extra_dict["min_total"],
-        min_uniq = popscle_extra_dict["min_uniq"],
         min_snp = popscle_extra_dict["min_snp"]
+    log: output_dict["output_dir"] + "/logs/popscle_pileup.{pool}.log"
     shell:
         """
         singularity exec {params.sif} popscle dsc-pileup \
@@ -54,7 +47,6 @@ rule popscle_pileup:
             --excl-flag {params.excl_flag} \
             --group-list {input.barcodes} \
             --min-total {params.min_total} \
-            --min-uniq {params.min_uniq} \
             --min-snp {params.min_snp} \
             --out {output}pileup
         [[ -s {output}pileup.var.gz ]]
@@ -65,9 +57,9 @@ rule popscle_pileup:
 rule popscle_demuxlet:
     input:
         pileup = output_dict["output_dir"] + "/{pool}/popscle/pileup/",
-        snps = output_dict["snp_genotypes_filepath"],
-        barcodes = ,
-        individuals =
+        snps = input_dict["snp_genotypes_filepath"],
+        barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool],
+        individuals = lambda wildcards: scrnaseq_libs_df["Individuals_Files"][wildcards.pool]
     output:
         output_dict["output_dir"] + "/{pool}/popscle/demuxlet/demuxletOUT.best"
     resources:
@@ -90,8 +82,8 @@ rule popscle_demuxlet:
         min_TD = popscle_extra_dict["min_TD"],
         excl_flag = popscle_extra_dict["excl_flag"],
         min_total = popscle_extra_dict["min_total"],
-        min_uniq = popscle_extra_dict["min_uniq"],
         min_snp = popscle_extra_dict["min_snp"]
+    log: output_dict["output_dir"] + "/logs/popscle_demuxlet.{pool}.log"
     shell:
         """
         singularity exec {params.sif} popscle demuxlet \
@@ -112,7 +104,6 @@ rule popscle_demuxlet:
             --min-TD {params.min_TD} \
             --excl-flag {params.excl_flag} \
             --min-total {params.min_total} \
-            --min-uniq {params.min_uniq} \
             --min-snp {params.min_snp} \
             --out {params.out}demuxletOUT 
         [[ -s {output} ]]
@@ -124,15 +115,16 @@ rule popscle_demuxlet:
 ###################################################
 rule demuxlet_results_temp:
     input:
-        demuxlet = output_dict["output_dir"] + "/{pool}/popscle/demuxlet/demuxletOUT_impute_vars.best"
+        demuxlet = output_dict["output_dir"] + "/{pool}/popscle/demuxlet/demuxletOUT.best"
     output:
-        demuxlet_temp = temp(output_dict["output_dir"] + "/{pool}/CombinedResults/demuxlet_temp.txt")
+        output_dict["output_dir"] + "/{pool}/CombinedResults/demuxlet_results.txt"
     resources:
         mem_per_thread_gb=1,
         disk_per_thread_gb=1
     threads: 1
     params:
         sif = input_dict["singularity_image"]
+    log: output_dict["output_dir"] + "/logs/demuxlet_results_temp.{pool}.log"
     shell:
         """
         singularity exec {params.sif} awk 'BEGIN{{OFS=FS="\\t"}}{{print $2,$3,$5,$6,$14,$19,$20}}' {input.demuxlet} | \
@@ -147,6 +139,6 @@ rule demuxlet_results_temp:
             singularity exec {params.sif} sed "s/DIFF.LLK.singlet.doublet/DiffLLK/g" | \
             singularity exec {params.sif} sed "1s/\t/\tdemuxlet_/g" | \
             singularity exec {params.sif} sed "s/BARCODE/Barcode/g" | \
-            singularity exec {params.sif} awk 'NR<2{{print $0;next}}{{print $0 | "sort -k1"}}'  > {output.demuxlet_temp}
+            singularity exec {params.sif} awk 'NR<2{{print $0;next}}{{print $0 | "sort -k1"}}'  > {output}
         """
 

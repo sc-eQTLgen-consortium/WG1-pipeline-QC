@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from glob import glob
 import re
+import subprocess
 
 def matchFolders(x, dir_list = None):
     for folder in dir_list:
@@ -31,6 +32,11 @@ def get_matrix_files(pool_dir):
         for filename in [f for f in filenames if re.search("matrix.mtx", f)]:
             if re.search(r'filtered', os.path.join(dirpath, filename)):
                 return(os.path.join(dirpath, filename))
+def get_matrix_dirs(pool_dir):
+    for dirpath, dirnames, filenames in os.walk(pool_dir):
+        for filename in [f for f in filenames if re.search("matrix.mtx", f)]:
+            if re.search(r'filtered', os.path.join(dirpath, filename)):
+                return(os.path.join(dirpath))
 
 def get_individual_files(x, individual_dir = None):
     for filename in individual_dir:
@@ -48,19 +54,13 @@ def get_scrnaseq_dirs(config):
     # Extract variables from configuration file for use within the rest of the pipeline
     input_dict = config["inputs"]
     output_dict = config["outputs"]
-    ref_dict = config["ref_dir"]
+    ref_dict = config["refs"]
 
     # General variables used by the rest of the pipeline
-    input_dir = input_dict["input_dir"]
-    output_dir = output_dict["output_dir"]
     scrnaseq_dir = input_dict["scRNAseq_dir"]
     individual_list_dir = input_dict["individual_list_dir"]
 
     ### Check that all the directories exist and can be accessed
-    if not os.path.exists(input_dir):
-        raise Exception("Directory {} does not exist or you have not mounted a parent directory for the singularity bucket".format(input_dir))
-    if not os.path.exists(output_dir):
-        raise Exception("Directory {} does not exist or you have not mounted a parent directory for the singularity bucket".format(output_dir))
     if not os.path.exists(scrnaseq_dir):
         raise Exception("Directory {} does not exist or you have not mounted a parent directory for the singularity bucket".format(scrnaseq_dir))
     if not os.path.exists(individual_list_dir):
@@ -82,6 +82,7 @@ def get_scrnaseq_dirs(config):
     scrnaseq_filedict = dict(zip(pools, scrnaseq_filelist))
     scrnaseq_libs = pd.Series(scrnaseq_filedict, name="scRNAseq_Directories")
 
+    ### Get the barcode files for each pool
     try:
         barcode_filelist = [get_barcodes_files(pool) for pool in scrnaseq_filelist]
     except:
@@ -90,6 +91,7 @@ def get_scrnaseq_dirs(config):
     barcode_filedict = dict(zip(pools, barcode_filelist))
     barcode_libs = pd.Series(barcode_filedict, name="Barcode_Files")
 
+    ### Get the bam files for each pool
     try:
         bam_filelist = [get_bam_files(pool) for pool in scrnaseq_filelist]
     except:
@@ -98,6 +100,7 @@ def get_scrnaseq_dirs(config):
     bam_filedict = dict(zip(pools, bam_filelist))
     bamlibs = pd.Series(bam_filedict, name="Bam_Files")
 
+    ### Get the matrix files for each pool
     try:
         matrix_filelist = [get_matrix_files(pool) for pool in scrnaseq_filelist]
     except:
@@ -106,6 +109,16 @@ def get_scrnaseq_dirs(config):
     matrix_filedict = dict(zip(pools, matrix_filelist))
     matrix_libs = pd.Series(matrix_filedict, name="Matrix_Files")
 
+    ### Get the directories of all the matrix EXCLUDING the matrix filenames themselves
+    try:
+        matrix_dirlist = [get_matrix_dirs(pool) for pool in scrnaseq_filelist]
+    except:
+        print(error)
+        print("Could not find a matrix file in all the scRNA-seq pool directories. Please check that they exist somewhere in your pool scRNA-seq directories and contain 'matrix.mtx' within the name.")
+    matrix_dirdict = dict(zip(pools, matrix_dirlist))
+    matrix_dir_libs = pd.Series(matrix_dirdict, name="Matrix_Directories")
+
+    ### Get the matrix individual list file for each pool
     individual_dirlist = os.listdir(individual_list_dir)
     try:
         individual_filelist = [os.path.join(individual_list_dir, get_individual_files(pool, individual_dir = individual_dirlist)) for pool in pools]
@@ -115,7 +128,6 @@ def get_scrnaseq_dirs(config):
     individual_filedict = dict(zip(pools, individual_filelist))
     individual_libs = pd.Series(individual_filedict, name="Individuals_Files")
 
-    dataframe=pd.concat([scrnaseq_libs, barcode_libs, bamlibs, matrix_libs, individual_libs], axis=1)
-
+    dataframe=pd.concat([scrnaseq_libs, barcode_libs, bamlibs, matrix_libs, matrix_dir_libs, individual_libs], axis=1)
     return(dataframe)
 

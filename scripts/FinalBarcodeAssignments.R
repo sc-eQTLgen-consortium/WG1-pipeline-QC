@@ -11,7 +11,6 @@ args <- commandArgs(TRUE)
 arguments <- read.table(args, header = F)
 dir <- arguments[1,]
 pool <- arguments[2,]
-souporcell_genotype_key_dir <- arguments[3,]
 
 
 ##### Read in Files #####
@@ -31,10 +30,18 @@ message("Creating Intersection and Union Assignments for each combination")
 temp_DropletType <- results[,paste0(softwares,"_DropletType")]
 temp_Assignment <- results[,paste0(c("demuxlet","souporcell"),"_Assignment")]
 
-intersection_doublet_demultiplex[,"DropletType"] <- ifelse(rowSums(temp_DropletType == "singlet") == ncol(temp_DropletType), "singlet", "doublet")
-intersection_doublet_demultiplex[,"Assignment"] <- ifelse((intersection_doublet_demultiplex[,"DropletType"] == "singlet" & apply(temp_Assignment, 1, function(y) all(y == y[1]))),
+intersection_doublet_demultiplex[,"DropletType_temp"] <- ifelse(rowSums(temp_DropletType == "singlet") == ncol(temp_DropletType), "singlet", "doublet")
+intersection_doublet_demultiplex[,"Assignment"] <- ifelse((intersection_doublet_demultiplex[,"DropletType_temp"] == "singlet" & apply(temp_Assignment, 1, function(y) all(y == y[1]))),
   pull(temp_Assignment,1), 
-    ifelse(intersection_doublet_demultiplex[,"DropletType"] == "doublet", "doublet","unassigned"))
+    ifelse(intersection_doublet_demultiplex[,"DropletType_temp"] == "doublet", "doublet","unassigned"))
+for (row in 1:nrow(intersection_doublet_demultiplex[,"Assignment"])){
+    if (intersection_doublet_demultiplex[row,"Assignment"] == "unassigned"){
+        intersection_doublet_demultiplex[row,"DropletType"] <- "unassigned"
+    } else {
+        intersection_doublet_demultiplex[row,"DropletType"] <- intersection_doublet_demultiplex[row,"DropletType_temp"]
+    }
+}
+intersection_doublet_demultiplex[,"DropletType_temp"] <- NULL
 
 write_delim(intersection_doublet_demultiplex, paste0(dir,"/",pool,"/CombinedResults/Final_Assignments_demultiplexing_doublets.txt"), delim = "\t")
 

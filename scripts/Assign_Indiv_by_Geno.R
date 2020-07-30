@@ -50,6 +50,7 @@ cluster_geno <- read.vcfR(paste0(dir,"/",pool,"/souporcell/cluster_genotypes.vcf
 ########## Convert to tidy data frame ##########
 ref_geno_tidy <- as_tibble(extract.gt(element = "DS",ref_geno, IDtoRowNames =F))
 ref_geno_tidy$ID <- paste0(ref_geno@fix[,'CHROM'],":", ref_geno@fix[,'POS'],"_", ref_geno@fix[,'REF'], "_",ref_geno@fix[,'ALT'])
+ref_geno_tidy <- ref_geno_tidy[!(ref_geno_tidy$ID %in% ref_geno_tidy$ID[duplicated(ref_geno_tidy$ID)]),]
 
 cluster_geno_tidy <- as_tibble(extract.gt(element = "GT",cluster_geno, IDtoRowNames =F))
 cluster_geno_tidy <- as_tibble(lapply(cluster_geno_tidy, function(x) {gsub("0/0",0, x)}) %>%
@@ -59,6 +60,7 @@ cluster_geno_tidy <- as_tibble(lapply(cluster_geno_tidy, function(x) {gsub("0/0"
 cluster_geno_tidy$ID <- paste0(cluster_geno@fix[,'CHROM'],":", cluster_geno@fix[,'POS'],"_", cluster_geno@fix[,'REF'], "_",cluster_geno@fix[,'ALT'])
 cluster_geno_tidy <- cluster_geno_tidy[colSums(!is.na(cluster_geno_tidy)) > 0]
 cluster_geno_tidy <- cluster_geno_tidy[complete.cases(cluster_geno_tidy),]
+cluster_geno_tidy <- cluster_geno_tidy[!(cluster_geno_tidy$ID %in% cluster_geno_tidy$ID[duplicated(cluster_geno_tidy$ID)]),]
 
 
 ########## Get a unique list of SNPs that is in both the reference and cluster genotypes ##########
@@ -69,7 +71,6 @@ locations <- locations[!(locations$ID %in% locations[duplicated(locations),"ID"]
 ref_geno_tidy <- left_join(locations, ref_geno_tidy)
 cluster_geno_tidy <- left_join(locations, cluster_geno_tidy)
 
-
 ########## Correlate all the cluster genotypes with the individuals genotyped ##########
 ##### Make a dataframe that has the clusters as the row names and the individuals as the column names #####
 pearson_correlations <- as.data.frame(matrix(nrow = (ncol(cluster_geno_tidy) -1), ncol = (ncol(ref_geno_tidy) -1)))
@@ -78,7 +79,7 @@ rownames(pearson_correlations) <- colnames(cluster_geno_tidy)[2:(ncol(cluster_ge
 pearson_correlations <- pearson_correlation(pearson_correlations, ref_geno_tidy, cluster_geno_tidy)
 
 ########## Save the correlation dataframes ##########
-write_delim(pearson_correlations,path = paste0(dir,"/",pool,"/souporcell/genotype_correlations/pearson_correlations.tsv"), delim = "\t" )
+write_delim(pearson_correlations, path = paste0(dir,"/",pool,"/souporcell/genotype_correlations/pearson_correlations.tsv"), delim = "\t" )
 
 
 ########## Create correlation figures ##########
@@ -104,11 +105,12 @@ for (id in key$Genotype_ID){
     }
 }
 
-write_delim(key, paste0(dir,"/",pool,"/CombinedResults/Genotype_ID_key.txt"), delim = "\t")
+write_delim(key, path =paste0(dir,"/",pool,"/souporcell/genotype_correlations/Genotype_ID_key.txt"), delim = "\t")
 
 
 ##### Read in Files #####
-result <- read_delim(result_file, delim = "\t")
+print(as.character(result_file))
+result <- read_delim(file = as.character(result_file), delim = "\t")
 
 ##### Left_join the common assignments to the dataframe #####
 col_order <- colnames(result)
@@ -121,5 +123,4 @@ result$Correlation <- NULL
 result <- result[,col_order]
 
 
-
-write_delim(result, paste0(dir,"/",pool,"/CombinedResults/CombinedDropletAssignments_w_genotypeIDs.tsv"), delim = "\t")
+write_delim(result, path =paste0(dir,"/",pool,"/CombinedResults/CombinedDropletAssignments_w_genotypeIDs.tsv"), delim = "\t")
