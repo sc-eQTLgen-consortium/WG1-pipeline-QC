@@ -152,52 +152,99 @@ violins_MAD_ALL <- list()
 violins <- list()
 
 for (QC in unique(MAD_df$QC_Metric)){
-    violins_MADperPOOL[[QC]] <- ggplot(seurat@meta.data, aes( x = Pool, y = seurat@meta.data[,QC])) +
-                        geom_violin() +
-                        geom_sina(size = 1, alpha = 0.6) +
-                        theme_classic() +
-                        ylim(0, NA) +
-                        labs(title = paste0(QC, " Violin Plot"), y = QC, x = "Pool") +
-                        geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median, yend=Median, col = "Median"), size = 1) +
-                        geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+MAD, yend=Median+MAD,col = "1 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-MAD, yend=Median-MAD, col = "1 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+2*MAD, yend=Median+2*MAD, col = "2 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-2*MAD, yend=Median-2*MAD, col = "2 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+3*MAD, yend=Median+3*MAD, col = "3 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-3*MAD, yend=Median-3*MAD, col = "3 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+4*MAD, yend=Median+4*MAD, col = "4 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-4*MAD, yend=Median-4*MAD, col = "4 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+5*MAD, yend=Median+5*MAD, col = "5 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-5*MAD, yend=Median-5*MAD, col = "5 MAD"), size = 1, linetype = "longdash") +
-                        scale_color_manual("MAD", values=c("Median"="grey","1 MAD"="blue3","2 MAD"="darkviolet", "3 MAD" = "firebrick1", "4 MAD" = "darkorange1", "5 MAD" = "gold1")) +
-                        theme(text = element_text(size=14),
-                            axis.text.x = element_text(angle = 45, hjust = 1),
-                            plot.title = element_text(hjust = 0.5),
-                            plot.subtitle = element_text(hjust = 0.5))
+    if (QC == "percent.mt" | QC == "percent.rb"){
+        violins_MADperPOOL[[QC]] <- ggplot(seurat@meta.data, aes( x = Pool, y = seurat@meta.data[,QC])) +
+                    geom_violin() +
+                    geom_sina(size = 1, alpha = 0.6) +
+                    theme_classic() +
+                    ylim(0, 100) +
+                    labs(title = paste0(QC, " Violin Plot"), y = QC, x = "Pool") +
+                    geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median, yend=Median, col = "Median"), size = 1) +
+                    geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+MAD, yend=Median+MAD,col = "1 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-MAD, yend=Median-MAD, col = "1 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+2*MAD, yend=Median+2*MAD, col = "2 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-2*MAD, yend=Median-2*MAD, col = "2 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+3*MAD, yend=Median+3*MAD, col = "3 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-3*MAD, yend=Median-3*MAD, col = "3 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+4*MAD, yend=Median+4*MAD, col = "4 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-4*MAD, yend=Median-4*MAD, col = "4 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+5*MAD, yend=Median+5*MAD, col = "5 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-5*MAD, yend=Median-5*MAD, col = "5 MAD"), size = 1, linetype = "longdash") +
+                    scale_color_manual("MAD", values=c("Median"="grey","1 MAD"="blue3","2 MAD"="darkviolet", "3 MAD" = "firebrick1", "4 MAD" = "darkorange1", "5 MAD" = "gold1")) +
+                    theme(text = element_text(size=14),
+                        axis.text.x = element_text(angle = 45, hjust = 1),
+                        plot.title = element_text(hjust = 0.5),
+                        plot.subtitle = element_text(hjust = 0.5))
 
-    violins_MAD_ALL[[QC]] <- ggplot(seurat@meta.data, aes( x = Pool, y = seurat@meta.data[,QC])) +
-                        geom_violin() +
-                        geom_sina(size = 1, alpha = 0.6) +
-                        theme_classic() +
-                        ylim(0, NA) +
-                        labs(title = paste0(QC, " Violin Plot"), y = QC, x = "Pool") +
-                        geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median, yend=Median, col = "Median"), size = 1) +
-                        geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+MAD, yend=Median+MAD,col = "1 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-MAD, yend=Median-MAD, col = "1 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+2*MAD, yend=Median+2*MAD, col = "2 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-2*MAD, yend=Median-2*MAD, col = "2 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+3*MAD, yend=Median+3*MAD, col = "3 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-3*MAD, yend=Median-3*MAD, col = "3 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+4*MAD, yend=Median+4*MAD, col = "4 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-4*MAD, yend=Median-4*MAD, col = "4 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+5*MAD, yend=Median+5*MAD, col = "5 MAD"), size = 1, linetype = "longdash") +
-                        geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-5*MAD, yend=Median-5*MAD, col = "5 MAD"), size = 1, linetype = "longdash") +
-                        scale_color_manual("MAD", values=c("Median"="grey","1 MAD"="blue3","2 MAD"="darkviolet", "3 MAD" = "firebrick1", "4 MAD" = "darkorange1", "5 MAD" = "gold1")) +
-                        theme(text = element_text(size=14),
-                            axis.text.x = element_text(angle = 45, hjust = 1),
-                            plot.title = element_text(hjust = 0.5),
-                            plot.subtitle = element_text(hjust = 0.5))
-    
+        violins_MAD_ALL[[QC]] <- ggplot(seurat@meta.data, aes( x = Pool, y = seurat@meta.data[,QC])) +
+                    geom_violin() +
+                    geom_sina(size = 1, alpha = 0.6) +
+                    theme_classic() +
+                    ylim(0, 100) +
+                    labs(title = paste0(QC, " Violin Plot"), y = QC, x = "Pool") +
+                    geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median, yend=Median, col = "Median"), size = 1) +
+                    geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+MAD, yend=Median+MAD,col = "1 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-MAD, yend=Median-MAD, col = "1 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+2*MAD, yend=Median+2*MAD, col = "2 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-2*MAD, yend=Median-2*MAD, col = "2 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+3*MAD, yend=Median+3*MAD, col = "3 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-3*MAD, yend=Median-3*MAD, col = "3 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+4*MAD, yend=Median+4*MAD, col = "4 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-4*MAD, yend=Median-4*MAD, col = "4 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+5*MAD, yend=Median+5*MAD, col = "5 MAD"), size = 1, linetype = "longdash") +
+                    geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-5*MAD, yend=Median-5*MAD, col = "5 MAD"), size = 1, linetype = "longdash") +
+                    scale_color_manual("MAD", values=c("Median"="grey","1 MAD"="blue3","2 MAD"="darkviolet", "3 MAD" = "firebrick1", "4 MAD" = "darkorange1", "5 MAD" = "gold1")) +
+                    theme(text = element_text(size=14),
+                        axis.text.x = element_text(angle = 45, hjust = 1),
+                        plot.title = element_text(hjust = 0.5),
+                        plot.subtitle = element_text(hjust = 0.5))
+    } else {
+        violins_MADperPOOL[[QC]] <- ggplot(seurat@meta.data, aes( x = Pool, y = seurat@meta.data[,QC])) +
+                            geom_violin() +
+                            geom_sina(size = 1, alpha = 0.6) +
+                            theme_classic() +
+                            ylim(0, NA) +
+                            labs(title = paste0(QC, " Violin Plot"), y = QC, x = "Pool") +
+                            geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median, yend=Median, col = "Median"), size = 1) +
+                            geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+MAD, yend=Median+MAD,col = "1 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-MAD, yend=Median-MAD, col = "1 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+2*MAD, yend=Median+2*MAD, col = "2 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-2*MAD, yend=Median-2*MAD, col = "2 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+3*MAD, yend=Median+3*MAD, col = "3 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-3*MAD, yend=Median-3*MAD, col = "3 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+4*MAD, yend=Median+4*MAD, col = "4 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-4*MAD, yend=Median-4*MAD, col = "4 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median+5*MAD, yend=Median+5*MAD, col = "5 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df[which(MAD_df$QC_Metric == QC),], aes(x=as.numeric(as.factor(Pool))-0.5, xend=as.numeric(as.factor(Pool))+0.5, y=Median-5*MAD, yend=Median-5*MAD, col = "5 MAD"), size = 1, linetype = "longdash") +
+                            scale_color_manual("MAD", values=c("Median"="grey","1 MAD"="blue3","2 MAD"="darkviolet", "3 MAD" = "firebrick1", "4 MAD" = "darkorange1", "5 MAD" = "gold1")) +
+                            theme(text = element_text(size=14),
+                                axis.text.x = element_text(angle = 45, hjust = 1),
+                                plot.title = element_text(hjust = 0.5),
+                                plot.subtitle = element_text(hjust = 0.5))
+
+        violins_MAD_ALL[[QC]] <- ggplot(seurat@meta.data, aes( x = Pool, y = seurat@meta.data[,QC])) +
+                            geom_violin() +
+                            geom_sina(size = 1, alpha = 0.6) +
+                            theme_classic() +
+                            ylim(0, NA) +
+                            labs(title = paste0(QC, " Violin Plot"), y = QC, x = "Pool") +
+                            geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median, yend=Median, col = "Median"), size = 1) +
+                            geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+MAD, yend=Median+MAD,col = "1 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-MAD, yend=Median-MAD, col = "1 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+2*MAD, yend=Median+2*MAD, col = "2 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-2*MAD, yend=Median-2*MAD, col = "2 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+3*MAD, yend=Median+3*MAD, col = "3 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-3*MAD, yend=Median-3*MAD, col = "3 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+4*MAD, yend=Median+4*MAD, col = "4 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-4*MAD, yend=Median-4*MAD, col = "4 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median+5*MAD, yend=Median+5*MAD, col = "5 MAD"), size = 1, linetype = "longdash") +
+                            geom_segment(data=MAD_df_All[which(MAD_df_All$QC_Metric == QC),], aes(x=min(as.numeric(as.factor(MAD_df_All$Pool)))-0.5, xend=max(as.numeric(as.factor(MAD_df_All$Pool)))+0.5, y=Median-5*MAD, yend=Median-5*MAD, col = "5 MAD"), size = 1, linetype = "longdash") +
+                            scale_color_manual("MAD", values=c("Median"="grey","1 MAD"="blue3","2 MAD"="darkviolet", "3 MAD" = "firebrick1", "4 MAD" = "darkorange1", "5 MAD" = "gold1")) +
+                            theme(text = element_text(size=14),
+                                axis.text.x = element_text(angle = 45, hjust = 1),
+                                plot.title = element_text(hjust = 0.5),
+                                plot.subtitle = element_text(hjust = 0.5))
+    }
     violins[[QC]] <- ggplot(seurat@meta.data, aes( x = Pool, y = seurat@meta.data[,QC])) +
                     geom_violin() +
                     geom_sina(size = 1, alpha = 0.6) +
@@ -271,7 +318,7 @@ if ("percent.mt" %in% unique(MAD_df_All$QC_Metric) & ("nCount_RNA" %in% MAD_df_A
         theme_classic() +
         scale_color_manual(values = rainbow(length(unique(seurat@meta.data$Pool))), name = "Pool")+
         labs(x = "Number Features", y = "Percent Mitochondial Genes")     
-    ggsave(pUMI_MTscatter, filename = paste0(out, "nFeatures_vs_percentMT_QC_scatter_colorPool.png"))
+    ggsave(pNfeature_MTscatter, filename = paste0(out, "nFeatures_vs_percentMT_QC_scatter_colorPool.png"))
 
 }
 
