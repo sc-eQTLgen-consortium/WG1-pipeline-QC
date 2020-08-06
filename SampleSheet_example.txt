@@ -1,3 +1,0 @@
-Pool	N_Individuals
-Pool1	12	
-Pool2	14
