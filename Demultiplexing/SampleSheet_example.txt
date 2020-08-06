@@ -1,0 +1,2 @@
+Pool	N_Individuals
+OneK1K_scRNA_Sample1	12
