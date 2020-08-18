@@ -15,13 +15,14 @@ rule popscle_pileup:
         bam = lambda wildcards: scrnaseq_libs_df["Bam_Files"][wildcards.pool],
         individuals = lambda wildcards: scrnaseq_libs_df["Individuals_Files"][wildcards.pool]
     output:
-        directory(output_dict["output_dir"] + "/{pool}/popscle/pileup/")
+        output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup.var.gz"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * popscle_dict["pileup_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * popscle_dict["pileup_memory"]
     threads: popscle_dict["pileup_threads"]
     params:
-        sif=input_dict["singularity_image"],
+        out_dir = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup",
+        sif = input_dict["singularity_image"],
         tag_group = popscle_dict["tag_group"],
         tag_UMI = popscle_dict["tag_UMI"],
         cap_BQ = popscle_extra_dict["cap_BQ"],
@@ -48,15 +49,13 @@ rule popscle_pileup:
             --group-list {input.barcodes} \
             --min-total {params.min_total} \
             --min-snp {params.min_snp} \
-            --out {output}pileup
-        [[ -s {output}pileup.var.gz ]]
-        echo $?
+            --out {params.out}
         """
 
 ##### Popscle Demuxlet Demultiplexing #####
 rule popscle_demuxlet:
     input:
-        pileup = output_dict["output_dir"] + "/{pool}/popscle/pileup/",
+        pileup = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup.var.gz",
         snps = input_dict["snp_genotypes_filepath"],
         barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool],
         individuals = lambda wildcards: scrnaseq_libs_df["Individuals_Files"][wildcards.pool]
@@ -67,6 +66,7 @@ rule popscle_demuxlet:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * popscle_dict["demuxlet_threads"]
     threads: popscle_dict["demuxlet_threads"]
     params:
+        pileup = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup",
         out = output_dict["output_dir"] + "/{pool}/popscle/demuxlet/",
         sif = input_dict["singularity_image"],
         field = popscle_dict["genotype_field"],
@@ -87,7 +87,7 @@ rule popscle_demuxlet:
     shell:
         """
         singularity exec {params.sif} popscle demuxlet \
-            --plp {input.pileup}pileup \
+            --plp {params.pileup} \
             --vcf {input.snps} \
             --field {params.field} \
             --geno-error-offset {params.geno_error_offset} \

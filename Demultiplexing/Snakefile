@@ -30,6 +30,15 @@ scrublet_extra_dict = config["scrublet_extra"]
 scds_dict = config["scds"]
 CombineResults_dict = config["CombineResults"]
 
+if input_dict["pipeline_dir"].endswith("Demultiplexing") or input_dict["pipeline_dir"].endswith("Demultiplexing/"):
+    input_dict["pipeline_dir"] = input_dict["pipeline_dir"]
+elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC"):
+    input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "/Demultiplexing"
+elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC/"):
+    input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "Demultiplexing"
+else:
+    print("Unrecognized pipeline directory. Should end in WG1-pipeline-QC or Demultiplexing.")
+
 sys.path.append(input_dict["pipeline_dir"] + '/mods') 
 import prepareArguments
 
