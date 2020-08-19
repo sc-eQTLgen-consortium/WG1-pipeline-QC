@@ -10,10 +10,32 @@ samples.columns = ["Pool", "N"]
 ####################################
 ############ SOUPORCELL ############
 ####################################
+rule souporcell_unzip_barcodes:
+    input:
+        barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool]
+    threads: 1
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * 5,
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * 5
+    output:
+        output_dict["output_dir"] + "/{pool}/souporcell/barcodes.tsv"
+    params:
+        sif = input_dict["singularity_image"]
+    log:
+    shell:
+        """
+        if [[ {input.barcodes} == *".gz"* ]]
+        then
+            singularity exec {params.sif} gunzip < {input.barcodes} > {params.out}
+        else 
+            singularity exec {params.sif} cp {input.barcodes} {params.out}
+        fi
+        """
+
 rule souporcell:
     input:
         bam = lambda wildcards: scrnaseq_libs_df["Bam_Files"][wildcards.pool],
-        barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool],
+        barcodes = output_dict["output_dir"] + "/{pool}/souporcell/barcodes.tsv",
         fasta = ref_dict["fasta_filepath"],
         snps = input_dict["snp_genotypes_filepath"],
     threads: souporcell_dict["souporcell_threads"]
