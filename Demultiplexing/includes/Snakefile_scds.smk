@@ -12,7 +12,7 @@ rule scds:
         script = input_dict["pipeline_dir"] + "/scripts/scds.R",
     output: 
         doublets= output_dict["output_dir"] + "/{pool}/scds/scds_doublets.txt",
-        variables = temp(output_dict["output_dir"] + "/{pool}/scds/scds_variables.txt")
+        variables = output_dict["output_dir"] + "/{pool}/scds/scds_variables.txt"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * scds_dict["scds_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * scds_dict["scds_memory"]
@@ -28,8 +28,6 @@ rule scds:
         singularity exec {params.sif} echo {params.out} >> {output.variables}
         singularity exec {params.sif} echo {params.matrix_dir} >> {output.variables}
         singularity exec {params.sif} Rscript {input.script} {output.variables}
-        [[ -s {output.doublets} ]]
-        echo $?
         """
 
 
