@@ -21,7 +21,7 @@ rule popscle_pileup:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * popscle_dict["pileup_memory"]
     threads: popscle_dict["pileup_threads"]
     params:
-        out_dir = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup",
+        out = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup",
         sif = input_dict["singularity_image"],
         tag_group = popscle_dict["tag_group"],
         tag_UMI = popscle_dict["tag_UMI"],

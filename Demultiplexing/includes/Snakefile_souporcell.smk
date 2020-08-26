@@ -21,14 +21,14 @@ rule souporcell_unzip_barcodes:
         output_dict["output_dir"] + "/{pool}/souporcell/barcodes.tsv"
     params:
         sif = input_dict["singularity_image"]
-    log:
+    log: output_dict["output_dir"] + "/logs/souporcell_unzip_barcodes.{pool}.log"
     shell:
         """
         if [[ {input.barcodes} == *".gz"* ]]
         then
-            singularity exec {params.sif} gunzip < {input.barcodes} > {params.out}
+            singularity exec {params.sif} gunzip < {input.barcodes} > {output}
         else 
-            singularity exec {params.sif} cp {input.barcodes} {params.out}
+            singularity exec {params.sif} cp {input.barcodes} {output}
         fi
         """
 
