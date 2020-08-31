@@ -115,13 +115,13 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
                         -d {params.pipeline_dir} \
                         --scrublet_doublet_threshold {params.scrublet_doublet_threshold} 2> {log}
                 fi
-                singularity exec {params.sif} echo "The pool:" {wildcards.pool} >> {output.log}
-                singularity exec {params.sif} echo "This was a" {params.step} "run" >> {output.log}
-                singularity exec {params.sif} echo "The number of doublets simulated per droplet:" {params.sim_dbl} >> {output.log}
-                singularity exec {params.sif} echo "The min number of counts used for filtering cells prior to PCA:" {params.min_counts} >> {output.log}
-                singularity exec {params.sif} echo "The number of cells for a gene to be expressed in for filtering cells prior to PCA:" {params.min_cells} >> {output.log}
-                singularity exec {params.sif} echo "The number of principle components used to embed the trnscriptomes prior to k-nearest-neighbor graph:" {params.n_prin_comps} >> {output.log}
-                singularity exec {params.sif} echo "The manual doublet threshold set:" {params.scrublet_doublet_threshold} >> {output.log}
+                singularity exec {params.sif} echo "The pool:" {wildcards.pool} >> {log}
+                singularity exec {params.sif} echo "This was a" {params.step} "run" >> {log}
+                singularity exec {params.sif} echo "The number of doublets simulated per droplet:" {params.sim_dbl} >> {log}
+                singularity exec {params.sif} echo "The min number of counts used for filtering cells prior to PCA:" {params.min_counts} >> {log}
+                singularity exec {params.sif} echo "The number of cells for a gene to be expressed in for filtering cells prior to PCA:" {params.min_cells} >> {log}
+                singularity exec {params.sif} echo "The number of principle components used to embed the trnscriptomes prior to k-nearest-neighbor graph:" {params.n_prin_comps} >> {log}
+                singularity exec {params.sif} echo "The manual doublet threshold set:" {params.scrublet_doublet_threshold} >> {log}
             fi
             [[ -s {output.results} ]]
             echo $?
