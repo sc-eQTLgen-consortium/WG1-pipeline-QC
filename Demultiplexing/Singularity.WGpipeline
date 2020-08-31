@@ -108,7 +108,7 @@ From: continuumio/miniconda3
     /opt/conda/envs/py36/bin/pip install pyfaidx
     /opt/conda/envs/py36/bin/pip install scikit-learn
     /opt/conda/envs/py36/bin/pip install pandas
-    /opt/conda/envs/py36/bin/pip install matplotlib
+    /opt/conda/envs/py36/bin/pip install matplotlib==3.2.2
     /opt/conda/envs/py36/bin/pip install scikit-image
     /opt/conda/envs/py36/bin/pip install numba
     /opt/conda/envs/py36/bin/pip install annoy
@@ -117,6 +117,9 @@ From: continuumio/miniconda3
     /opt/conda/envs/py36/bin/pip install h5py
     /opt/conda/envs/py36/bin/pip install snakemake
     /opt/conda/envs/py36/bin/pip install Jinja2
+
+    cd /opt
+    git clone https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
 
     cd /opt
     wget https://github.com/samtools/htslib/releases/download/1.10.2/htslib-1.10.2.tar.bz2
