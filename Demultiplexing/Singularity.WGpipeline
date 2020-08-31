@@ -118,6 +118,7 @@ From: continuumio/miniconda3
     /opt/conda/envs/py36/bin/pip install snakemake
     /opt/conda/envs/py36/bin/pip install Jinja2
 
+
     cd /opt
     git clone https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
 
