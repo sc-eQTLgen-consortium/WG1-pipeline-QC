@@ -53,7 +53,7 @@ rule final_assignments:
     params:
         sif = input_dict["singularity_image"],
         out = output_dict["output_dir"],
-        script = input_dict["pipeline_dir"] + "/scripts/FinalBarcodeAssignments.R"
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/FinalBarcodeAssignments.R"
     log: output_dict["output_dir"] + "/logs/final_assignments.{pool}.log"
     shell:
         """
@@ -127,12 +127,12 @@ rule QC_plots:
     threads: CombineResults_dict["FinalQC_threads"]
     params:
         sif = input_dict["singularity_image"],
-        script = input_dict["pipeline_dir"] + "/scripts/Singlet_QC_Figures.R",
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Singlet_QC_Figures.R",
         main_dir = output_dict["output_dir"],
         dirs10x = output_dict["output_dir"] + '/file_directories.txt',
         out = output_dict["output_dir"] + "/QC_figures/",
-        rb_genes = input_dict["pipeline_dir"] + "/Ribosomal_genes.txt",
-        mt_genes = input_dict["pipeline_dir"] + "/Mitochondrial_genes.txt"
+        rb_genes = "/opt/WG1-pipeline-QC/Demultiplexing/Ribosomal_genes.txt",
+        mt_genes = "/opt/WG1-pipeline-QC/Demultiplexing/Mitochondrial_genes.txt"
     log: output_dict["output_dir"] + "/logs/QC_plots.log"
     shell:
         """

@@ -6,6 +6,7 @@ import pandas as pd
 from glob import glob
 import datetime
 from datetime import datetime
+import subprocess
 
 
 ### Set the date and time of run starting
@@ -13,7 +14,7 @@ date_now = datetime.date(datetime.now())
 time_now = datetime.time(datetime.now())
 datetime_now = str(date_now) + "_" + str(time_now)
 
-# Extract variables from configuration file for use within the rest of the pipeline
+### Extract variables from configuration file for use within the rest of the pipeline
 input_dict = config["inputs"]
 output_dict = config["outputs"]
 ref_dict = config["refs"]
@@ -30,24 +31,41 @@ scrublet_extra_dict = config["scrublet_extra"]
 scds_dict = config["scds"]
 CombineResults_dict = config["CombineResults"]
  
-if input_dict["pipeline_dir"].endswith("Demultiplexing") or input_dict["pipeline_dir"].endswith("Demultiplexing/"):
-    input_dict["pipeline_dir"] = input_dict["pipeline_dir"]
-elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC"):
-    input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "/Demultiplexing"
-elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC/"):
-    input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "Demultiplexing"
-else:
-    print("Unrecognized pipeline directory. Should end in WG1-pipeline-QC or Demultiplexing.")
+# if input_dict["pipeline_dir"].endswith("Demultiplexing") or input_dict["pipeline_dir"].endswith("Demultiplexing/"):
+#     input_dict["pipeline_dir"] = input_dict["pipeline_dir"]
+# elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC"):
+#     input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "/Demultiplexing"
+# elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC/"):
+#     input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "Demultiplexing"
+# else:
+#     print("Unrecognized pipeline directory. Should end in WG1-pipeline-QC or Demultiplexing.")
 
-sys.path.append(input_dict["pipeline_dir"] + '/mods') 
+### Copy necessary files from singularity image to outdir
+## mods
+out_mods = output_dict["output_dir"] + "/.mods/"
+os.mkdir(out_mods)
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/mods/prepareArguments.py", out_mods])
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/mods/read10x.py", out_mods])
+sys.path.append(out_mods) 
 import prepareArguments
 
-# Use prepareArguments.py script to retrieve exact directories of single cell files
+## includes
+out_inlcudes = output_dict["output_dir"] + "/.includes/"
+os.mkdir(out_inlcudes)
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_popscle.smk", out_inlcudes])
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_souporcell.smk", out_inlcudes])
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_scrublet.smk", out_inlcudes])
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_scds.smk", out_inlcudes])
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_DoubletDetection.smk", out_inlcudes])
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_CombineResults.smk", out_inlcudes])
+
+
+### Use prepareArguments.py script to retrieve exact directories of single cell files
 scrnaseq_libs_df = prepareArguments.get_scrnaseq_dirs(config)
 scrnaseq_libs_df.to_csv(os.path.join(output_dict["output_dir"],'file_directories.txt'), sep = "\t", index = False)
 
 
-# Get list of pools to process
+### Get list of pools to process
 samples = pd.read_csv(input_dict["samplesheet_filepath"], sep = "\t")
 samples.columns = ["Pool", "N"]
 
@@ -56,13 +74,13 @@ samples.columns = ["Pool", "N"]
 if os.path.exists(output_dict["output_dir"] + "/scrublet/scrublet_check.done"):
     scrublet_decisions = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet_gene_pctl.txt", sep = "\t")
 
-# Includes
-include: input_dict["pipeline_dir"] + "/includes/Snakefile_popscle.smk"
-include: input_dict["pipeline_dir"] + "/includes/Snakefile_souporcell.smk"
-include: input_dict["pipeline_dir"] + "/includes/Snakefile_scrublet.smk"
-include: input_dict["pipeline_dir"] + "/includes/Snakefile_scds.smk"
-include: input_dict["pipeline_dir"] + "/includes/Snakefile_DoubletDetection.smk"
-include: input_dict["pipeline_dir"] + "/includes/Snakefile_CombineResults.smk"
+### Includes
+include: out_inlcudes + "Snakefile_popscle.smk"
+include: out_inlcudes + "Snakefile_souporcell.smk"
+include: out_inlcudes + "Snakefile_scrublet.smk"
+include: out_inlcudes + "Snakefile_scds.smk"
+include: out_inlcudes + "Snakefile_DoubletDetection.smk"
+include: out_inlcudes + "Snakefile_CombineResults.smk"
 
 
 demuxlet_files = []

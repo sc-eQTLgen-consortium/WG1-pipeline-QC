@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(
     description="wrapper for DoubletDetection for doublet detection from transcriptomic data.")
 parser.add_argument("-m", "--counts_matrix", required = True, help = "cell ranger counts matrix.mtx")
 parser.add_argument("-b", "--barcodes", required = True, help = "cell ranger barcodes.tsv or barcodes.tsv.gz")
-parser.add_argument("-d", "--pipeline_dir", required = True, help = "The pipeline directory")
+parser.add_argument("-d", "--mods_dir", required = True, help = "The mods directory")
 parser.add_argument("-o", "--outdir", required = False, default = os.getcwd(), help = "The output directory; default is current working directory")
 parser.add_argument("-i", "--n_iterations", required = False, default = 50, type = int, help = "Number of iterations to use; default is 50")
 parser.add_argument("-p", "--phenograph", required = False, default = False, help = "Whether to use phenograph (True) or not (False); default is False")
@@ -40,7 +40,7 @@ else:
     standard_scaling = args.standard_scaling
 print(standard_scaling)
 
-sys.path.append(args.pipeline_dir + '/mods') 
+sys.path.append(args.mods_dir) 
 import read10x
 
 ### Read in data ###

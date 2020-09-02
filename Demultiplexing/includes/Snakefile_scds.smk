@@ -9,7 +9,7 @@ from glob import glob
 ##############################
 rule scds:
     input:
-        script = input_dict["pipeline_dir"] + "/scripts/scds.R",
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scds.R",
     output: 
         doublets= output_dict["output_dir"] + "/{pool}/scds/scds_doublets.txt",
         variables = output_dict["output_dir"] + "/{pool}/scds/scds_variables.txt"

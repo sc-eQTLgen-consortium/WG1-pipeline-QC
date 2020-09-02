@@ -72,14 +72,14 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
         params:
             sif = input_dict["singularity_image"],
             out = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/",
-            script = input_dict["pipeline_dir"] + "/scripts/scrublet_pipeline.py",
+            script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scrublet_pipeline.py",
             sim_dbl = sim_dbl,
             min_counts = min_counts,
             min_cells = min_cells,
             n_prin_comps = n_prin_comps,
             scrublet_doublet_threshold = scrublet_doublet_threshold,
             step = step,
-            pipeline_dir = input_dict["pipeline_dir"],
+            mods_dir = output_dict["output_dir"] + "/.mods",
             ready = ready
         log: output_dict["output_dir"] + "/logs/scrublet." + step + ".{pool}_{pctl}.log"
         shell:
@@ -100,7 +100,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
                         --n_prin_comps {params.n_prin_comps} \
                         --min_gene_variability_pctl {wildcards.pctl} \
                         -o {params.out} \
-                        -d {params.pipeline_dir} 2> {log}
+                        -d {params.mods_dir} 2> {log}
                 elif [ {params.step} == "manual" ]
                 then
                     singularity exec {params.sif} python {params.script} \
@@ -112,7 +112,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
                         --n_prin_comps {params.n_prin_comps} \
                         --min_gene_variability_pctl {wildcards.pctl} \
                         -o {params.out} \
-                        -d {params.pipeline_dir} \
+                        -d {params.mods_dir} \
                         --scrublet_doublet_threshold {params.scrublet_doublet_threshold} 2> {log}
                 fi
                 singularity exec {params.sif} echo "The pool:" {wildcards.pool} >> {log}

@@ -142,7 +142,7 @@ rule souporcell_correlate_genotypes:
     params:
         sif = input_dict["singularity_image"],
         out = output_dict["output_dir"],
-        script = input_dict["pipeline_dir"] + "/scripts/Assign_Indiv_by_Geno.R"
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Assign_Indiv_by_Geno.R"
     log: output_dict["output_dir"] + "/logs/souporcell_correlate_genotypes.{pool}.log"
     shell:
         """

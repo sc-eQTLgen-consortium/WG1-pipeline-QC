@@ -69,7 +69,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
             disk_per_thread_gb = lambda wildcards, attempt: attempt * DoubletDetection_dict["DoubletDetection_memory"]
         threads: DoubletDetection_dict["DoubletDetection_threads"]
         params:
-            script = input_dict["pipeline_dir"] + "/scripts/DoubletDetection.py",
+            script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/DoubletDetection.py",
             out = output_dict["output_dir"] + "/{pool}/DoubletDetection/",
             sif = input_dict["singularity_image"],
             n_iterations = n_iterations,
@@ -77,7 +77,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
             standard_scaling = standard_scaling,
             p_thresh = p_thresh,
             voter_thresh = voter_thresh,
-            dir_pipeline = input_dict["pipeline_dir"],
+            dir_mods = output_dict["output_dir"] + "/.mods",
             ready = ready,
             step = step
         log: output_dict["output_dir"] + "/logs/DoubletDetection." + step + ".{pool}.log"
@@ -96,7 +96,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
                     --standard_scaling {params.standard_scaling} \
                     --p_thresh {params.p_thresh} \
                     --voter_thresh {params.voter_thresh} \
-                    -d {params.dir_pipeline} \
+                    -d {params.dir_mods} \
                     -o {params.out} 2> {log}
             singularity exec {params.sif} echo "The pool:" {wildcards.pool} >> {output.log}
             singularity exec {params.sif} echo "This was a" {params.step} "run" >> {output.log}
