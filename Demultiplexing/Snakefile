@@ -4,15 +4,8 @@ import os
 import sys
 import pandas as pd
 from glob import glob
-import datetime
-from datetime import datetime
 import subprocess
 
-
-### Set the date and time of run starting
-date_now = datetime.date(datetime.now())
-time_now = datetime.time(datetime.now())
-datetime_now = str(date_now) + "_" + str(time_now)
 
 ### Extract variables from configuration file for use within the rest of the pipeline
 input_dict = config["inputs"]
@@ -30,15 +23,7 @@ scrublet_manual_dict = config["scrublet_manual"]
 scrublet_extra_dict = config["scrublet_extra"]
 scds_dict = config["scds"]
 CombineResults_dict = config["CombineResults"]
- 
-# if input_dict["pipeline_dir"].endswith("Demultiplexing") or input_dict["pipeline_dir"].endswith("Demultiplexing/"):
-#     input_dict["pipeline_dir"] = input_dict["pipeline_dir"]
-# elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC"):
-#     input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "/Demultiplexing"
-# elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC/"):
-#     input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "Demultiplexing"
-# else:
-#     print("Unrecognized pipeline directory. Should end in WG1-pipeline-QC or Demultiplexing.")
+
 
 ### Copy necessary files from singularity image to outdir
 ## mods
@@ -105,7 +90,12 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
         if scrublet_manual_dict["run_scrublet_manual"] == False:
             scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/default_run_variables.txt", pool = samples.Pool, pctl = scrublet_dict["percentile"]))
         elif scrublet_manual_dict["run_scrublet_manual"] == True:
-            scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables_" + datetime_now + ".txt",zip, pool = scrublet_manual_dict["scrublet_manual_threshold_pools"], pctl = scrublet_manual_dict["scrublet_manual_threshold_percentiles"]))
+            scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables.txt",zip, pool = scrublet_manual_dict["scrublet_manual_threshold_pools"], pctl = scrublet_manual_dict["scrublet_manual_threshold_percentiles"]))
+            ### remove the files to force the rule to run if still needing to rerun (will only happen if manual selections aren't filled in all the way)
+            for f in expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables.txt",zip, pool = scrublet_manual_dict["scrublet_manual_threshold_pools"], pctl = scrublet_manual_dict["scrublet_manual_threshold_percentiles"]):
+                fname = f.rstrip() 
+                if os.path.isfile(fname): 
+                    os.remove(fname)
 
 DoubletDetection_files = []
 DoubletDetection_files.append(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv")
@@ -117,7 +107,12 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
         if DoubletDetection_manual_dict["run_DoubletDetection_manual"] == False:
             DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/default_run_variables.txt", pool = samples.Pool))
         elif DoubletDetection_manual_dict["run_DoubletDetection_manual"] == True:
-            DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables_" + datetime_now + ".txt", pool = DoubletDetection_manual_dict["DoubletDetection_manual_pools"]))
+            DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables.txt", pool = DoubletDetection_manual_dict["DoubletDetection_manual_pools"]))
+            ### remove the files to force the rule to run if still needing to rerun (will only happen if manual selections aren't filled in all the way)
+            for f in expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables.txt", pool = DoubletDetection_manual_dict["DoubletDetection_manual_pools"]):
+                fname = f.rstrip() 
+                if os.path.isfile(fname): 
+                    os.remove(fname)
 
 
 combined_files = []
@@ -137,5 +132,3 @@ rule all:
         scrublet_files,
         DoubletDetection_files,
         combined_files
-
-

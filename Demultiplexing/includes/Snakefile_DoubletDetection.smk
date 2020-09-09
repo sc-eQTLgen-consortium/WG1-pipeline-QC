@@ -47,7 +47,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
         voter_thresh = DoubletDetection_extra_dict["voter_thresh"]
     elif DoubletDetection_manual_dict["run_DoubletDetection_manual"] == True:
         step = "manual"
-        log = output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables_" + datetime_now + ".txt"
+        log = output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables.txt"
         n_iterations = DoubletDetection_manual_dict["n_iterations"]
         phenograph = DoubletDetection_manual_dict["phenograph"]
         standard_scaling = DoubletDetection_manual_dict["standard_scaling"]
