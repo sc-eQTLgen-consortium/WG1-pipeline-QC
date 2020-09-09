@@ -5,6 +5,7 @@ import sys
 import pandas as pd
 from glob import glob
 import subprocess
+import shutil
 
 
 ### Extract variables from configuration file for use within the rest of the pipeline
@@ -28,23 +29,27 @@ CombineResults_dict = config["CombineResults"]
 ### Copy necessary files from singularity image to outdir
 ## mods
 out_mods = output_dict["output_dir"] + "/.mods/"
-if not (os.path.exists(out_mods)):
-    os.mkdir(out_mods)
-    subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/mods/prepareArguments.py", out_mods])
-    subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/mods/read10x.py", out_mods])
+if (os.path.exists(out_mods)):
+    shutil.rmtree(out_mods)
+
+os.mkdir(out_mods)
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/mods/prepareArguments.py", out_mods])
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/mods/read10x.py", out_mods])
 sys.path.append(out_mods) 
 import prepareArguments
 
 ## includes
 out_inlcudes = output_dict["output_dir"] + "/.includes/"
-if not (os.path.exists(out_inlcudes)):
-    os.mkdir(out_inlcudes)
-    subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_popscle.smk", out_inlcudes])
-    subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_souporcell.smk", out_inlcudes])
-    subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_scrublet.smk", out_inlcudes])
-    subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_scds.smk", out_inlcudes])
-    subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_DoubletDetection.smk", out_inlcudes])
-    subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_CombineResults.smk", out_inlcudes])
+if (os.path.exists(out_inlcudes)):
+    shutil.rmtree(out_inlcudes)
+
+os.mkdir(out_inlcudes)
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_popscle.smk", out_inlcudes])
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_souporcell.smk", out_inlcudes])
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_scrublet.smk", out_inlcudes])
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_scds.smk", out_inlcudes])
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_DoubletDetection.smk", out_inlcudes])
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_CombineResults.smk", out_inlcudes])
 
 
 ### Use prepareArguments.py script to retrieve exact directories of single cell files
