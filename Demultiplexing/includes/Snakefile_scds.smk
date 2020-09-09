@@ -26,8 +26,8 @@ rule scds:
         """
         singularity exec {params.sif} echo {wildcards.pool} > {output.variables}
         singularity exec {params.sif} echo {params.out} >> {output.variables}
-        singularity exec {params.sif} echo {params.matrix_dir} >> {output.variables}
-        singularity exec {params.sif} Rscript {input.script} {output.variables}
+        singularity exec {params.sif} echo {input.matrix_dir} >> {output.variables}
+        singularity exec {params.sif} Rscript {params.script} {output.variables}
         """
 
 
