@@ -9,7 +9,7 @@ from glob import glob
 ##############################
 rule scds:
     input:
-        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scds.R",
+        matrix_dir = lambda wildcards: scrnaseq_libs_df["Matrix_Directories"][wildcards.pool],
     output: 
         doublets= output_dict["output_dir"] + "/{pool}/scds/scds_doublets.txt",
         variables = output_dict["output_dir"] + "/{pool}/scds/scds_variables.txt"
@@ -18,7 +18,7 @@ rule scds:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * scds_dict["scds_memory"]
     threads: scds_dict["scds_threads"]
     params:
-        matrix_dir = lambda wildcards: scrnaseq_libs_df["Matrix_Directories"][wildcards.pool],
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scds.R",
         out = output_dict["output_dir"] + "/{pool}/scds/",
         sif = input_dict["singularity_image"]
     log: output_dict["output_dir"] + "/logs/scds.{pool}.log"
