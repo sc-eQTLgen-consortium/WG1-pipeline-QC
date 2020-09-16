@@ -24,7 +24,13 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         tar -zxvf bedtools-2.28.0.tar.gz
         cd bedtools2
         make
-            
+
+    CARGO_HOME=/opt/.cargo RUSTUP_HOME=/opt/.cargo bash -c 'curl https://sh.rustup.rs -sSf | sh -s -- -y'
+        source /opt/.cargo/env
+        which cargo
+        rustup default stable
+        yes | apt-get install git
+  
     cd /opt
         git clone https://github.com/wheaton5/souporcell.git
             cd souporcell/troublet
