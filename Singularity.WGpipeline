@@ -32,7 +32,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 
     cd /opt
     CARGO_HOME=/opt/.cargo RUSTUP_HOME=/opt/.cargo bash -c 'curl https://sh.rustup.rs -sSf | sh -s -- -y'
-        source /opt/.cargo/env
+        . /opt/.cargo/env
         which cargo
         rustup default stable
         yes | apt-get install git
