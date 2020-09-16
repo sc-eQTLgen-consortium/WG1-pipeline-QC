@@ -7,7 +7,9 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     alias python=python3
 
 %post 
-
+    apt update
+    yes | apt upgrade
+    
     cd /opt
     git clone https://github.com/JonathanShor/DoubletDetection.git
     cd DoubletDetection
@@ -43,8 +45,6 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
             tar xzvf vartrix-v1.1.3-x86_64-linux.tar.gz
             rm vartrix-v1.1.3-x86_64-linux.tar.gz
             export PATH=/opt/vartrix-v1.1.3-x86_64-linux:$PATH
-    
-
 
     cd /opt
     wget https://github.com/samtools/htslib/releases/download/1.10.2/htslib-1.10.2.tar.bz2
