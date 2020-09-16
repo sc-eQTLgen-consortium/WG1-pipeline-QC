@@ -7,9 +7,12 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     alias python=python3
 
 %post 
+    #!/bin/bash
+    eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
+    export PATH=/opt/conda/bin/:$PATH
     apt update
     yes | apt upgrade
-    
+
     cd /opt
     git clone https://github.com/JonathanShor/DoubletDetection.git
     cd DoubletDetection
