@@ -27,11 +27,15 @@ CombineResults_dict = config["CombineResults"]
 
 
 ### Copy necessary files from singularity image to outdir
-## mods
-out_mods = output_dict["output_dir"] + "/.mods/"
-if (os.path.exists(out_mods)):
-    shutil.rmtree(out_mods)
+## create hidden folder to hold files from image that are necessary
+pipeline_dir = output_dict["output_dir"] + "/.demultiplexing_pipeline/""
+if (os.path.exists(pipeline_dir)):
+    shutil.rmtree(pipeline_dir)
 
+os.mkdir(pipeline_dir)
+
+## mods
+out_mods = pipeline_dir + "/.mods/"
 os.mkdir(out_mods)
 subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/mods/prepareArguments.py", out_mods])
 subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/mods/read10x.py", out_mods])
@@ -39,7 +43,7 @@ sys.path.append(out_mods)
 import prepareArguments
 
 ## includes
-out_inlcudes = output_dict["output_dir"] + "/.includes/"
+out_inlcudes = pipeline_dir + "/.includes/"
 if (os.path.exists(out_inlcudes)):
     shutil.rmtree(out_inlcudes)
 
@@ -51,6 +55,8 @@ subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "
 subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_DoubletDetection.smk", out_inlcudes])
 subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/includes/Snakefile_CombineResults.smk", out_inlcudes])
 
+## files
+subprocess.call(["singularity", "exec", input_dict["singularity_image"], "cp", "/opt/WG1-pipeline-QC/Demultiplexing/Mitochondrial_genes.txt", pipeline_dir])
 
 ### Use prepareArguments.py script to retrieve exact directories of single cell files
 scrnaseq_libs_df = prepareArguments.get_scrnaseq_dirs(config)
