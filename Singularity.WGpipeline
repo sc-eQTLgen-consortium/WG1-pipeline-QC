@@ -107,5 +107,17 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 
 
 
+##############################
+# setup scripts for users
+##############################
+%apphelp setup
+    This function copies pipeline scripts to the user systems from the Singularity image.
+%appenv setup
+    SCRIPT_DIR=/opt/WG1-pipeline-QC/Demultiplexing
+    export SCRIPT_DIR
+%apprun setup
+    exec cp -a ${SCRIPT_DIR}/. "$@"
+
+    
 %labels 
     Author Drew Neavin
