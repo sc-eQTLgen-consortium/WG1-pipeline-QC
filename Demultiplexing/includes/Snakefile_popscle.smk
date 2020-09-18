@@ -3,7 +3,6 @@ import os
 import pandas as pd
 from glob import glob
 
-
 ###################################
 ############# POPSCLE #############
 ###################################
@@ -21,8 +20,9 @@ rule popscle_pileup:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * popscle_dict["pileup_memory"]
     threads: popscle_dict["pileup_threads"]
     params:
-        out_dir = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup",
+        out = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup",
         sif = input_dict["singularity_image"],
+        bind = bind_path, 
         tag_group = popscle_dict["tag_group"],
         tag_UMI = popscle_dict["tag_UMI"],
         cap_BQ = popscle_extra_dict["cap_BQ"],
@@ -35,7 +35,7 @@ rule popscle_pileup:
     log: output_dict["output_dir"] + "/logs/popscle_pileup.{pool}.log"
     shell:
         """
-        singularity exec {params.sif} popscle dsc-pileup \
+        singularity exec --bind {params.bind} {params.sif} popscle dsc-pileup \
             --sam {input.bam} \
             --tag-group {params.tag_group} \
             --tag-UMI {params.tag_UMI} \
@@ -69,6 +69,7 @@ rule popscle_demuxlet:
         pileup = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup",
         out = output_dict["output_dir"] + "/{pool}/popscle/demuxlet/",
         sif = input_dict["singularity_image"],
+        bind = bind_path,
         field = popscle_dict["genotype_field"],
         geno_error_offset = popscle_extra_dict["geno_error_offset"],
         geno_error_coeff = popscle_extra_dict["geno_error_coeff"],
@@ -86,7 +87,7 @@ rule popscle_demuxlet:
     log: output_dict["output_dir"] + "/logs/popscle_demuxlet.{pool}.log"
     shell:
         """
-        singularity exec {params.sif} popscle demuxlet \
+        singularity exec --bind {params.bind} {params.sif} popscle demuxlet \
             --plp {params.pileup} \
             --vcf {input.snps} \
             --field {params.field} \
@@ -123,22 +124,23 @@ rule demuxlet_results_temp:
         disk_per_thread_gb=1
     threads: 1
     params:
-        sif = input_dict["singularity_image"]
+        sif = input_dict["singularity_image"],
+        bind = bind_path
     log: output_dict["output_dir"] + "/logs/demuxlet_results_temp.{pool}.log"
     shell:
         """
-        singularity exec {params.sif} awk 'BEGIN{{OFS=FS="\\t"}}{{print $2,$3,$5,$6,$14,$19,$20}}' {input.demuxlet} | \
-            singularity exec {params.sif} sed "s/SNG/singlet/g" | \
-            singularity exec {params.sif} sed "s/DBL/doublet/g" | \
-            singularity exec {params.sif} awk 'BEGIN{{FS=OFS="\t"}} $3=="doublet" {{$4="doublet"}}1' | \
-            singularity exec {params.sif} sed -E "s/,[0-9]+_[0-9]+,[0-9].[0-9]+\t/\t/g" | sed "s/NUM.SNPS/nSNP/g" | \
-            singularity exec {params.sif} sed "s/DROPLET.TYPE/DropletType/g" | \
-            singularity exec {params.sif} sed "s/BEST.GUESS/Assignment/g" | \
-            singularity exec {params.sif} sed "s/singlet.BEST.LLK/SingletLLK/g" | \
-            singularity exec {params.sif} sed "s/doublet.BEST.LLK/DoulbetLLK/g" | \
-            singularity exec {params.sif} sed "s/DIFF.LLK.singlet.doublet/DiffLLK/g" | \
-            singularity exec {params.sif} sed "1s/\t/\tdemuxlet_/g" | \
-            singularity exec {params.sif} sed "s/BARCODE/Barcode/g" | \
-            singularity exec {params.sif} awk 'NR<2{{print $0;next}}{{print $0 | "sort -k1"}}'  > {output}
+        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{OFS=FS="\\t"}}{{print $2,$3,$5,$6,$14,$19,$20}}' {input.demuxlet} | \
+            singularity exec --bind {params.bind} {params.sif} sed "s/SNG/singlet/g" | \
+            singularity exec --bind {params.bind} {params.sif} sed "s/DBL/doublet/g" | \
+            singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}} $3=="doublet" {{$4="doublet"}}1' | \
+            singularity exec --bind {params.bind} {params.sif} sed -E "s/,[0-9]+_[0-9]+,[0-9].[0-9]+\t/\t/g" | sed "s/NUM.SNPS/nSNP/g" | \
+            singularity exec --bind {params.bind} {params.sif} sed "s/DROPLET.TYPE/DropletType/g" | \
+            singularity exec --bind {params.bind} {params.sif} sed "s/BEST.GUESS/Assignment/g" | \
+            singularity exec --bind {params.bind} {params.sif} sed "s/singlet.BEST.LLK/SingletLLK/g" | \
+            singularity exec --bind {params.bind} {params.sif} sed "s/doublet.BEST.LLK/DoulbetLLK/g" | \
+            singularity exec --bind {params.bind} {params.sif} sed "s/DIFF.LLK.singlet.doublet/DiffLLK/g" | \
+            singularity exec --bind {params.bind} {params.sif} sed "1s/\t/\tdemuxlet_/g" | \
+            singularity exec --bind {params.bind} {params.sif} sed "s/BARCODE/Barcode/g" | \
+            singularity exec --bind {params.bind} {params.sif} awk 'NR<2{{print $0;next}}{{print $0 | "sort -k1"}}'  > {output}
         """
 

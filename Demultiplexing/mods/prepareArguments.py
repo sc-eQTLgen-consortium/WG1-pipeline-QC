@@ -1,4 +1,4 @@
-# Prepare inputs
+#!/usr/bin/env python
 import os
 import pandas as pd
 from glob import glob

@@ -3,7 +3,6 @@ import os
 import pandas as pd
 from glob import glob
 
-
 #################################
 ######## COMBINE RESULTS ########
 #################################
@@ -24,7 +23,8 @@ rule join_results:
         disk_per_thread_gb=5
     threads: 1
     params:
-        sif = input_dict["singularity_image"]
+        sif = input_dict["singularity_image"],
+        bind = bind_path
     log: output_dict["output_dir"] + "/logs/join_results.{pool}.log"
     shell:
         """
@@ -52,14 +52,15 @@ rule final_assignments:
     threads: CombineResults_dict["FinalAssignments_threads"]
     params:
         sif = input_dict["singularity_image"],
+        bind = bind_path,
         out = output_dict["output_dir"],
-        script = input_dict["pipeline_dir"] + "/scripts/FinalBarcodeAssignments.R"
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/FinalBarcodeAssignments.R"
     log: output_dict["output_dir"] + "/logs/final_assignments.{pool}.log"
     shell:
         """
-        singularity exec {params.sif} echo {params.out} > {output.variables}
-        singularity exec {params.sif} echo {wildcards.pool} >> {output.variables}
-        singularity exec {params.sif} Rscript {params.script} {output.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {params.out} > {output.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {wildcards.pool} >> {output.variables}
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {output.variables}
         [[ -s {output.figure} ]]
         echo $?
         """
@@ -77,11 +78,12 @@ rule echo_final_assignments:
         disk_per_thread_gb=1
     threads: 1
     params:
-        sif = input_dict["singularity_image"]
+        sif = input_dict["singularity_image"],
+        bind = bind_path
     log: output_dict["output_dir"] + "/logs/echo_final_assignments.log"
     shell:
         """
-        singularity exec {params.sif} echo {input} | singularity exec {params.sif} tr ' ' '\n' >> {output}
+        singularity exec --bind {params.bind} {params.sif} echo {input} | singularity exec --bind {params.bind} {params.sif} tr ' ' '\n' >> {output}
         """
 
 rule final_assignments_check:
@@ -96,12 +98,13 @@ rule final_assignments_check:
         disk_per_thread_gb=1
     threads: 1
     params:
-        sif = input_dict["singularity_image"]
+        sif = input_dict["singularity_image"],
+        bind = bind_path
     log: output_dict["output_dir"] + "/logs/final_assignments_check.log"
     shell:
         """
-        singularity exec {params.sif} cat {input.assignment_list} > {output.assignment_list}
-        singularity exec {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print $1}}' {input.meta} | singularity exec {params.sif} tail -n+2 > {output.meta}
+        singularity exec --bind {params.bind} {params.sif} cat {input.assignment_list} > {output.assignment_list}
+        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print $1}}' {input.meta} | singularity exec --bind {params.bind} {params.sif} tail -n+2 > {output.meta}
         if [ "$(wc -l < {output.meta})" -eq "$(wc -l < {output.assignment_list})" ]
         then 
             echo 0
@@ -127,22 +130,23 @@ rule QC_plots:
     threads: CombineResults_dict["FinalQC_threads"]
     params:
         sif = input_dict["singularity_image"],
-        script = input_dict["pipeline_dir"] + "/scripts/Singlet_QC_Figures.R",
+        bind = bind_path,
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Singlet_QC_Figures.R",
         main_dir = output_dict["output_dir"],
         dirs10x = output_dict["output_dir"] + '/file_directories.txt',
         out = output_dict["output_dir"] + "/QC_figures/",
-        rb_genes = input_dict["pipeline_dir"] + "/Ribosomal_genes.txt",
-        mt_genes = input_dict["pipeline_dir"] + "/Mitochondrial_genes.txt"
+        rb_genes = "/opt/WG1-pipeline-QC/Demultiplexing/Ribosomal_genes.txt",
+        mt_genes = "/opt/WG1-pipeline-QC/Demultiplexing/Mitochondrial_genes.txt"
     log: output_dict["output_dir"] + "/logs/QC_plots.log"
     shell:
         """
-        singularity exec {params.sif} echo {params.main_dir} > {output.variables}
-        singularity exec {params.sif} echo {input.pools} >> {output.variables}
-        singularity exec {params.sif} echo {params.dirs10x} >> {output.variables}
-        singularity exec {params.sif} echo {params.out} >> {output.variables}
-        singularity exec {params.sif} echo {params.rb_genes} >> {output.variables}
-        singularity exec {params.sif} echo {params.mt_genes} >> {output.variables}
-        singularity exec {params.sif} Rscript {params.script} {output.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {params.main_dir} > {output.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {input.pools} >> {output.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {params.dirs10x} >> {output.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {params.out} >> {output.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {params.rb_genes} >> {output.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {params.mt_genes} >> {output.variables}
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {output.variables}
         [[ -s {output.fig} ]]
         echo $?
         """

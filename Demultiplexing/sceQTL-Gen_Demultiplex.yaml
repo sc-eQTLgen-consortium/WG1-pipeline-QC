@@ -7,15 +7,16 @@ refs:
 
 inputs:
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
+  bind_path: /path/to/bind/to/mount ## List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2} 
   samplesheet_filepath: /path/to/sample/metadata/file.tsv ### tab separated file that has a header. Each line has a pool name used for the scRNA-seq directories and the number of individuals in each pool 
   scRNAseq_dir: /path/to/scRNAseq/parent/directory ### the parent directory that has directories for each pool and the scRNA-seq output below it
   snp_genotypes_filepath: /path/to/individual_genotypes.vcf ### the path to the genotype file that has just SNPs that are within exons and with a minor allele frequency > 0.05 (5%) in this sample
   individual_list_dir: /path/to/individual_list/directory ### Directory that has a different file for each pool. Each file contains a list of the individuals IDs that are in the pool separated by line (match the genotype individual IDs)
-  pipeline_dir: /path/to/pipeline/directory ### The path to the pipeline directory is needed so it can call files and scripts correctly
 
 outputs: 
   output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. The directory does not need to exist - snakemake will make it if it doesn't exist.
 
+  
 ###################################################################################################################
 ##### The following arguments are common parameters that may need to be changed depending on the dataset and  #####
 ###################################################################################################################

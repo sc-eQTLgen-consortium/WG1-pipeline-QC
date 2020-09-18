@@ -1,22 +1,22 @@
-#!/usr/local/envs/py36/bin python3
-
+#!/usr/bin/env python
 import os
 import sys
 import pandas as pd
 from glob import glob
-import datetime
-from datetime import datetime
+import subprocess
+import shutil
 
-
-### Set the date and time of run starting
-date_now = datetime.date(datetime.now())
-time_now = datetime.time(datetime.now())
-datetime_now = str(date_now) + "_" + str(time_now)
+# Import custom functions
+from mods import prepareArguments
+from mods import read10x
 
 # Extract variables from configuration file for use within the rest of the pipeline
 input_dict = config["inputs"]
 output_dict = config["outputs"]
 ref_dict = config["refs"]
+bind_path = "{bind}:/mnt".format(bind = input_dict["bind_path"])
+
+# Rule-specific arguments
 popscle_dict = config["popscle"]
 popscle_extra_dict = config["popscle_extra"]
 souporcell_dict = config["souporcell"]
@@ -30,52 +30,42 @@ scrublet_extra_dict = config["scrublet_extra"]
 scds_dict = config["scds"]
 CombineResults_dict = config["CombineResults"]
 
-if input_dict["pipeline_dir"].endswith("Demultiplexing") or input_dict["pipeline_dir"].endswith("Demultiplexing/"):
-    input_dict["pipeline_dir"] = input_dict["pipeline_dir"]
-elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC"):
-    input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "/Demultiplexing"
-elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC/"):
-    input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "Demultiplexing"
-else:
-    print("Unrecognized pipeline directory. Should end in WG1-pipeline-QC or Demultiplexing.")
-
-sys.path.append(input_dict["pipeline_dir"] + '/mods') 
-import prepareArguments
-
 # Use prepareArguments.py script to retrieve exact directories of single cell files
 scrnaseq_libs_df = prepareArguments.get_scrnaseq_dirs(config)
 scrnaseq_libs_df.to_csv(os.path.join(output_dict["output_dir"],'file_directories.txt'), sep = "\t", index = False)
-
 
 # Get list of pools to process
 samples = pd.read_csv(input_dict["samplesheet_filepath"], sep = "\t")
 samples.columns = ["Pool", "N"]
 
-
-### If the scrublet_check output is present => all the contents are there that are needed to move past 
+# If the scrublet_check output is present => all the contents are there that are needed to move past 
 if os.path.exists(output_dict["output_dir"] + "/scrublet/scrublet_check.done"):
     scrublet_decisions = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet_gene_pctl.txt", sep = "\t")
 
-# Includes
-include: input_dict["pipeline_dir"] + "/includes/Snakefile_popscle.smk"
-include: input_dict["pipeline_dir"] + "/includes/Snakefile_souporcell.smk"
-include: input_dict["pipeline_dir"] + "/includes/Snakefile_scrublet.smk"
-include: input_dict["pipeline_dir"] + "/includes/Snakefile_scds.smk"
-include: input_dict["pipeline_dir"] + "/includes/Snakefile_DoubletDetection.smk"
-include: input_dict["pipeline_dir"] + "/includes/Snakefile_CombineResults.smk"
+# Import individual rules
+include: "includes/Snakefile_popscle.smk"
+include: "includes/Snakefile_souporcell.smk"
+include: "includes/Snakefile_scrublet.smk"
+include: "includes/Snakefile_scds.smk"
+include: "includes/Snakefile_DoubletDetection.smk"
+include: "includes/Snakefile_CombineResults.smk"
 
-
+# Generate list of files to expect
+## Demuxlet
 demuxlet_files = []
 demuxlet_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/demuxlet_results.txt",  pool=samples.Pool))
 
+## Souporcell
 souporcell_files = []
 souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/souporcell_results.txt", pool=samples.Pool))
 souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz", pool=samples.Pool))
 
+## scds
 scds_files = []
 scds_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/scds_results.txt", pool=samples.Pool))
 
-### the scrublet files that will be run are dependent on user inputs in the yaml file
+## scrublet 
+## the scrublet files that will be run are dependent on user inputs in the yaml file
 scrublet_files = []
 scrublet_files.append(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv")
 if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv"):
@@ -87,8 +77,14 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
         if scrublet_manual_dict["run_scrublet_manual"] == False:
             scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/default_run_variables.txt", pool = samples.Pool, pctl = scrublet_dict["percentile"]))
         elif scrublet_manual_dict["run_scrublet_manual"] == True:
-            scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables_" + datetime_now + ".txt",zip, pool = scrublet_manual_dict["scrublet_manual_threshold_pools"], pctl = scrublet_manual_dict["scrublet_manual_threshold_percentiles"]))
+            scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables.txt",zip, pool = scrublet_manual_dict["scrublet_manual_threshold_pools"], pctl = scrublet_manual_dict["scrublet_manual_threshold_percentiles"]))
+            ### remove the files to force the rule to run if still needing to rerun (will only happen if manual selections aren't filled in all the way)
+            for f in expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables.txt",zip, pool = scrublet_manual_dict["scrublet_manual_threshold_pools"], pctl = scrublet_manual_dict["scrublet_manual_threshold_percentiles"]):
+                fname = f.rstrip() 
+                if os.path.isfile(fname): 
+                    os.remove(fname)
 
+## DoubletDetection
 DoubletDetection_files = []
 DoubletDetection_files.append(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv")
 if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
@@ -99,9 +95,15 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
         if DoubletDetection_manual_dict["run_DoubletDetection_manual"] == False:
             DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/default_run_variables.txt", pool = samples.Pool))
         elif DoubletDetection_manual_dict["run_DoubletDetection_manual"] == True:
-            DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables_" + datetime_now + ".txt", pool = DoubletDetection_manual_dict["DoubletDetection_manual_pools"]))
+            DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables.txt", pool = DoubletDetection_manual_dict["DoubletDetection_manual_pools"]))
+            ### remove the files to force the rule to run if still needing to rerun (will only happen if manual selections aren't filled in all the way)
+            for f in expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables.txt", pool = DoubletDetection_manual_dict["DoubletDetection_manual_pools"]):
+                fname = f.rstrip() 
+                if os.path.isfile(fname): 
+                    os.remove(fname)
 
 
+## Combined files at the end
 combined_files = []
 if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv") and os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
     scrublet_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv", sep = "\t")
@@ -111,6 +113,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
         combined_files.append(output_dict["output_dir"] + "/QC_figures/UMI_vs_Genes_QC_scatter.png")
 
 
+# Main rule - input will be all files generated at the top
 rule all:
     input:
         demuxlet_files,
@@ -119,5 +122,3 @@ rule all:
         scrublet_files,
         DoubletDetection_files,
         combined_files
-
-
