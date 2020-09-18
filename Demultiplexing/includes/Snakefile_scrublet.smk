@@ -88,7 +88,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
             then 
                 if [ {params.step} == "default" ]
                 then
-                    singularity exec --bind {params.bind} {params.sif} python3 {params.script} \
+                    singularity exec --bind {params.bind} {params.sif} python {params.script} \
                         --counts_matrix {input.matrix} \
                         --barcodes {input.barcodes} \
                         --sim_doublet_ratio {params.sim_dbl} \
@@ -100,7 +100,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
                         -d {params.mods_dir} 2> {log}
                 elif [ {params.step} == "manual" ]
                 then
-                    singularity exec --bind {params.bind} {params.sif} python3 {params.script} \
+                    singularity exec --bind {params.bind} {params.sif} python {params.script} \
                         --counts_matrix {input.matrix} \
                         --barcodes {input.barcodes} \
                         --sim_doublet_ratio {params.sim_dbl} \

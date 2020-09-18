@@ -88,7 +88,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
                 "No need to rerun DoubletDetection since the parameters have alreeady been chosen. Will move on to sorting results and merging with results from all other softwares" 2> {log}
             elif [ {params.ready} == "False" ]
             then 
-                singularity exec --bind {params.bind} {params.sif} python3 {params.script} \
+                singularity exec --bind {params.bind} {params.sif} python {params.script} \
                     --counts_matrix {input.matrix} \
                     --barcodes {input.barcodes} \
                     --n_iterations {params.n_iterations} \
