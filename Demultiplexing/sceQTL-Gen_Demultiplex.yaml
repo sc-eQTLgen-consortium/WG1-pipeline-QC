@@ -16,7 +16,6 @@ inputs:
 outputs: 
   output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. The directory does not need to exist - snakemake will make it if it doesn't exist.
 
-  
 ###################################################################################################################
 ##### The following arguments are common parameters that may need to be changed depending on the dataset and  #####
 ###################################################################################################################
