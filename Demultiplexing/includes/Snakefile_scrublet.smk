@@ -76,7 +76,6 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
             n_prin_comps = n_prin_comps,
             scrublet_doublet_threshold = scrublet_doublet_threshold,
             step = step,
-            mods_dir = output_dict["output_dir"] + "/.mods",
             ready = ready
         log: output_dict["output_dir"] + "/logs/scrublet." + step + ".{pool}_{pctl}.log"
         shell:
@@ -96,8 +95,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
                         --min_cells {params.min_cells} \
                         --n_prin_comps {params.n_prin_comps} \
                         --min_gene_variability_pctl {wildcards.pctl} \
-                        -o {params.out} \
-                        -d {params.mods_dir} 2> {log}
+                        -o {params.out} 2> {log}
                 elif [ {params.step} == "manual" ]
                 then
                     singularity exec --bind {params.bind} {params.sif} python {params.script} \
@@ -109,7 +107,6 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
                         --n_prin_comps {params.n_prin_comps} \
                         --min_gene_variability_pctl {wildcards.pctl} \
                         -o {params.out} \
-                        -d {params.mods_dir} \
                         --scrublet_doublet_threshold {params.scrublet_doublet_threshold} 2> {log}
                 fi
                 singularity exec --bind {params.bind} {params.sif} echo "The pool:" {wildcards.pool} >> {output.log}
