@@ -24,19 +24,16 @@ rule make_DoubletDetection_selection_df:
         singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{OFS=FS="\t"}}{{print $1 "\t"}}' {input} | sed "1s/.*/Pool\tDoubletDetection_PASS_FAIL/" > {output} 2> {log}
         """
 
-
 if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
     DoubletDetection_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv", sep = "\t")
     if len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) != len(DoubletDetection_selection):
         ready = False
     elif len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) == len(DoubletDetection_selection):
-        len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) == len(DoubletDetection_selection)
         ready = True
         step = "ready"
     else:
         sys.exit()
-
-    if DoubletDetection_manual_dict["run_DoubletDetection_manual"] == False or (scrublet_manual_dict["run_scrublet_manual"] == True and scrublet_selection["scrublet_Percentile"].count() == len(scrublet_selection)):
+    if DoubletDetection_manual_dict["run_DoubletDetection_manual"] == False or (DoubletDetection_manual_dict["run_DoubletDetection_manual"] == True and len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) == len(DoubletDetection_selection)):
         step = "default"
         log = output_dict["output_dir"] + "/{pool}/DoubletDetection/default_run_variables.txt"
         n_iterations = DoubletDetection_extra_dict["n_iterations"]
@@ -54,7 +51,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
         voter_thresh = DoubletDetection_manual_dict["voter_thresh"]
     else:
         sys.exit()
-
+        
     rule DoubletDetection:
         input:
             barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool],
@@ -68,7 +65,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
             disk_per_thread_gb = lambda wildcards, attempt: attempt * DoubletDetection_dict["DoubletDetection_memory"]
         threads: DoubletDetection_dict["DoubletDetection_threads"]
         params:
-            script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/DoubletDetection.py",
+            script = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/test_pipeline/Anne_image_test/scripts/DoubletDetection.py",
             out = output_dict["output_dir"] + "/{pool}/DoubletDetection/",
             sif = input_dict["singularity_image"],
             bind = bind_path,
@@ -77,6 +74,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
             standard_scaling = standard_scaling,
             p_thresh = p_thresh,
             voter_thresh = voter_thresh,
+            dir_mods = output_dict["output_dir"] + "/.mods",
             ready = ready,
             step = step
         log: output_dict["output_dir"] + "/logs/DoubletDetection." + step + ".{pool}.log"
@@ -95,6 +93,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
                     --standard_scaling {params.standard_scaling} \
                     --p_thresh {params.p_thresh} \
                     --voter_thresh {params.voter_thresh} \
+                    -d {params.dir_mods} \
                     -o {params.out} 2> {log}
             singularity exec --bind {params.bind} {params.sif} echo "The pool:" {wildcards.pool} >> {output.log}
             singularity exec --bind {params.bind} {params.sif} echo "This was a" {params.step} "run" >> {output.log}
@@ -107,7 +106,6 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
             [[ -s {output.doublets} ]]
             echo $?
             """
-
     rule DoubletDetection_check_user_input:
         input:
             results = output_dict["output_dir"] + "/{pool}/DoubletDetection/DoubletDetection_results.txt",

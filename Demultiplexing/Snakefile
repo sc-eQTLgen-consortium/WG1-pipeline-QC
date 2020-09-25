@@ -14,7 +14,7 @@ from mods import read10x
 input_dict = config["inputs"]
 output_dict = config["outputs"]
 ref_dict = config["refs"]
-bind_path = "{bind}:/mnt".format(bind = input_dict["bind_path"])
+bind_path = input_dict["bind_path"]
 
 # Rule-specific arguments
 popscle_dict = config["popscle"]
