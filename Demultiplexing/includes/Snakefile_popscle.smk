@@ -136,6 +136,8 @@ rule demuxlet_results_temp:
             singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}} $3=="doublet" {{$4="doublet"}}1' | \
             singularity exec --bind {params.bind} {params.sif} sed -E "s/,*_*,[0-9].[0-9]+\t/\t/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/NUM.SNPS/nSNP/g" | \
+            
+            singularity exec --bind {params.bind} {params.sif} sed -E "s/,[0-9]+_[0-9]+,[0-9].[0-9]+\t/\t/g" | sed "s/NUM.SNPS/nSNP/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/DROPLET.TYPE/DropletType/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/BEST.GUESS/Assignment/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/singlet.BEST.LLK/SingletLLK/g" | \
@@ -145,4 +147,3 @@ rule demuxlet_results_temp:
             singularity exec --bind {params.bind} {params.sif} sed "s/BARCODE/Barcode/g" | \
             singularity exec --bind {params.bind} {params.sif} awk 'NR<2{{print $0;next}}{{print $0 | "sort -k1"}}'  > {output}
         """
-
