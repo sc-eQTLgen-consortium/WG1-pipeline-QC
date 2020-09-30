@@ -132,6 +132,7 @@ rule demuxlet_results_temp:
             singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{OFS=FS="\\t"}}{{print $2,$3,$5,$13,$14,$19,$20}}' {input.demuxlet} | \
             singularity exec --bind {params.bind} {params.sif} sed "s/SNG/singlet/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/DBL/doublet/g" | \
+            singularity exec --bind {params.bind} {params.sif} sed "s/AMB/unassigned/g" | \
             singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}} $3=="doublet" {{$4="doublet"}}1' | \
             singularity exec --bind {params.bind} {params.sif} sed "s/NUM.SNPS/nSNP/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/DROPLET.TYPE/DropletType/g" | \
