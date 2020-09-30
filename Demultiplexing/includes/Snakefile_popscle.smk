@@ -136,7 +136,7 @@ rule demuxlet_results_temp:
             singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}} $3=="doublet" {{$4="doublet"}}1' | \
             singularity exec --bind {params.bind} {params.sif} sed "s/NUM.SNPS/nSNP/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/DROPLET.TYPE/DropletType/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/singlet.Assignment/Assignment/g" | \
+            singularity exec --bind {params.bind} {params.sif} sed "s/singlet.BEST.GUESS/Assignment/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/singlet.BEST.LLK/SingletLLK/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/doublet.BEST.LLK/DoulbetLLK/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/DIFF.LLK.singlet.doublet/DiffLLK/g" | \
