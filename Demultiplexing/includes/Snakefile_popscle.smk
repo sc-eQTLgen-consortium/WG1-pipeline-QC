@@ -129,15 +129,11 @@ rule demuxlet_results_temp:
     log: output_dict["output_dir"] + "/logs/demuxlet_results_temp.{pool}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{OFS=FS="\\t"}}{{print $2,$3,$5,$6,$14,$19,$20}}' {input.demuxlet} | \
+            singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{OFS=FS="\\t"}}{{print $2,$3,$5,$13,$14,$19,$20}}' {input.demuxlet} | \
             singularity exec --bind {params.bind} {params.sif} sed "s/SNG/singlet/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/DBL/doublet/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/AMB/unassigned/g" | \
             singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}} $3=="doublet" {{$4="doublet"}}1' | \
-            singularity exec --bind {params.bind} {params.sif} sed -E "s/,*_*,[0-9].[0-9]+\t/\t/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/NUM.SNPS/nSNP/g" | \
-            
-            singularity exec --bind {params.bind} {params.sif} sed -E "s/,[0-9]+_[0-9]+,[0-9].[0-9]+\t/\t/g" | sed "s/NUM.SNPS/nSNP/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/DROPLET.TYPE/DropletType/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/BEST.GUESS/Assignment/g" | \
             singularity exec --bind {params.bind} {params.sif} sed "s/singlet.BEST.LLK/SingletLLK/g" | \

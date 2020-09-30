@@ -45,9 +45,11 @@ intersection_doublet_demultiplex <- intersection_doublet_demultiplex %>% mutate(
 
 # For assignments, if DropletType_temp is a singlet, get temp_Assignment for that cell and get the first assignment.
 # If all assignments agree, then set it to the first one
+# Okay, DropletType is either doublet or unassigned
+
 intersection_doublet_demultiplex[,"Assignment"] <- ifelse((intersection_doublet_demultiplex[,"DropletType_temp"] == "singlet" & apply(temp_Assignment, 1, function(y) all(y == y[1]))),
-  pull(temp_Assignment,1), 
-    ifelse(intersection_doublet_demultiplex[,"DropletType_temp"] == "doublet", "doublet","unassigned"))
+  pull(temp_Assignment,1), ifelse(intersection_doublet_demultiplex[,"DropletType_temp"] == "doublet", "doublet","unassigned"))
+  
 for (row in 1:nrow(intersection_doublet_demultiplex[,"Assignment"])){
     if (intersection_doublet_demultiplex[row,"Assignment"] == "unassigned"){
         intersection_doublet_demultiplex[row,"DropletType"] <- "unassigned"

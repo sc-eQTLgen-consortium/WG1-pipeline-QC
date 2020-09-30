@@ -24,17 +24,18 @@ pools_list <- pools$Pool
 RB_genes <- read_delim(RB_genes_file, delim = "\t")
 MT_genes <- read_delim(MT_genes_file, delim = "\t")
 
+##### Readin in the file directory locations #####
+dir_locations <- read_delim(pool_directoreies, delim = "\t")
+
 ##### Read in the genes file
 if (file.exists(paste0(dir_locations$Matrix_Directories[1],"/genes.tsv"))){
     genes <- read_delim(paste0(dir_locations$Matrix_Directories[1],"/genes.tsv"), delim = "\t", col_names = c("ENSG_ID","Gene_ID"))
 } else if (file.exists(paste0(dir_locations$Matrix_Directories[1],"/features.tsv.gz"))){
-    genes <- read_delim(paste0(dir_locations$Matrix_Directories[1],"/features.tsv.gz"), delim = "\t", col_names = c("ENSG_ID","Gene_ID"))
+    genes <- read_delim(paste0(dir_locations$Matrix_Directories[1],"/features.tsv.gz"), delim = "\t", col_names = c("ENSG_ID","Gene_ID", "FeatureType"))
 } else {
     print(print("We're having issues finding your gene file (gene.tsv or features.tsv.gz). Please make sure one of these exist in ", dir_locations$Matrix_Directories[1]))
 }
 
-##### Readin in the file directory locations #####
-dir_locations <- read_delim(pool_directoreies, delim = "\t")
 
 ##### Read in and format the software assignments #####
 assignments_list <- lapply(pools_list, function(x){
@@ -96,7 +97,7 @@ saveRDS(seurat,paste0(out,"/seurat_object_all_pools_all_barcodes_final_assignmen
 
 
 ##### subset for just singlets #####
-seurat <- subset(seurat, subset = DropletType == "singlet")
+seurat <- subset(seurat, DropletType == "singlet")
 
 ##### Get the mitochondiral and ribosomal percentage QC metrics for each cell #####
 if ((sum(which(MT_genes$GeneID %in% rownames(seurat))) > sum(which(MT_genes$ENSG %in% rownames(seurat)))) & (sum(which(MT_genes$GeneID %in% rownames(seurat))) > length(grep(paste0(MT_genes$ENSG, "\\.", collapse = "|"), rownames(seurat))))){
