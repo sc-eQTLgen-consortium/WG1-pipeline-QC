@@ -28,6 +28,7 @@ rule scds:
         singularity exec --bind {params.bind} {params.sif} echo {params.out} >> {output.variables}
         singularity exec --bind {params.bind} {params.sif} echo {input.matrix_dir} >> {output.variables}
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {output.variables}
+
         """
 
 

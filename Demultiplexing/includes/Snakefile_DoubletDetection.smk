@@ -65,7 +65,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
             disk_per_thread_gb = lambda wildcards, attempt: attempt * DoubletDetection_dict["DoubletDetection_memory"]
         threads: DoubletDetection_dict["DoubletDetection_threads"]
         params:
-            script = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/test_pipeline/Anne_image_test/scripts/DoubletDetection.py",
+            script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/DoubletDetection.py",
             out = output_dict["output_dir"] + "/{pool}/DoubletDetection/",
             sif = input_dict["singularity_image"],
             bind = bind_path,
