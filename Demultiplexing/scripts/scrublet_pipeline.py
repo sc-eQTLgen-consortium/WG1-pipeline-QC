@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import argparse
 import sys
 import os
@@ -20,11 +19,13 @@ parser.add_argument("-v", "--min_gene_variability_pctl", required = False, defau
 parser.add_argument("-p", "--n_prin_comps", required = False, default = 30, type = int, help = "Number of principal components used to embed the transcriptomes priorto k-nearest-neighbor graph construction.")
 parser.add_argument("-t", "--scrublet_doublet_threshold", required = False, default = None, type = float, help = "Manually Set the scrublet doublet threshold location. For running a second time if scrublet incorreclty places the threshold the first time")
 parser.add_argument("-o", "--outdir", required = False, default = os.getcwd(), help = "The output directory")
-parser.add_argument("-d", "--mods_dir", required = True,  help = "The pipeline directory")
 args = parser.parse_args()
 
-sys.path.append(args.mods_dir) 
-import read10x
+# Get path of mods directory from current script directory
+mods_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(mods_path)
+from mods import read10x
+
 
 plt.rc('font', size=14)
 plt.rcParams['pdf.fonttype'] = 42

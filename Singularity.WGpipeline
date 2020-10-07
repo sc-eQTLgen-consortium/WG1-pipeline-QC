@@ -36,7 +36,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         which cargo
         rustup default stable
         yes | apt-get install git
-  
+
     cd /opt
         git clone https://github.com/wheaton5/souporcell.git
             cd souporcell/troublet
@@ -68,7 +68,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         ./configure
         make
         make install
-    
+
     cd /opt
         wget https://github.com/samtools/bcftools/releases/download/1.10.2/bcftools-1.10.2.tar.bz2
         tar xvfj bcftools-1.10.2.tar.bz2
@@ -78,11 +78,12 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         make
         make install
 
+
     cd /opt
     git clone https://github.com/ekg/freebayes.git
     wget https://github.com/ekg/freebayes/releases/download/v1.3.1/freebayes-v1.3.1
-		mv freebayes-v1.3.1 freebayes/freebayes
-		chmod 777 freebayes/freebayes
+        mv freebayes-v1.3.1 freebayes/freebayes
+        chmod 777 freebayes/freebayes
 
     cd /opt
     wget http://ftp.gnu.org/gnu/parallel/parallel-latest.tar.bz2
@@ -90,7 +91,8 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         cd parallel-*
         ./configure && make
         yes | make install
-    
+
+
     cd /opt
     git clone https://github.com/statgen/popscle.git
         cd popscle
@@ -101,11 +103,9 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         cmake ..
         make
     echo 'alias popscle=/opt/popscle/bin/popscle' >> $SINGULARITY_ENVIRONMENT
-    
+
 
     sed -i 's/louvain.set_rng_seed(random_state)/partition_kwargs["seed"] = random_state/g'  /opt/conda/envs/py36/lib/python3.6/site-packages/scanpy/tools/_louvain.py
-
-
 
 ##############################
 # setup scripts for users
@@ -116,8 +116,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     SCRIPT_DIR=/opt/WG1-pipeline-QC/Demultiplexing
     export SCRIPT_DIR
 %apprun setup
-    exec cp -a ${SCRIPT_DIR}/. "$@"
 
-    
+    exec cp -a ${SCRIPT_DIR}/. "$PWD"
 %labels 
-    Author Drew Neavin
+

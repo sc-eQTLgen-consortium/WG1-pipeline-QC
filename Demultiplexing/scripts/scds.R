@@ -1,3 +1,4 @@
+#!/usr/bin/env Rscript
 .libPaths("/usr/local/lib/R/site-library")
 library(dplyr)
 library(tidyr)

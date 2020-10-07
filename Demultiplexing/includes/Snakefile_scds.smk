@@ -3,7 +3,6 @@ import os
 import pandas as pd
 from glob import glob
 
-
 ##############################
 ############ SCDS ############
 ##############################
@@ -20,14 +19,16 @@ rule scds:
     params:
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scds.R",
         out = output_dict["output_dir"] + "/{pool}/scds/",
-        sif = input_dict["singularity_image"]
+        sif = input_dict["singularity_image"],
+        bind = bind_path
     log: output_dict["output_dir"] + "/logs/scds.{pool}.log"
     shell:
         """
-        singularity exec {params.sif} echo {wildcards.pool} > {output.variables}
-        singularity exec {params.sif} echo {params.out} >> {output.variables}
-        singularity exec {params.sif} echo {input.matrix_dir} >> {output.variables}
-        singularity exec {params.sif} Rscript {params.script} {output.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {wildcards.pool} > {output.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {params.out} >> {output.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {input.matrix_dir} >> {output.variables}
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {output.variables}
+
         """
 
 
@@ -41,7 +42,8 @@ rule scds_results_temp:
         disk_per_thread_gb=1
     threads: 1
     params:
-        sif = input_dict["singularity_image"]
+        sif = input_dict["singularity_image"],
+        bind = bind_path
     shell:
         """
         awk 'NR<2{{print $0;next}}{{print $0| "sort -k1,1"}}' {input}  > {output}
