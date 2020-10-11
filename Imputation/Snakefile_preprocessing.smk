@@ -1,0 +1,70 @@
+#!/usr/local/envs/py36/bin python3
+
+import os
+import sys
+import pandas as pd
+from glob import glob
+
+
+# Extract variables from configuration file for use within the rest of the pipeline
+input_dict = config["inputs"]
+output_dict = config["outputs"]
+options_dict = config["options"]
+ref_dict = config["refs"]
+plink_QC_dict = config["plink_QC"]
+grm_QC_dict = config["grm_QC"]
+HRC_check_dict = config["HRC_check"]
+GTM_check_dict = config["GTM_ancestry"]
+final_vcf_dict = config["final_vcf"]
+
+## Add contingencies for if the user puts the path to the pipeline dir or downstream dirs
+if input_dict["pipeline_dir"].endswith("Imputation") or input_dict["pipeline_dir"].endswith("Imputation/"):
+    input_dict["pipeline_dir"] = input_dict["pipeline_dir"]
+elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC"):
+    input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "/Imputation"
+elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC/"):
+    input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "Imputation"
+else:
+    print("Unrecognized pipeline directory. Should end in WG1-pipeline-QC or Imputation.")
+
+## Define the chromosomes to be used downstream (post-gcta)
+chromosomes = [number for number in range(1,23)]
+chromosomes.append("X")
+chromosomes.append("MT")
+
+## Prepare lists to store file lists for all rule
+gtm_files = []
+vcf_files = []
+
+if options_dict["sex_checked"] == True:
+    ## Define what will be called by the all rule based on what has been run and inputs in yaml file
+    gtm_files.append(expand(output_dict["output_dir"] + "/gtm_prune/gtm_prune_chr{chr}.bed", chr = chromosomes))
+    gtm_files.append(output_dict["output_dir"] + "/gtm_projection/gtm_projection_1000G.csv") ## Eventually replace with separate_ethnicities output files once know what they will be and look like
+
+    ##define what will be called by the all rule based on what is present for the end vcf files
+    if options_dict["individual_ancestries_checked"] == True:
+        if os.path.exists(output_dict["output_dir"] + ""): ### Path to European file
+            non_europeans = pd.read_csv(output_dict["output_dir"] + "", sep = "\t")
+            if (len(non_europeans)) > 0:
+                vcf_files.append(expand(output_dict["output_dir"] + "/vcf/european_QC_filtered_sorted_chr{chr}.vcf.gz", chr = chromosomes))
+
+        if os.path.exists(output_dict["output_dir"] + ""): ### Path to European file
+            europeans = pd.read_csv(output_dict["output_dir"] + "", sep = "\t")
+            if (len(europeans)) > 0:
+                vcf_files.append(expand(output_dict["output_dir"] + "/vcf/non_european_QC_filtered_sorted_chr{chr}.vcf", chr = chromosomes))
+
+elif options_dict["sex_checked"] == False:
+    print("You have indicated that the sex check has not been verified yet. Once the sex check step is complete, check the sex assignments that don't match and decide whether they should be changed (check_sex/update_sex.inds) or removed (check_sex/wrong_sex_remove_individuals.inds file) from the analysis. Once you are happy with your selections")
+
+else:
+    print("The input for the sex_checked option in the inputs of the yaml configuration file is not appropriate. This should be True or False depending on if you have checked the differences  between the snp-based and reference-based abd snp-based sex assignments.")
+
+rule all:
+    input:
+        output_dict["output_dir"] + "/check_sex/wrong_sex_remove_individuals.inds",
+        gtm_files,
+        vcf_files
+
+
+
+
