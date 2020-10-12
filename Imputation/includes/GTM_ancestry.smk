@@ -28,21 +28,21 @@ rule gtm_preprocess:
         fi
         """
 
-    rule gtm_prune:
-        input:
-            bed = output_dict["output_dir"] + "/hrc_check/strand_check-updated-chr{chr}.bed",
-            prune = output_dict["output_dir"] + "/gtm_preprocess/gtm_preprocess_chr{chr}.prune.in"
-        output:
-            bed = output_dict["output_dir"] + "/gtm_prune/gtm_prune_chr{chr}.bed"
-        resources:
-            mem_per_thread_gb=lambda wildcards, attempt: attempt * GTM_check_dict["gtm_prune_memory"],
-            disk_per_thread_gb=lambda wildcards, attempt: attempt * GTM_check_dict["gtm_prune_memory"]
-        threads: GTM_check_dict["gtm_prune_threads"]
-        params:
-            bed = output_dict["output_dir"] + "/hrc_check/strand_check-updated-chr{chr}",
-            sif = input_dict["singularity_image"],
-            out = output_dict["output_dir"] + "/gtm_prune/gtm_prune_chr{chr}"
-        shell:
+rule gtm_prune:
+    input:
+        bed = output_dict["output_dir"] + "/hrc_check/strand_check-updated-chr{chr}.bed",
+        prune = output_dict["output_dir"] + "/gtm_preprocess/gtm_preprocess_chr{chr}.prune.in"
+    output:
+        bed = output_dict["output_dir"] + "/gtm_prune/gtm_prune_chr{chr}.bed"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * GTM_check_dict["gtm_prune_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * GTM_check_dict["gtm_prune_memory"]
+    threads: GTM_check_dict["gtm_prune_threads"]
+    params:
+        bed = output_dict["output_dir"] + "/hrc_check/strand_check-updated-chr{chr}",
+        sif = input_dict["singularity_image"],
+        out = output_dict["output_dir"] + "/gtm_prune/gtm_prune_chr{chr}"
+    shell:
         """
         singularity exec {params.sif} plink --bfile {params.bed} --extract {input.prune} --out {params.out} --make-bed
         """

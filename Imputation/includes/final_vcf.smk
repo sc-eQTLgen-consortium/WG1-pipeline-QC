@@ -16,7 +16,7 @@ if os.path.exists(output_dict["output_dir"] + "/gtm_projection/european.inds"): 
             threads: final_vcf_dict["bed2vcf_european_threads"]
             params:
                 sif = input_dict["singularity_image"],
-                bfile = output_dict["output_dir"] + "/hrc_check/strand_check-updated-chr{chr}
+                bfile = output_dict["output_dir"] + "/hrc_check/strand_check-updated-chr{chr}"
             shell:
                 """
                 singularity exec {params.sif} plink --bfile {input.bfile} --recode --keep {input.european} vcf --out {output}
@@ -54,7 +54,7 @@ if os.path.exists(output_dict["output_dir"] + "/gtm_projection/non_european.inds
             threads: final_vcf_dict["bed2vcf_non_european_threads"]
             params:
                 sif = input_dict["singularity_image"],
-                bfile = output_dict["output_dir"] + "/hrc_check/strand_check-updated-chr{chr}
+                bfile = output_dict["output_dir"] + "/hrc_check/strand_check-updated-chr{chr}"
             shell:
                 """
                 singularity exec {params.sif} plink --bfile {input.bfile} --recode --keep {input.non_european} vcf --out {output}

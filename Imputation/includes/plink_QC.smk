@@ -1,6 +1,6 @@
 #!/usr/local/envs/py36/bin python3
 
-if input_dict["ref"] == "hg38":
+if options_dict["ref"] == "hg38":
     rule hg38_liftover:
         input:
             vcf = input_dict["vcf"]
@@ -15,25 +15,25 @@ if input_dict["ref"] == "hg38":
             sif = input_dict["singularity_image"],
             fasta = ref_dict["fasta19"]
         shell:
-        """
-        singularity exec {params.sif} java -Xmx{resources.mem_per_thread_gb}g -jar /opt/picard/build/libs/picard.jar LiftoverVcf \
-            I={input.vcf} \
-            O={output} \
-            CHAIN=/opt/liftover_refs/hg38ToHg19.over.chain \
-            REJECT={params.out}/LiftOver_rejected_variants.vcf \
-            R={params.fasta}
-        """
+            """
+            singularity exec {params.sif} java -Xmx{resources.mem_per_thread_gb}g -jar /opt/picard/build/libs/picard.jar LiftoverVcf \
+                I={input.vcf} \
+                O={output} \
+                CHAIN=/opt/liftover_refs/hg38ToHg19.over.chain \
+                REJECT={params.out}/LiftOver_rejected_variants.vcf \
+                R={params.fasta}
+            """
 
 
-elif input_dict["ref"] == "hg19":
+elif options_dict["ref"] == "hg19":
     print("Looks like your vcf is already on hg19, no need to liftover for QC and imputation.")
 else:
     print("The parameter that you put in for the inputs:ref: in the yaml file is not recognized. It should be either hg19 or hg38.")
 
 
-if input_dict["ref"] == "hg38":
+if options_dict["ref"] == "hg38":
     input_vcf = output_dict["output_dir"] + "/liftover/hg19.vcf"
-elif input_dict["ref"] == "hg19":
+elif options_dict["ref"] == "hg19":
     input_vcf = input_dict["vcf"]
 else:
     print("There's a problem with the reference name used in the inputs of your yaml file (inputs:ref:). Accepted options are either hg19 or hg38")
@@ -52,12 +52,14 @@ rule vcf_to_plink:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["vcf_to_plink_memory"]
     threads: plink_QC_dict["vcf_to_plink_threads"]
     params:
-        out = output_dict["output_dir"] + "/plink_hg19/hg19_input"
+        sif = input_dict["singularity_image"],
+        out = output_dict["output_dir"] + "/plink_hg19/hg19_input",
     shell:
         """
-        singularity exec {params.sif} awk 'BEGIN{FS=OFS="\t"}{print($1,$2)}' {input.fam} > {output.indiv_file}
-        singularity exec {params.sif} plink --vcf {input.vcf} --make-bed --out {params.out} --fam {input.fam} --indiv-sort {output.indiv_file}
+        singularity exec {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}' {input.fam} > {output.indiv_file}
+        singularity exec {params.sif} plink --vcf {input.vcf} --make-bed --out {params.out} --fam {input.fam}
         """
+        # singularity exec {params.sif} plink --vcf {input.vcf} --make-bed --out {params.out} --fam {input.fam} --indiv-sort f {output.indiv_file}
 
 rule snp_missingness:
     input:
@@ -126,7 +128,7 @@ rule check_sex:
         hh = output_dict["output_dir"] + "/check_sex/check_sex.hh",
         log = output_dict["output_dir"] + "/check_sex/check_sex.log",
         nosex = output_dict["output_dir"] + "/check_sex/check_sex.nosex",
-        sexcheck =  = output_dict["output_dir"] + "/check_sex/check_sex.sexcheck"
+        sexcheck = output_dict["output_dir"] + "/check_sex/check_sex.sexcheck"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["check_sex_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["check_sex_memory"]
@@ -174,7 +176,7 @@ rule update_sex:
     threads: plink_QC_dict["update_sex_threads"]
     params:
         out = output_dict["output_dir"] + "/update_sex/update_sex",
-        chr_coding = output_dict["output_dir"] + "/update_sex/chr_coding,
+        chr_coding = output_dict["output_dir"] + "/update_sex/chr_coding",
         sif = input_dict["singularity_image"]
     shell:
         """

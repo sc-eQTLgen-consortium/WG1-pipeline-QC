@@ -129,6 +129,12 @@ From: continuumio/miniconda3
             unzip plink_linux_x86_64_20200616.zip
 
     cd /opt
+        mkdir plink2
+        cd plink2
+            wget http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20200923.zip
+            unzip plink2_linux_x86_64_20200923.zip
+
+    cd /opt
         git clone https://github.com/broadinstitute/picard.git
         cd picard/
         ./gradlew shadowJar

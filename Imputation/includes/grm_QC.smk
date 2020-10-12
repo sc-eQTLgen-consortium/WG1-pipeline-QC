@@ -43,8 +43,8 @@ rule grm_filter:
         grm = output_dict["output_dir"] + "/grm/grm",
         grm_filter = output_dict["output_dir"] + "/grm_filter/grm_filter",
         sif = input_dict["singularity_image"],
-        relatedness = grm_QC_dict["grm_relatednes"],
-        pcs = grm_QC_dict["grm_pcs"]
+        relatedness = grm_QC_dict["grm_filter_relatedness"],
+        pcs = grm_QC_dict["grm_filter_pcs"]
     shell:
         """
         singularity exec {params.sif} gcta64 --grm {params.grm} --grm-cutoff 0.9 --make-grm --out {params.grm_filter}

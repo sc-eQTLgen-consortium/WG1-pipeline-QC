@@ -70,9 +70,10 @@ else:
 
 rule all:
     input:
-        output_dict["output_dir"] + "/check_sex/wrong_sex_remove_individuals.inds",
-        gtm_files,
-        vcf_files
+        output_dict["output_dir"] + "/plink_hg19/hg19_input.bed"
+        # output_dict["output_dir"] + "/check_sex/wrong_sex_remove_individuals.inds",
+        # gtm_files,
+        # vcf_files
 
 
 
