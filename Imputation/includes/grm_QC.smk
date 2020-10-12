@@ -47,7 +47,7 @@ rule grm_filter:
         pcs = grm_QC_dict["grm_pcs"]
     shell:
         """
-        singularity exec {params.sif} gcta64 --grm {params.grm} --grm-cutoff 0.125 --make-grm --out {params.grm_filter}
+        singularity exec {params.sif} gcta64 --grm {params.grm} --grm-cutoff 0.9 --make-grm --out {params.grm_filter}
         singularity exec {params.sif} gcta64 --grm {params.grm_filter} --pca 6 --out {params.grm_filter}
         """
 

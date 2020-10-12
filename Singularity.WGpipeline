@@ -118,5 +118,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 %apprun setup
 
     exec cp -a ${SCRIPT_DIR}/. "$PWD"
+
 %labels 
+    Author Drew Neavin
 

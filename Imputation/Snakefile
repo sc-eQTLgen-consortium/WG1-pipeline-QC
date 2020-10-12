@@ -17,20 +17,29 @@ HRC_check_dict = config["HRC_check"]
 GTM_check_dict = config["GTM_ancestry"]
 final_vcf_dict = config["final_vcf"]
 
-## Add contingencies for if the user puts the path to the pipeline dir or downstream dirs
-if input_dict["pipeline_dir"].endswith("Imputation") or input_dict["pipeline_dir"].endswith("Imputation/"):
-    input_dict["pipeline_dir"] = input_dict["pipeline_dir"]
-elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC"):
-    input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "/Imputation"
-elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC/"):
-    input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "Imputation"
-else:
-    print("Unrecognized pipeline directory. Should end in WG1-pipeline-QC or Imputation.")
+# ## Add contingencies for if the user puts the path to the pipeline dir or downstream dirs
+# if input_dict["pipeline_dir"].endswith("Imputation") or input_dict["pipeline_dir"].endswith("Imputation/"):
+#     input_dict["pipeline_dir"] = input_dict["pipeline_dir"]
+# elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC"):
+#     input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "/Imputation"
+# elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC/"):
+#     input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "Imputation"
+# else:
+#     print("Unrecognized pipeline directory. Should end in WG1-pipeline-QC or Imputation.")
+
+
+# Import individual rules
+include: "includes/plink_QC.smk"
+include: "includes/grm_QC.smk"
+include: "includes/HRC_check.smk"
+include: "includes/GTM_ancestry.smk"
+include: "includes/final_vcf.smk"
+
 
 ## Define the chromosomes to be used downstream (post-gcta)
-chromosomes = [number for number in range(1,23)]
-chromosomes.append("X")
-chromosomes.append("MT")
+chromosomes = input_dict["chromosomes"]
+
+
 
 ## Prepare lists to store file lists for all rule
 gtm_files = []

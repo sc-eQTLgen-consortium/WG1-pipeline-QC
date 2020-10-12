@@ -158,7 +158,23 @@ From: continuumio/miniconda3
         wget http://lovingscience.com/ancestries/downloads/recoded_1000G.raw.noadmixed.lbls3_3
         wget http://lovingscience.com/ancestries/downloads/recoded_1000G.raw.noadmixed.ids
 
+    cd /opt
+        git clone https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
+
     R --slave -e 'install.packages("magrittr", repos = "http://cran.us.r-project.org")'
+
+
+##############################
+# setup scripts for users
+##############################
+%apphelp setup
+    This function copies pipeline scripts to the user systems from the Singularity image.
+%appenv setup
+    SCRIPT_DIR=/opt/WG1-pipeline-QC/Imputation
+    export SCRIPT_DIR
+%apprun setup
+    exec cp -a ${SCRIPT_DIR}/. "$PWD"
+
 
 %labels 
     Author Drew Neavin

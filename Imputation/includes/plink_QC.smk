@@ -25,10 +25,10 @@ if input_dict["ref"] == "hg38":
         """
 
 
-elif input_dict["ref"] == "hg38":
+elif input_dict["ref"] == "hg19":
     print("Looks like your vcf is already on hg19, no need to liftover for QC and imputation.")
 else:
-    print("The parameter that you put in for the inputs:ref: in the yaml file is not recognized. It should be either hg19 or hg39.")
+    print("The parameter that you put in for the inputs:ref: in the yaml file is not recognized. It should be either hg19 or hg38.")
 
 
 if input_dict["ref"] == "hg38":
