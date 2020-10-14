@@ -1,5 +1,5 @@
-Bootstrap: docker
-From: continuumio/miniconda3
+Bootstrap: shub
+From: shub://drneavin/SingularityBaseImages:r363_python368
 %environment
     export PATH=/opt/plink:/opt:/usr/games:/opt/conda/envs/py36/bin:/opt/conda/bin:/opt/picard/build/libs:/opt/gcta_1.93.2beta:/opt/HRC-1000G-check:/opt/ancestry_viz:$PATH
     export PYTHONPATH=/opt/conda/envs/py36/lib/python3.6/site-packages/
