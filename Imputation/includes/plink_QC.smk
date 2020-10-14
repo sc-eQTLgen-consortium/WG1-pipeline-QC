@@ -11,12 +11,13 @@ if options_dict["ref"] == "hg38":
             disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["hg38_liftover_memory"]
         threads: plink_QC_dict["hg38_liftover_threads"]
         params:
+            bind = input_dict["bind_paths"],
             out = output_dict["output_dir"] + "/liftover",
             sif = input_dict["singularity_image"],
             fasta = ref_dict["fasta19"]
         shell:
             """
-            singularity exec {params.sif} java -Xmx{resources.mem_per_thread_gb}g -jar /opt/picard/build/libs/picard.jar LiftoverVcf \
+            singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.mem_per_thread_gb}g -jar /opt/picard/build/libs/picard.jar LiftoverVcf \
                 I={input.vcf} \
                 O={output} \
                 CHAIN=/opt/liftover_refs/hg38ToHg19.over.chain \
@@ -52,14 +53,15 @@ rule vcf_to_plink:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["vcf_to_plink_memory"]
     threads: plink_QC_dict["vcf_to_plink_threads"]
     params:
+        bind = input_dict["bind_paths"],
         sif = input_dict["singularity_image"],
         out = output_dict["output_dir"] + "/plink_hg19/hg19_input",
     shell:
         """
-        singularity exec {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}' {input.fam} > {output.indiv_file}
-        singularity exec {params.sif} plink --vcf {input.vcf} --make-bed --out {params.out} --fam {input.fam}
+        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}' {input.fam} > {output.indiv_file}
+        singularity exec --bind {params.bind} {params.sif} /opt/plink2/plink2 --vcf {input.vcf} --make-bed --out {params.out} --fam {input.fam} --id-delim _ --indiv-sort f {output.indiv_file} --max-alleles 2
         """
-        # singularity exec {params.sif} plink --vcf {input.vcf} --make-bed --out {params.out} --fam {input.fam} --indiv-sort f {output.indiv_file}
+        # singularity exec --bind {params.bind} {params.sif} plink --vcf {input.vcf} --make-bed --out {params.out} --fam {input.fam} --indiv-sort f {output.indiv_file}
 
 rule snp_missingness:
     input:
@@ -72,18 +74,19 @@ rule snp_missingness:
         fam = output_dict["output_dir"] + "/snp_missingness/snp_missingness.fam",
         hh = output_dict["output_dir"] + "/snp_missingness/snp_missingness.hh",
         log = output_dict["output_dir"] + "/snp_missingness/snp_missingness.log",
-        nosex = output_dict["output_dir"] + "/snp_missingness/snp_missingness.nosex"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["snp_missingness_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["snp_missingness_memory"]
     threads: plink_QC_dict["snp_missingness_threads"]
     params:
+        bind = input_dict["bind_paths"],
+        infile = output_dict["output_dir"] + "/plink_hg19/hg19_input",
         out = output_dict["output_dir"] + "/snp_missingness/snp_missingness",
         snp_rate = plink_QC_dict["snp_missingness_snp_rate"],
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec {params.sif} plink --bfile {input} --make-bed --geno {params.snp_rate} --out {params.out} --noweb
+        singularity exec --bind {params.bind} {params.sif} plink --bfile {params.infile} --make-bed --geno {params.snp_rate} --out {params.out} --noweb
         """
 
 rule indiv_missingness:
@@ -93,26 +96,25 @@ rule indiv_missingness:
         fam = output_dict["output_dir"] + "/snp_missingness/snp_missingness.fam",
         hh = output_dict["output_dir"] + "/snp_missingness/snp_missingness.hh",
         log = output_dict["output_dir"] + "/snp_missingness/snp_missingness.log",
-        nosex = output_dict["output_dir"] + "/snp_missingness/snp_missingness.nosex"
     output:
         bed = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.bed",
         bim = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.bim",
         fam = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.fam",
         hh = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.hh",
-        irem = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.irem",
         log = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.log",
-        nosex = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.nosex"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["indiv_missingness_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["indiv_missingness_memory"]
     threads: plink_QC_dict["indiv_missingness_threads"]
     params:
+       bind = input_dict["bind_paths"],
+       infile = output_dict["output_dir"] + "/snp_missingness/snp_missingness",
        out = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness",
        mind = plink_QC_dict["indiv_missingness_mind"],
        sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec {params.sif} plink --bfile {input} --make-bed --mind {params.mind} --out {params.out} --noweb
+        singularity exec --bind {params.bind} {params.sif} plink --bfile {params.infile} --make-bed --mind {params.mind} --out {params.out} --noweb
         """
 
 rule check_sex:
@@ -121,9 +123,7 @@ rule check_sex:
         bim = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.bim",
         fam = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.fam",
         hh = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.hh",
-        irem = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.irem",
         log = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.log",
-        nosex = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.nosex"
     output:
         hh = output_dict["output_dir"] + "/check_sex/check_sex.hh",
         log = output_dict["output_dir"] + "/check_sex/check_sex.log",
@@ -134,15 +134,19 @@ rule check_sex:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["check_sex_memory"]
     threads: plink_QC_dict["check_sex_threads"]
     params:
+        bind = input_dict["bind_paths"],
+        infile = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness",
         out = output_dict["output_dir"] + "/check_sex/check_sex",
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec {params.sif} plink --bfile {input} --check-sex --out {params.out} --noweb
+        singularity exec --bind {params.bind} {params.sif} plink --bfile {params.infile} --check-sex --out {params.out} --noweb
+        singularity exec --bind {params.bind} {params.sif} touch {output.nosex}
         """
 
 rule create_sex_check_inds_file:
     input:
+        output_dict["output_dir"] + "/check_sex/check_sex.sexcheck"
     output:
         update_sex = output_dict["output_dir"] + "/check_sex/update_sex.inds",
         wrong_sex = output_dict["output_dir"] + "/check_sex/wrong_sex_remove_individuals.inds"
@@ -151,20 +155,20 @@ rule create_sex_check_inds_file:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * 1
     threads: 1
     params:
+        bind = input_dict["bind_paths"],
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec {params.sif} printf "FID\tIID\tSEX\n" > {output.update_sex}
-        singularity exec {params.sif} printf "FID\tIID\tSEX\n" > {output.wrong_sex}
+        singularity exec --bind {params.bind} {params.sif} printf "FID\tIID\tSEX\n" > {output.update_sex}
+        singularity exec --bind {params.bind} {params.sif} printf "FID\tIID\tSEX\n" > {output.wrong_sex}
         """
 
 rule update_sex:
     input:
         bim = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.bim",
-        nosex = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.nosex",
         nosex_sc = output_dict["output_dir"] + "/check_sex/check_sex.nosex",
         sexcheck_sc = output_dict["output_dir"] + "/check_sex/check_sex.sexcheck",
-        sexcheck_inds = output_dict["output_dir"] + "/check_sex/check_sex.inds",
+        sexcheck_inds = output_dict["output_dir"] + "/check_sex/update_sex.inds",
         sexcheck_inds_remove = output_dict["output_dir"] + "/check_sex/wrong_sex_remove_individuals.inds"
     output:
         bed = output_dict["output_dir"] + "/update_sex/update_sex.bed",
@@ -175,14 +179,16 @@ rule update_sex:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["update_sex_memory"]
     threads: plink_QC_dict["update_sex_threads"]
     params:
+        infile = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness",
+        bind = input_dict["bind_paths"],
         out = output_dict["output_dir"] + "/update_sex/update_sex",
         chr_coding = output_dict["output_dir"] + "/update_sex/chr_coding",
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec {params.sif} plink --bfile {input} --update-sex {input.sexcheck_inds} --remove {input.sexcheck_inds_remove} --make-bed --out {params.out}
-        singularity exec {params.sif} printf "s/X/23/\ns/Y/24/\ns/MT/26/\n" > {params.chr_coding}
-        singularity exec {params.sif} paste <(singularity exec {params.sif} sed -f {params.chr_coding} <(singularity exec {params.sif} cut -f1 {params.out}.bim)) <(singularity exec {params.sif} cut -f2- ${params.out}.bim) > {params.out}_tmp.bim
+        singularity exec --bind {params.bind} {params.sif} plink --bfile {params.infile} --update-sex {input.sexcheck_inds} --remove {input.sexcheck_inds_remove} --make-bed --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} printf "s/X/23/\ns/Y/24/\ns/MT/26/\n" > {params.chr_coding}
+        singularity exec --bind {params.bind} {params.sif} paste <(singularity exec --bind {params.bind} {params.sif} sed -f {params.chr_coding} <(singularity exec --bind {params.bind} {params.sif} cut -f1 {params.out}.bim)) <(singularity exec --bind {params.bind} {params.sif} cut -f2- ${params.out}.bim) > {params.out}_tmp.bim
         """
 
 rule maf:
@@ -200,20 +206,22 @@ rule maf:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["maf_memory"]
     threads: plink_QC_dict["maf_threads"]
     params:
+        infile = output_dict["output_dir"] + "/update_sex/update_sex",
+        bind = input_dict["bind_paths"],
         freq = output_dict["output_dir"] + "/maf/freq",
         out = output_dict["output_dir"] + "/maf/maf",
         chr_coding = output_dict["output_dir"] + "/maf/chr_coding",
-        maf = 0.01,
+        maf = plink_QC_dict["maf"],
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec {params.sif} plink --bfile {input} --freq --out {params.freq} --noweb
-        singularity exec {params.sif} plink --bfile {input} --maf {params.maf} --allow-extra-chr --make-bed  --out {params.out}
-        singularity exec {params.sif} printf "s/X/23/g" > {params.chr_coding}
-        singularity exec {params.sif} printf "s/Y/24/g" >> {params.chr_coding}
-        singularity exec {params.sif} printf "s/MT/26/g" >> {params.chr_coding}
-        singularity exec {params.sif} paste <(singularity exec {params.sif} sed -f {params.chr_coding} <(singularity exec {params.sif} cut -f1 {output.bim})) <(singularity exec {params.sif} cut -f2- {output.bim}) > {params.out}_tmp.bim
-        singularity exec {params.sif} {params.out}_tmp.bim {output.bim}
+        singularity exec --bind {params.bind} {params.sif} plink --bfile {params.infile} --freq --out {params.freq} --noweb
+        singularity exec --bind {params.bind} {params.sif} plink --bfile {params.infile} --maf {params.maf} --allow-extra-chr --make-bed  --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} printf "s/X/23/g\n" > {params.chr_coding}
+        singularity exec --bind {params.bind} {params.sif} printf "s/Y/24/g\n" >> {params.chr_coding}
+        singularity exec --bind {params.bind} {params.sif} printf "s/MT/26/g" >> {params.chr_coding}
+        singularity exec --bind {params.bind} {params.sif} paste <(singularity exec --bind {params.bind} {params.sif} sed -f {params.chr_coding} <(singularity exec --bind {params.bind} {params.sif} cut -f1 {output.bim})) <(singularity exec --bind {params.bind} {params.sif} cut -f2- {output.bim}) > {params.out}_tmp.bim
+        singularity exec --bind {params.bind} {params.sif} cp {params.out}_tmp.bim {output.bim}
         """
 
 rule hwe:
@@ -229,13 +237,15 @@ rule hwe:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["hwe_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["hwe_memory"]
     threads: plink_QC_dict["hwe_threads"]
-    params:
+    params: 
+        bind = input_dict["bind_paths"],
+        hwe_p = plink_QC_dict["hwe_pvalue"],
         maf = output_dict["output_dir"] + "/maf/maf",
         out = output_dict["output_dir"] + "/hwe/hwe",
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec {params.sif} plink --bfile {params.maf} --hardy --hwe --make-bed --out {params.out} --noweb
+        singularity exec --bind {params.bind} {params.sif} plink --bfile {params.maf} --hardy --hwe {params.hwe_p} --make-bed --out {params.out} --noweb
         """
 
 rule het:
@@ -252,13 +262,15 @@ rule het:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["het_memory"]
     threads: plink_QC_dict["het_threads"]
     params:
+        bind = input_dict["bind_paths"],
         hwe = output_dict["output_dir"] + "/hwe/hwe",
         out = output_dict["output_dir"] + "/het/het",
-        sif = input_dict["singularity_image"]
+        sif = input_dict["singularity_image"],
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R"
     shell:
         """
-        singularity exec {params.sif} plink --bfile {params.hwe} --het --out {params.out} --noweb
-        singularity exec {params.sif} Rscript filter_het.R {params.out}.het {output.inds}
+        singularity exec --bind {params.bind} {params.sif} plink --bfile {params.hwe} --het --out {params.out} --noweb
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.out}.het {output.inds}
         """
 
 
@@ -275,12 +287,13 @@ rule het_filter:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_QC_dict["het_filter_memory"]
     threads: plink_QC_dict["het_filter_threads"]
     params:
+        bind = input_dict["bind_paths"],
         hwe = output_dict["output_dir"] + "/hwe/hwe",
         out = output_dict["output_dir"] + "/het_filter/het_filter",
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec {params.sif} plink --bfile {params.hwe} --remove {input.inds} --make-bed --out {params.out} --noweb
+        singularity exec --bind {params.bind} {params.sif} plink --bfile {params.hwe} --remove {input.inds} --make-bed --out {params.out} --noweb
         """
 
 
@@ -308,9 +321,9 @@ rule het_filter:
     #         sif = input_dict["singularity_image"]
     #     shell:
     #         """
-    #         singularity exec {params.sif} plink --bfile {params.het_filter} --recode --out {params.pca} --noweb
-    #         singularity exec {params.sif} printf "genotypename:\t{params.pca}.ped\nsnpname:\t{params.pca}.map\nindivname:\t{params.pca}.ped\nevecoutname:\t{params.pca}.evec\nevaloutname:\t{params.pca}.eval\naltnormstyle:\tNO\nnumoutevec:\t5\nfamilynames:\tNO\nnumoutlieriter:\t0\n" > {params.pca}.smartpca
-    #         singularity exec {params.sif} smartpca -p {params.pca}.smartpca | tee {params.pca}.pca
+    #         singularity exec --bind {params.bind} {params.sif} plink --bfile {params.het_filter} --recode --out {params.pca} --noweb
+    #         singularity exec --bind {params.bind} {params.sif} printf "genotypename:\t{params.pca}.ped\nsnpname:\t{params.pca}.map\nindivname:\t{params.pca}.ped\nevecoutname:\t{params.pca}.evec\nevaloutname:\t{params.pca}.eval\naltnormstyle:\tNO\nnumoutevec:\t5\nfamilynames:\tNO\nnumoutlieriter:\t0\n" > {params.pca}.smartpca
+    #         singularity exec --bind {params.bind} {params.sif} smartpca -p {params.pca}.smartpca | tee {params.pca}.pca
     #         """
 
 ### Probably don't need this since using grm instead
@@ -332,5 +345,5 @@ rule het_filter:
     #         sif = input_dict["singularity_image"]
     #     shell:
     #         """
-    #         singularity exec {params.sif} plink --bfile {params.het_filter} --genome --out {params.ibd} --noweb
+    #         singularity exec --bind {params.bind} {params.sif} plink --bfile {params.het_filter} --genome --out {params.ibd} --noweb
     #         """

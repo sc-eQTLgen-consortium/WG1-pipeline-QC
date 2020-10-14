@@ -1,6 +1,4 @@
 #!/usr/local/envs/py36/bin python3
-
-
 if os.path.exists(output_dict["output_dir"] + "/gtm_projection/european.inds"): ### Path to European file
     europeans = pd.read_csv(output_dict["output_dir"] + "/gtm_projection/european.inds", sep = "\t")
     if (len(europeans)) > 0:
@@ -19,7 +17,7 @@ if os.path.exists(output_dict["output_dir"] + "/gtm_projection/european.inds"): 
                 bfile = output_dict["output_dir"] + "/hrc_check/strand_check-updated-chr{chr}"
             shell:
                 """
-                singularity exec {params.sif} plink --bfile {input.bfile} --recode --keep {input.european} vcf --out {output}
+                singularity exec --bind {params.bind} {params.sif} plink --bfile {input.bfile} --recode --keep {input.european} vcf --out {output}
                 """
 
         rule european_vcf_sort:
@@ -35,7 +33,7 @@ if os.path.exists(output_dict["output_dir"] + "/gtm_projection/european.inds"): 
                 sif = input_dict["singularity_image"]
             shell:
                 """
-                singularity exec {params.sif} bcftools sort {input} -Oz -o {output}
+                singularity exec --bind {params.bind} {params.sif} bcftools sort {input} -Oz -o {output}
                 """
 
 
@@ -57,7 +55,7 @@ if os.path.exists(output_dict["output_dir"] + "/gtm_projection/non_european.inds
                 bfile = output_dict["output_dir"] + "/hrc_check/strand_check-updated-chr{chr}"
             shell:
                 """
-                singularity exec {params.sif} plink --bfile {input.bfile} --recode --keep {input.non_european} vcf --out {output}
+                singularity exec --bind {params.bind} {params.sif} plink --bfile {input.bfile} --recode --keep {input.non_european} vcf --out {output}
                 """
 
         rule non_european_vcf_sort:
@@ -73,6 +71,6 @@ if os.path.exists(output_dict["output_dir"] + "/gtm_projection/non_european.inds
                 sif = input_dict["european_vcf_sort_threads"]
             shell:
                 """
-                singularity exec {params.sif} bcftools sort {input} -Oz -o {output}
+                singularity exec --bind {params.bind} {params.sif} bcftools sort {input} -Oz -o {output}
                 """
 

@@ -21,10 +21,10 @@ rule gtm_preprocess:
         """
         if [[ {wildcards.chr} == 6 ]]
         then
-            singularity exec {params.sif} plink --exclude {input.mhc} --bfile {params.bed} --indep-pairwise 1000 10 0.02 --maf 0.05 --out {params.out} --make-bed
+            singularity exec --bind {params.bind} {params.sif} plink --exclude {input.mhc} --bfile {params.bed} --indep-pairwise 1000 10 0.02 --maf 0.05 --out {params.out} --make-bed
         else
         then
-            singularity exec {params.sif} plink --bfile {params.bed} --indep-pairwise 1000 10 0.02 --maf 0.05 --out {params.out} --make-bed
+            singularity exec --bind {params.bind} {params.sif} plink --bfile {params.bed} --indep-pairwise 1000 10 0.02 --maf 0.05 --out {params.out} --make-bed
         fi
         """
 
@@ -44,7 +44,7 @@ rule gtm_prune:
         out = output_dict["output_dir"] + "/gtm_prune/gtm_prune_chr{chr}"
     shell:
         """
-        singularity exec {params.sif} plink --bfile {params.bed} --extract {input.prune} --out {params.out} --make-bed
+        singularity exec --bind {params.bind} {params.sif} plink --bfile {params.bed} --extract {input.prune} --out {params.out} --make-bed
         """
 
 rule gtm_merge:
@@ -63,9 +63,9 @@ rule gtm_merge:
         out = output_dict["output_dir"] + "/gtm_merge/gtm_merge_chr"
     shell:
         """
-        singularity exec {params.sif} echo {input} | singularity exec {params.sif} tr '.bed' '\n' > {output.merge}
-        singularity exec {params.sif} plink --merge-list {output.merge} --recodeA --out {params.out}
-        singularity exec {params.sif} tail -n +2 {outut.out} > {output.mat}
+        singularity exec --bind {params.bind} {params.sif} echo {input} | singularity exec --bind {params.bind} {params.sif} tr '.bed' '\n' > {output.merge}
+        singularity exec --bind {params.bind} {params.sif} plink --merge-list {output.merge} --recodeA --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} tail -n +2 {outut.out} > {output.mat}
         """
 
 rule gtm_projection:
@@ -84,7 +84,7 @@ rule gtm_projection:
         out_base = output_dict["output_dir"] + "/gtm_projection/gtm_projection"
     shell:
         """
-        singularity exec {params.sif} python runGTM.py \
+        singularity exec --bind {params.bind} {params.sif} python runGTM.py \
             --model GTM \
             --data /opt/ancestry_viz/recoded_1000G.noadmixed.mat \
             --test {input.mat} \
