@@ -87,7 +87,7 @@ rule hrc_check:
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink --bfile {params.prefix} --freq --out {params.freq} --noweb
-        singularity exec --bind {params.bind} {params.sif} perl /directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/test_pipeline/Imputation/Test1/hrc_check/HRC-1000G-check-bim.pl -b {input} -f {output.freq} -r /opt/HRC.r1-1.GRCh37.wgs.mac5.sites.tab -h -o {params.out}
+        singularity exec --bind {params.bind} {params.sif} perl /opt/HRC-1000G-check/HRC-1000G-check-bim.pl -b {input} -f {output.freq} -r /opt/HRC.r1-1.GRCh37.wgs.mac5.sites.tab -h -o {params.out}
         """
 
 # rule hrc_fix:
