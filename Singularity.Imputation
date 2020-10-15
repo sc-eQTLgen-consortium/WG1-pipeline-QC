@@ -148,7 +148,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         mkdir HRC-1000G-check
         cd HRC-1000G-check
             wget https://www.well.ox.ac.uk/~wrayner/tools/HRC-1000G-check-bim-v4.3.0.zip
-            unzip unzip HRC-1000G-check-bim-v4.3.0.zip
+            unzip HRC-1000G-check-bim-v4.3.0.zip
 
     cd /opt
         mkdir liftover_refs
