@@ -37,7 +37,7 @@ include: "includes/final_vcf.smk"
 
 
 ## Define the chromosomes to be used downstream (post-gcta)
-chromosomes = input_dict["chromosomes"]
+# chromosomes = input_dict["chromosomes"]
 
 
 
@@ -47,7 +47,7 @@ vcf_files = []
 
 if options_dict["sex_checked"] == True:
     ## Define what will be called by the all rule based on what has been run and inputs in yaml file
-    gtm_files.append(expand(output_dict["output_dir"] + "/gtm_prune/gtm_prune_chr{chr}.bed", chr = chromosomes))
+    gtm_files.append(expand(output_dict["output_dir"] + "/gtm_prune/gtm_prune_chr{chr}.bed", chr = range(1, 24)))
     gtm_files.append(output_dict["output_dir"] + "/gtm_projection/gtm_projection_1000G.csv") ## Eventually replace with separate_ethnicities output files once know what they will be and look like
 
     ##define what will be called by the all rule based on what is present for the end vcf files
@@ -55,12 +55,12 @@ if options_dict["sex_checked"] == True:
         if os.path.exists(output_dict["output_dir"] + ""): ### Path to European file
             non_europeans = pd.read_csv(output_dict["output_dir"] + "", sep = "\t")
             if (len(non_europeans)) > 0:
-                vcf_files.append(expand(output_dict["output_dir"] + "/vcf/european_QC_filtered_sorted_chr{chr}.vcf.gz", chr = chromosomes))
+                vcf_files.append(expand(output_dict["output_dir"] + "/vcf/european_QC_filtered_sorted_chr{chr}.vcf.gz", chr = range(1, 23)))
 
         if os.path.exists(output_dict["output_dir"] + ""): ### Path to European file
             europeans = pd.read_csv(output_dict["output_dir"] + "", sep = "\t")
             if (len(europeans)) > 0:
-                vcf_files.append(expand(output_dict["output_dir"] + "/vcf/non_european_QC_filtered_sorted_chr{chr}.vcf", chr = chromosomes))
+                vcf_files.append(expand(output_dict["output_dir"] + "/vcf/non_european_QC_filtered_sorted_chr{chr}.vcf", chr = range(1, 23)))
 
 elif options_dict["sex_checked"] == False:
     print("You have indicated that the sex check has not been verified yet. Once the sex check step is complete, check the sex assignments that don't match and decide whether they should be changed (check_sex/update_sex.inds) or removed (check_sex/wrong_sex_remove_individuals.inds file) from the analysis. Once you are happy with your selections")
@@ -70,7 +70,7 @@ else:
 
 rule all:
     input:
-        output_dict["output_dir"] + "/hrc_check/Run-plink.sh"
+        output_dict["output_dir"] + "/gtm_projection/gtm_projection_1000G_indiv_predictions.csv"
         # output_dict["output_dir"] + "/check_sex/wrong_sex_remove_individuals.inds",
         # gtm_files,
         # vcf_files

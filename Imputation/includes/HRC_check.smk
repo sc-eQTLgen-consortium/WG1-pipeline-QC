@@ -90,23 +90,23 @@ rule hrc_check:
         singularity exec --bind {params.bind} {params.sif} perl /opt/HRC-1000G-check/HRC-1000G-check-bim.pl -b {input} -f {output.freq} -r /opt/HRC.r1-1.GRCh37.wgs.mac5.sites.tab -h -o {params.out}
         """
 
-# rule hrc_fix:
-#     input:
-#         output_dict["output_dir"] + "/hrc_check/Run-plink.sh"
-#     output:
-#         freq = output_dict["output_dir"] + "/hrc_check/freq.frq"
-#     resources:
-#         mem_per_thread_gb=lambda wildcards, attempt: attempt * HRC_check_dict["hrc_fix_memory"],
-#         disk_per_thread_gb=lambda wildcards, attempt: attempt * HRC_check_dict["hrc_fix_memory"]
-#     threads: HRC_check_dict["hrc_fix_threads"]
-#     params:
-#         out = output_dict["output_dir"] + "/hrc_check/",
-#         sif = input_dict["singularity_image"],
-#         bind = input_dict["bind_paths"],
-#         freq = output_dict["output_dir"] + "/hrc_check/freq"
-#     shell:
-#         """
-#         cd {params.out}
-#         singularity exec --bind {params.bind} {params.sif} sh {params.out}/Run-plink.sh
-#         """
+rule hrc_fix:
+    input:
+        output_dict["output_dir"] + "/hrc_check/Run-plink.sh"
+    output:
+        freq = output_dict["output_dir"] + "/hrc_check/grm_subset-updated-chr23.vcf"
+    resources:
+        mem_per_thread_gb=lambda wildcards, attempt: attempt * HRC_check_dict["hrc_fix_memory"],
+        disk_per_thread_gb=lambda wildcards, attempt: attempt * HRC_check_dict["hrc_fix_memory"]
+    threads: HRC_check_dict["hrc_fix_threads"]
+    params:
+        out = output_dict["output_dir"] + "/hrc_check/",
+        sif = input_dict["singularity_image"],
+        bind = input_dict["bind_paths"],
+        freq = output_dict["output_dir"] + "/hrc_check/freq"
+    shell:
+        """
+        cd {params.out}
+        singularity exec --bind {params.bind} {params.sif} sh {params.out}/Run-plink.sh
+        """
 
