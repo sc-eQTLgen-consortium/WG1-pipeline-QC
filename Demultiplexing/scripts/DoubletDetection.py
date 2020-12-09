@@ -45,8 +45,6 @@ else:
     standard_scaling = args.standard_scaling
 print(standard_scaling)
 
-sys.path.append(args.mods_dir) 
-import read10x
 
 ### Read in data ###
 raw_counts = read10x.import_cellranger_mtx(args.counts_matrix)
