@@ -74,7 +74,6 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
             standard_scaling = standard_scaling,
             p_thresh = p_thresh,
             voter_thresh = voter_thresh,
-            dir_mods = output_dict["output_dir"] + "/.mods",
             ready = ready,
             step = step
         log: output_dict["output_dir"] + "/logs/DoubletDetection." + step + ".{pool}.log"
@@ -93,7 +92,6 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
                     --standard_scaling {params.standard_scaling} \
                     --p_thresh {params.p_thresh} \
                     --voter_thresh {params.voter_thresh} \
-                    -d {params.dir_mods} \
                     -o {params.out} 2> {log}
             singularity exec --bind {params.bind} {params.sif} echo "The pool:" {wildcards.pool} >> {output.log}
             singularity exec --bind {params.bind} {params.sif} echo "This was a" {params.step} "run" >> {output.log}
@@ -106,6 +104,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
             [[ -s {output.doublets} ]]
             echo $?
             """
+            
     rule DoubletDetection_check_user_input:
         input:
             results = output_dict["output_dir"] + "/{pool}/DoubletDetection/DoubletDetection_results.txt",

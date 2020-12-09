@@ -9,9 +9,10 @@ import sys
 import pandas as pd
 
 # Load read10x function from mods directory
-mods_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+mods_path = "/opt/WG1-pipeline-QC/Demultiplexing/mods"
 sys.path.append(mods_path)
-from mods import read10x
+import read10x
 
 parser = argparse.ArgumentParser(
     description="wrapper for DoubletDetection for doublet detection from transcriptomic data.")

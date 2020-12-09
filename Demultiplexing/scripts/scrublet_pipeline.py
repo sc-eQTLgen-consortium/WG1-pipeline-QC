@@ -7,6 +7,9 @@ import scipy.io
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import umap
+import numba
+import numba.typed
 
 parser = argparse.ArgumentParser(
     description="wrapper for scrublet for doublet detection of transcriptomic data.")
@@ -22,9 +25,9 @@ parser.add_argument("-o", "--outdir", required = False, default = os.getcwd(), h
 args = parser.parse_args()
 
 # Get path of mods directory from current script directory
-mods_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+mods_path = "/opt/WG1-pipeline-QC/Demultiplexing/mods"
 sys.path.append(mods_path)
-from mods import read10x
+import read10x
 
 
 plt.rc('font', size=14)
