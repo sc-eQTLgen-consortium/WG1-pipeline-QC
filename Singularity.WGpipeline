@@ -110,15 +110,31 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 ##############################
 # setup scripts for users
 ##############################
-%apphelp setup
-    This function copies pipeline scripts to the user systems from the Singularity image.
-%appenv setup
+%apphelp snakefile
+    This function copies the snakefile scripts to the user systems from the Singularity image.
+%appenv snakefile
     SCRIPT_DIR=/opt/WG1-pipeline-QC/Demultiplexing
     export SCRIPT_DIR
-%apprun setup
+%apprun snakefile
     exec cp -a ${SCRIPT_DIR}/Snakefile "$@"
+
+%apphelp yaml
+    This function copies the yaml scripts to the user systems from the Singularity image.
+%appenv yaml
+    SCRIPT_DIR=/opt/WG1-pipeline-QC/Demultiplexing
+    export SCRIPT_DIR
+%apprun yaml
     exec cp -a ${SCRIPT_DIR}/sceQTL-Gen_Demultiplex.yaml "$@"
+
+%apphelp mods
+    This function copies the yaml scripts to the user systems from the Singularity image.
+%appenv mods
+    SCRIPT_DIR=/opt/WG1-pipeline-QC/Demultiplexing
+    export SCRIPT_DIR
+%apprun mods
     exec cp -a ${SCRIPT_DIR}/mods "$@"
+
+
 
 %labels 
     Author Drew Neavin and Anne Senabouth
