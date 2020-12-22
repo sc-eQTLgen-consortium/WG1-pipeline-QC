@@ -1,38 +1,30 @@
 ---
 refs:
-  # fasta38: /path/to/hg38fasta.fa
   fasta19: /path/to/hg19fasta.fa
 
 inputs:
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
   vcf: /path/to/input.vcf ### can be either hg19 or hg38
   pipeline_dir: /path/to/cloned/pipeline/directory ### This is the pipeline that was downloaded with `git clone https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git`
-  chromosomes: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X]
+  bind_paths: /paths/to/bind ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2} 
+  psam_file: /path/to/psam/file.psam ### Path to a fam file in plink format per https://www.cog-genomics.org/plink2/formats#fam with the following columns (UNLABLED): 1. Family ID ('FID'); 2. Within-family ID ('IID'; cannot be '0') 3. Within-family ID of father ('0' if father isn't in dataset) 4. Within-family ID of mother ('0' if mother isn't in dataset) 5. Sex code ('1' = male, '2' = female, '0' = unknown) 6. Phenotype value ('1' = control, '2' = case, '-9'/'0'/non-numeric = missing data if case/control)
   
 outputs:
   output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. The directory does not need to exist - snakemake will make it if it doesn't exist.
 
 options:
   ref: hg38 ### Reference that your input vcf is on (the array reference) either hg38 or hg19
-  sex_checked: False ### Logical (True or False) Indicacte whether you want to correct sex assignments based on incorrect assignments
-  individual_ancestries_checked: False ### Logical (True or False); Indicate whether you agree with the assignments provided by the gtm projection. If you don't agree and need to do more individual filtering so only the individuals you want are in the files
 
 
 ##### These are the options that will be used for plink QC steps #####
-plink_QC:
+plink_gender_ancestry_QC:
   ### If the vcf if on an hg38 reference, we need to liftover to hg19 using picard - this will only happen if the ref in the options categoray above is set to hg38
   hg38_liftover_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
   hg38_liftover_threads: 10 ### Number of threads to use
 
   ### Following options for converting vcf to plink with `plink --vcf <vcf> --fam <fam_file> --make-bed --out <out>`
-  fam_file: /path/to/file.fam ### Path to a fam file in plink format per https://www.cog-genomics.org/plink2/formats#fam with the following columns (UNLABLED): 1. Family ID ('FID'); 2. Within-family ID ('IID'; cannot be '0') 3. Within-family ID of father ('0' if father isn't in dataset) 4. Within-family ID of mother ('0' if mother isn't in dataset) 5. Sex code ('1' = male, '2' = female, '0' = unknown) 6. Phenotype value ('1' = control, '2' = case, '-9'/'0'/non-numeric = missing data if case/control)
   vcf_to_plink_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   vcf_to_plink_threads: 2 ### Number of threads to use
-
-  ### Following options for removing snps that are missing in too many individuals with `plink --bfile <bfile> --make-bed --geno <maf> --out <out> --noweb`
-  snp_missingness_snp_rate: 0.03 ### Missingness rate threshold
-  snp_missingness_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  snp_missingness_threads: 1 ### Number of threads to use
 
   ### Following options for removing individuals missing too many snps with `plink --bfile <bfile> --make-bed --mind <mind> --out <out> --noweb`
   indiv_missingness_mind: 0.03 ### Missingness rate threshold
@@ -47,6 +39,22 @@ plink_QC:
   update_sex_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   update_sex_threads: 1 ### Number of threads to use
 
+  ### Following options for finding common SNPs between 1000G and your data using awk and `plink --bfile <bfile> --extract <snps> --make-bed --out <out>`
+  common_snps_memory: 20
+  common_snps_threads: 1
+
+  ### Following options for pruning 1000G SNPs with `plink --bfile <bfile> --indep 50 5 1.5 --out <out>
+  prune_1000g_memory: 5
+  prune_1000g_threads: 1
+
+  ### Following options for 1000G PCA with `plink2 --pfile <pfile> --freq counts --pca allele-wts --out <out>`
+  pca_1000g_memory: 20
+  pca_1000g_threads: 2
+
+  ### Following ooptins for PCA projectin of data onto 1000G data with `plink2 --pfile <bfile> --read-freq <1000g_pcs.acount> --score <1000g_pcs.eigenvec.allele> 2 5 header-read no-mean-imputation variance-standardize --score-col-nums 6-15 --out <out>`
+  pca_project_memory: 20
+  pca_project_threads: 1
+
   ### Following options to remove snps with low maf with `plink --bfile <bfile> --maf <maf> --allow-extra-chr --make-bed --out <out>`
   maf: 0.01 ## MAF threshold to use
   maf_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
@@ -55,6 +63,7 @@ plink_QC:
   ### Following options to remove snps that fail hwe with `plink --bfile <bfile> --hardy --hwe --make-bed --out <out> --noweb`
   hwe_memory: 5 ### Number of gigs that will be used for memory and disk space per thread
   hwe_threads: 1 ### Number of threads to use
+  hwe_pvalue: 1e-6
 
   ### Following options to identify the heterozygosity per individual with `plink --bfile <bfile --het --out <out> --noweb`
   het_memory: 15 ### Amount of gigs that will be used for memory and disk space per thread
@@ -65,6 +74,11 @@ plink_QC:
   het_filter_memory: 5
   het_filter_threads: 1
 
+  ### Following options for removing snps that are missing in too many individuals with `plink --bfile <bfile> --make-bed --geno <maf> --out <out> --noweb`
+  snp_missingness_snp_rate: 0.03 ### Missingness rate threshold
+  snp_missingness_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  snp_missingness_threads: 1 ### Number of threads to use
+
 
 ##### These are the options that will be used for the grm_QC steps #####
 grm_QC:
@@ -72,15 +86,9 @@ grm_QC:
   grm_memory: 10
   grm_threads: 1
 
-  ### Options to identify individuals to filter based on relatedness and calculate pcs with `gcta64 --grm <grm> --grm-cutoff <threshold> --make-grm --out <out>`
-  grm_filter_relatednes: 0.125 ## Relatedness threshold cutoff for filtering one of related individuals
-  grm_filter_pcs: 6
-  grm_filter_memory: 10
-  grm_filter_threads: 1
-
-  ### Options to subset based on individuals identified in last step with `plink --bfile <bfile> --keep <ids> --make-bed --out <out>`
-  grm_subset_memory: 10
-  grm_subset_threads: 1
+  ### The following options are for an Rscript that takes the grm output and makes it into a table with all pairwise individual correlations, sorted by most related to least related
+  report_relatedness_memory: 10
+  report_relatedness_threads: 2
 
 HRC_check:
   ### Options to get all SNPs on forward strand
@@ -95,45 +103,24 @@ HRC_check:
   hrc_fix_memory: 15
   hrc_fix_threads: 2
 
-
-##### These are the options that will be used for the GTM steps to detect individual ancestries #####
-GTM_ancestry:
-  ### Options to use for gtm_preprocessing with `plink --bfile <bfile> --indep-pairwise 1000 10 0.02 --maf 0.05 --out <out> --make-bed` (also remove MHC region on chromosome 6 - just for ancestry detection and plotting)
-  gtm_preprocess_memory: 10
-  gtm_preprocess_threads: 1
-
-  ### Options to use for pruning SNPs prior to gtm running with `plink --bfile <bfile> --extract < --out <out> --make-bed`
-  gtm_prune_memory: 10
-  gtm_prune_threads: 1
-
-  ### Options to use for merging results and making a mat file for gtm input with `plink --merge-list <list> --recodeA --out <out`
-  gtm_merge_memory: 5
-  gtm_merge_threads: 1
-
-  ### Options for projection of data into 1000G space
-  gtm_projection_memory: 10
-  gtm_projection_threads: 2
-
-  ### Options for separating ethnicities into european and non-european
-  separate_ethnicities_memory: 2
-  separate_ethnicities_threads: 1
-
-
 ##### These are the options that will be used for preparing the final vcf #####
 final_vcf:
-  ### Options for converting europeaen bed to vcf (only run if individuals in european file) with `plink --bfile <input> --recode --keep <european_individuals> vcf --out <output>`
-  bed2vcf_european_memory: 10
-  bed2vcf_european_threads: 1
+  ### Options to convert bed file to pgen file
+  bed2pgen_memory: 2
+  bed2pgen_threads: 1
+
+  ### Options for fixing pvar file to have original vcf comments etc
+  fix_pvar_memory: 2
+  fix_pvar_threads: 1
+
+  ### Options for converting bed to vcf (only run if individuals in european file) with `plink --bfile <input> --recode --keep <european_individuals> vcf --out <output>`
+  pgen2vcf_memory: 10
+  pgen2vcf_threads: 1
+
+  ### Options for cobmining ancestry files together aggain with vcf-merge
+  combine_ancestries_memory: 5
+  combine_ancestries_threads: 1
 
   ### Options for sorting european final vcf (only run if individuals in european file) with `bcftools sort <input> -Oz -o <output>
-  european_vcf_sort_memory: 10
-  european_vcf_sort_threads: 1
-
-  ### Options for converting non-european bed to vcf (only run if individuals in the non-european file) with `plink european_vcf_sort`
-  bed2vcf_non_european_memory: 10
-  bed2vcf_non_european_threads: 1
-
-  ### Options for sorting final non-eruopean vcf (only run if individuals in non-european file) with `bcftools sort <input> -Oz -o <output>
-  european_vcf_sort_memory: 10
-  european_vcf_sort_threads: 1
-
+  vcf_sort_memory: 10
+  vcf_sort_threads: 1

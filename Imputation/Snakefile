@@ -11,69 +11,44 @@ input_dict = config["inputs"]
 output_dict = config["outputs"]
 options_dict = config["options"]
 ref_dict = config["refs"]
-plink_QC_dict = config["plink_QC"]
+plink_gender_ancestry_QC_dict = config["plink_gender_ancestry_QC"]
 grm_QC_dict = config["grm_QC"]
 HRC_check_dict = config["HRC_check"]
-GTM_check_dict = config["GTM_ancestry"]
 final_vcf_dict = config["final_vcf"]
-
-# ## Add contingencies for if the user puts the path to the pipeline dir or downstream dirs
-# if input_dict["pipeline_dir"].endswith("Imputation") or input_dict["pipeline_dir"].endswith("Imputation/"):
-#     input_dict["pipeline_dir"] = input_dict["pipeline_dir"]
-# elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC"):
-#     input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "/Imputation"
-# elif input_dict["pipeline_dir"].endswith("WG1-pipeline-QC/"):
-#     input_dict["pipeline_dir"] = input_dict["pipeline_dir"] + "Imputation"
-# else:
-#     print("Unrecognized pipeline directory. Should end in WG1-pipeline-QC or Imputation.")
 
 
 # Import individual rules
-include: "includes/plink_QC.smk"
+include: "includes/plink_gender_ancestry_QC.smk"
 include: "includes/grm_QC.smk"
 include: "includes/HRC_check.smk"
-include: "includes/GTM_ancestry.smk"
 include: "includes/final_vcf.smk"
 
 
 ## Define the chromosomes to be used downstream (post-gcta)
-# chromosomes = input_dict["chromosomes"]
+chromosomes = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
 
 
-
-## Prepare lists to store file lists for all rule
-gtm_files = []
+plinkQC_files = []
+grm_files = []
 vcf_files = []
-
-if options_dict["sex_checked"] == True:
-    ## Define what will be called by the all rule based on what has been run and inputs in yaml file
-    gtm_files.append(expand(output_dict["output_dir"] + "/gtm_prune/gtm_prune_chr{chr}.bed", chr = range(1, 24)))
-    gtm_files.append(output_dict["output_dir"] + "/gtm_projection/gtm_projection_1000G.csv") ## Eventually replace with separate_ethnicities output files once know what they will be and look like
-
-    ##define what will be called by the all rule based on what is present for the end vcf files
-    if options_dict["individual_ancestries_checked"] == True:
-        if os.path.exists(output_dict["output_dir"] + ""): ### Path to European file
-            non_europeans = pd.read_csv(output_dict["output_dir"] + "", sep = "\t")
-            if (len(non_europeans)) > 0:
-                vcf_files.append(expand(output_dict["output_dir"] + "/vcf/european_QC_filtered_sorted_chr{chr}.vcf.gz", chr = range(1, 23)))
-
-        if os.path.exists(output_dict["output_dir"] + ""): ### Path to European file
-            europeans = pd.read_csv(output_dict["output_dir"] + "", sep = "\t")
-            if (len(europeans)) > 0:
-                vcf_files.append(expand(output_dict["output_dir"] + "/vcf/non_european_QC_filtered_sorted_chr{chr}.vcf", chr = range(1, 23)))
-
-elif options_dict["sex_checked"] == False:
-    print("You have indicated that the sex check has not been verified yet. Once the sex check step is complete, check the sex assignments that don't match and decide whether they should be changed (check_sex/update_sex.inds) or removed (check_sex/wrong_sex_remove_individuals.inds file) from the analysis. Once you are happy with your selections")
-
+if os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv") and os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv"):
+    ancestry_check = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv", sep = "\t")
+    sex_check = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv", sep = "\t")
+    if ancestry_check["UPDATE/REMOVE/KEEP"].count() == len(ancestry_check) and sex_check["UPDATE/REMOVE/KEEP"].count() == len(sex_check):
+        plinkQC_files.append(output_dict["output_dir"] + "/update_sex_ancestry/update_sex.pgen")
+        if os.path.exists(output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv"):
+            ancestry_file = pd.read_csv(output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv", sep = "\t", header = None, names = ["Ancestry"])
+            grm_files.append(expand(output_dict["output_dir"] + "/grm/{ancestry}_paired_relatedness.tsv", ancestry = ancestry_file["Ancestry"]))
+            plinkQC_files.append(expand(output_dict["output_dir"] + "/convert_files/{ancestry}/{ancestry}_strand_check-updated-chr{chr}.pvar.temp", ancestry = ancestry_file["Ancestry"], chr = chromosomes))
+            vcf_files.append(expand(output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr{chr}.vcf.gz", chr = chromosomes))
 else:
-    print("The input for the sex_checked option in the inputs of the yaml configuration file is not appropriate. This should be True or False depending on if you have checked the differences  between the snp-based and reference-based abd snp-based sex assignments.")
+    plinkQC_files.append(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv")
 
 rule all:
     input:
-        output_dict["output_dir"] + "/gtm_projection/gtm_projection_1000G_indiv_predictions.csv"
-        # output_dict["output_dir"] + "/check_sex/wrong_sex_remove_individuals.inds",
-        # gtm_files,
-        # vcf_files
+        plinkQC_files,
+        grm_files,
+        vcf_files
 
 
 
