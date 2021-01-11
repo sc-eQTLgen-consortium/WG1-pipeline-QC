@@ -85,6 +85,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     /opt/conda/envs/py36/bin/pip install matplotlib
     /opt/conda/envs/py36/bin/pip install numpy
 
+
     cd /opt
         git clone https://github.com/vcftools/vcftools.git
         cd vcftools
@@ -159,11 +160,8 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
             gunzip hg38ToHg19.over.chain.gz
 
     cd /opt
-        git clone https://github.com/hagax8/ancestry_viz.git
-        cd ancestry_viz
-        wget http://lovingscience.com/ancestries/downloads/recoded_1000G.noadmixed.mat
-        wget http://lovingscience.com/ancestries/downloads/recoded_1000G.raw.noadmixed.lbls3_3
-        wget http://lovingscience.com/ancestries/downloads/recoded_1000G.raw.noadmixed.ids
+        wget https://www.dropbox.com/s/nxvoekc3mb637qn/1000G.tar.gz
+        tar -xzf 1000G.tar.gz
 
     cd /opt
         git clone https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git

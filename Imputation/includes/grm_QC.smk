@@ -46,7 +46,7 @@ rule report_relatedness:
         sif = input_dict["singularity_image"],
         infile = output_dict["output_dir"] + "/grm/{ancestry}_grm",
         out = output_dict["output_dir"] + "/grm/{ancestry}_",
-        script = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/WG1-pipeline-QC/Imputation/scripts/viewGRM.R"
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/viewGRM.R"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.infile} {params.out}

@@ -128,7 +128,7 @@ rule common_snps:
         bim = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.pvar",
         fam = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.psam",
         log = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.log",
-        bim_1000 = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/output/Prepare1000G/plink2_resources_hg19/all_phase3_filtered.pvar"
+        bim_1000 = "/opt/1000G/all_phase3_filtered.pvar"
     output:
         snps_data = output_dict["output_dir"] + "/common_snps/snps_data.tsv",
         snps_1000g = output_dict["output_dir"] + "/common_snps/snps_1000g.tsv",
@@ -145,7 +145,7 @@ rule common_snps:
     params:
         bind = input_dict["bind_paths"],
         infile = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness",
-        infile_1000g = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/output/Prepare1000G/plink2_resources_hg19/all_phase3_filtered",
+        infile_1000g = "/opt/1000G/all_phase3_filtered",
         out = output_dict["output_dir"] + "/common_snps/subset_data",
         out_1000g = output_dict["output_dir"] + "/common_snps/subset_1000g",
         sif = input_dict["singularity_image"]
@@ -297,8 +297,7 @@ rule pca_projection_assign:
         bind = input_dict["bind_paths"],
         sif = input_dict["singularity_image"],
         outdir = output_dict["output_dir"] + "/pca_sex_checks/",
-        script = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/WG1-pipeline-QC/Imputation/scripts/PCA_Projection_Plotting.R"
-        # script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R"
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/PCA_Projection_Plotting.R"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.outdir} > {params.variables}
@@ -493,8 +492,7 @@ rule het:
         hwe = output_dict["output_dir"] + "/hwe/{ancestry}_hwe",
         out = output_dict["output_dir"] + "/het/{ancestry}_het",
         sif = input_dict["singularity_image"],
-        # script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R"
-        script = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/WG1-pipeline-QC/Imputation/scripts/filter_het.R"
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.hwe} --het --read-freq {input.freq} --out {params.out}
