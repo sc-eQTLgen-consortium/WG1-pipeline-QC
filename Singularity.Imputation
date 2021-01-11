@@ -87,6 +87,10 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 
 
     cd /opt
+        wget https://www.dropbox.com/s/nxvoekc3mb637qn/1000G.tar.gz
+        tar -xzf 1000G.tar.gz
+        
+    cd /opt
         git clone https://github.com/vcftools/vcftools.git
         cd vcftools
             ./autogen.sh
@@ -158,10 +162,6 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
             gunzip hg19ToHg38.over.chain.gz
             wget http://hgdownload.cse.ucsc.edu/goldenpath/hg38/liftOver/hg38ToHg19.over.chain.gz
             gunzip hg38ToHg19.over.chain.gz
-
-    cd /opt
-        wget https://www.dropbox.com/s/nxvoekc3mb637qn/1000G.tar.gz
-        tar -xzf 1000G.tar.gz
 
     cd /opt
         git clone https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
