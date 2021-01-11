@@ -89,7 +89,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     cd /opt
         wget https://www.dropbox.com/s/nxvoekc3mb637qn/1000G.tar.gz
         tar -xzf 1000G.tar.gz
-        
+
     cd /opt
         git clone https://github.com/vcftools/vcftools.git
         cd vcftools
@@ -138,7 +138,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         mkdir plink2
         cd plink2
             wget http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20210104.zip
-            unzip plink2_linux_x86_64_20200923.zip
+            unzip plink2_linux_x86_64_20210104.zip
 
     cd /opt
         git clone https://github.com/broadinstitute/picard.git
