@@ -14,6 +14,9 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     yes | apt upgrade
 
     cd /opt
+        wget https://www.dropbox.com/s/uwvol8phqv6gin9/TestData4PipelineSmall.tar.gz
+
+    cd /opt
     git clone https://github.com/JonathanShor/DoubletDetection.git
     cd DoubletDetection
     /opt/conda/envs/py36/bin/pip install .
@@ -118,6 +121,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 %apprun snakefile
     exec cp -a ${SCRIPT_DIR}/Snakefile "$@"
 
+
 %apphelp yaml
     This function copies the yaml scripts to the user systems from the Singularity image.
 %appenv yaml
@@ -126,6 +130,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 %apprun yaml
     exec cp -a ${SCRIPT_DIR}/sceQTL-Gen_Demultiplex.yaml "$@"
 
+
 %apphelp mods
     This function copies the yaml scripts to the user systems from the Singularity image.
 %appenv mods
@@ -133,6 +138,15 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     export SCRIPT_DIR
 %apprun mods
     exec cp -a ${SCRIPT_DIR}/mods "$@"
+
+
+%apphelp test_dataset
+    This function copies the yaml scripts to the user systems from the Singularity image.
+%appenv test_dataset
+    TAR=/opt/TestData4PipelineSmall.tar.gz
+    export TAR
+%apprun test_dataset
+    exec cp -a ${TAR} "$@"
 
 
 
