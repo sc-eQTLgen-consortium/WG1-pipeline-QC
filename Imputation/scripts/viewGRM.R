@@ -50,4 +50,4 @@ pairs$genetic_relatedness <- t(matrix)[lower.tri(t(matrix))]
 
 pairs <- pairs[rev(order(pairs$genetic_relatedness)),]
 
-write_delim(pairs, paste0(out,"paired_relatedness.tsv"))
+write_delim(pairs, paste0(out,"paired_relatedness.tsv"), delim = "\t")

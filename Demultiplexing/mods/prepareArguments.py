@@ -5,7 +5,7 @@ from glob import glob
 import re
 import subprocess
 
-def matchFolders(x, dir_list = None, scrnaseq_dir):
+def matchFolders(x, scrnaseq_dir, dir_list = None):
     for folder in dir_list:
         if os.path.isdir(os.path.join(scrnaseq_dir,folder)):
             if re.search(r'^' + x + "$", folder):
@@ -78,7 +78,6 @@ def get_scrnaseq_dirs(config):
     try:
         scrnaseq_filelist = [os.path.join(scrnaseq_dir, matchFolders(pool, dir_list = scrna_seq_dirlist, scrnaseq_dir = scrnaseq_dir)) for pool in pools]
     except TypeError:
-        print(error)
         print("Could not find a scRNA-seq directory for all of the pools in your pool list. Please check that they are spelled correctly and you do not have any additional pool names that are not in {}  ".format(individual_list_dir))
     scrnaseq_filedict = dict(zip(pools, scrnaseq_filelist))
     scrnaseq_libs = pd.Series(scrnaseq_filedict, name="scRNAseq_Directories")
@@ -87,7 +86,6 @@ def get_scrnaseq_dirs(config):
     try:
         barcode_filelist = [get_barcodes_files(pool) for pool in scrnaseq_filelist]
     except:
-        print(error)
         print("Could not find a barcode file in all the scRNA-seq pool directories. Please check that they exist somewhere in your pool scRNA-seq directories and contain 'barcodes.tsv' within the name.")
     barcode_filedict = dict(zip(pools, barcode_filelist))
     barcode_libs = pd.Series(barcode_filedict, name="Barcode_Files")
@@ -96,7 +94,6 @@ def get_scrnaseq_dirs(config):
     try:
         bam_filelist = [get_bam_files(pool) for pool in scrnaseq_filelist]
     except:
-        print(error)
         print("Could not find a bam file in all the scRNA-seq pool directories. Please check that they exist somewhere in your pool scRNA-seq directories and contain '.bam' within the name.")
     bam_filedict = dict(zip(pools, bam_filelist))
     bamlibs = pd.Series(bam_filedict, name="Bam_Files")
@@ -105,7 +102,6 @@ def get_scrnaseq_dirs(config):
     try:
         matrix_filelist = [get_matrix_files(pool) for pool in scrnaseq_filelist]
     except:
-        print(error)
         print("Could not find a matrix file in all the scRNA-seq pool directories. Please check that they exist somewhere in your pool scRNA-seq directories and contain 'matrix.mtx' within the name.")
     matrix_filedict = dict(zip(pools, matrix_filelist))
     matrix_libs = pd.Series(matrix_filedict, name="Matrix_Files")
@@ -114,7 +110,6 @@ def get_scrnaseq_dirs(config):
     try:
         matrix_dirlist = [get_matrix_dirs(pool) for pool in scrnaseq_filelist]
     except:
-        print(error)
         print("Could not find a matrix file in all the scRNA-seq pool directories. Please check that they exist somewhere in your pool scRNA-seq directories and contain 'matrix.mtx' within the name.")
     matrix_dirdict = dict(zip(pools, matrix_dirlist))
     matrix_dir_libs = pd.Series(matrix_dirdict, name="Matrix_Directories")
@@ -124,7 +119,6 @@ def get_scrnaseq_dirs(config):
     try:
         individual_filelist = [os.path.join(individual_list_dir, get_individual_files(pool, individual_dir = individual_dirlist)) for pool in pools]
     except:
-        print(error)
         print("Could not find a files of individuals in {}. Please check that they exist somewhere in this directory and contain the pool names within the name of the file.".format(individual_list_dir))
     individual_filedict = dict(zip(pools, individual_filelist))
     individual_libs = pd.Series(individual_filedict, name="Individuals_Files")

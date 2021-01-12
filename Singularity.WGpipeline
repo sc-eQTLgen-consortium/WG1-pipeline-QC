@@ -140,6 +140,15 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     exec cp -a ${SCRIPT_DIR}/mods "$@"
 
 
+%apphelp includes
+    This function copies the yaml scripts to the user systems from the Singularity image.
+%appenv includes
+    SCRIPT_DIR=/opt/WG1-pipeline-QC/Demultiplexing
+    export SCRIPT_DIR
+%apprun includes
+    exec cp -a ${SCRIPT_DIR}/includes "$@"
+
+
 %apphelp test_dataset
     This function copies the yaml scripts to the user systems from the Singularity image.
 %appenv test_dataset
