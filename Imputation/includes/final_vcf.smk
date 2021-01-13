@@ -104,3 +104,25 @@ rule vcf_sort:
         singularity exec --bind {params.bind} {params.sif} bcftools sort {input} -Oz -o {output}
         """
 
+
+rule combine_vcfs:
+    input:
+        vcfs = expand(output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr{chr}.vcf.gz", chr = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23])
+    output:
+        combined = output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr.vcf.gz",
+        updated = output_dict["output_dir"] + "/vcf/files4submission/QC_filtered_sorted_chr_updated.vcf.gz"
+    resources:
+        mem_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["combine_vcfs_memory"],
+        disk_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["combine_vcfs_memory"]
+    threads: final_vcf_dict["combine_vcfs_threads"]
+    params:
+        sif = input_dict["singularity_image"],
+        bind = input_dict["bind_paths"],
+        # conversion = "/opt//WG1-pipeline-QC/Imputation/chr_conversions.tsv"
+        conversion = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/WG1-pipeline-QC/Imputation/chr_conversions.tsv"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} bcftools concat -Oz {input.vcfs} > {output.combined}
+        singularity exec --bind {params.bind} {params.sif} bcftools annotate -Oz --rename-chrs {params.conversion} {output.combined} > {output.updated}
+        singularity exec --bind {params.bind} {params.sif} bcftools index {output.updated}
+        """

@@ -124,3 +124,7 @@ final_vcf:
   ### Options for sorting european final vcf (only run if individuals in european file) with `bcftools sort <input> -Oz -o <output>
   vcf_sort_memory: 10
   vcf_sort_threads: 1
+
+  ### Options for combining all final vcfs and updating chr 23 to be labeled as X
+  combine_vcfs_memory: 5
+  combine_vcfs_threads: 1

@@ -41,6 +41,7 @@ if os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_r
             grm_files.append(expand(output_dict["output_dir"] + "/grm/{ancestry}_paired_relatedness.tsv", ancestry = ancestry_file["Ancestry"]))
             plinkQC_files.append(expand(output_dict["output_dir"] + "/convert_files/{ancestry}/{ancestry}_strand_check-updated-chr{chr}.pvar.temp", ancestry = ancestry_file["Ancestry"], chr = chromosomes))
             vcf_files.append(expand(output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr{chr}.vcf.gz", chr = chromosomes))
+            vcf_files.append(output_dict["output_dir"] + "/vcf/files4submission/QC_filtered_sorted_chr_updated.vcf.gz")
 else:
     plinkQC_files.append(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv")
 
