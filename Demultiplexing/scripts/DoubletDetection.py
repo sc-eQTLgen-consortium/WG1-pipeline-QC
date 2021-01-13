@@ -71,6 +71,4 @@ dataframe.to_csv(os.path.join(args.outdir,'DoubletDetection_results.txt'), sep =
 ### Figures ###
 doubletdetection.plot.convergence(clf, save=os.path.join(args.outdir,'convergence_test.pdf'), show=True, p_thresh=args.p_thresh, voter_thresh=args.voter_thresh)
 
-f2, umap_coords = doubletdetection.plot.umap_plot(raw_counts, doublets, random_state=1, 
-                                                       save=os.path.join(args.outdir,'umap_test.pdf'), show=True)
 f3 = doubletdetection.plot.threshold(clf, save=os.path.join(args.outdir,'threshold_test.pdf'), show=True, p_step=6)
