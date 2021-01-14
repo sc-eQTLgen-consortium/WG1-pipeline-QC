@@ -126,3 +126,23 @@ rule combine_vcfs:
         singularity exec --bind {params.bind} {params.sif} bcftools annotate -Oz --rename-chrs {params.conversion} {output.combined} > {output.updated}
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.updated}
         """
+
+rule sex4imputation:
+    input:
+        output_dict["output_dir"] + "/update_sex_ancestry/update_sex.psam"
+    output:
+        output_dict["output_dir"] + "/vcf/files4submission/individual_sexes.tsv"
+    resources:
+        mem_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["sex4imputation_memory"],
+        disk_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["sex4imputation_memory"]
+    threads: final_vcf_dict["sex4imputation_threads"]
+    params:
+        sif = input_dict["singularity_image"],
+        bind = input_dict["bind_paths"],
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS="\t"}}{{OFS=""}}{{print($1,"_",$2,"\t",$5)}}' {input} | \
+            singularity exec --bind {params.bind} {params.sif} sed '1d' | \
+            singularity exec --bind {params.bind} {params.sif} sed 's/1/M/g' | \
+            singularity exec --bind {params.bind} {params.sif} sed 's/2/F/g' > {output}
+        """
