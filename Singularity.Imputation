@@ -141,7 +141,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     cd /opt
         mkdir plink2
         cd plink2
-            wget http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20210104.zip
+            wget http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20210114.zip
             unzip plink2_linux_x86_64_20210104.zip
 
     cd /opt
