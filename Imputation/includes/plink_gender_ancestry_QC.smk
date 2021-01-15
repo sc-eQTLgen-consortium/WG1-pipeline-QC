@@ -479,7 +479,7 @@ rule het:
         bed = output_dict["output_dir"] + "/hwe/{ancestry}_hwe.pgen",
         bim = output_dict["output_dir"] + "/hwe/{ancestry}_hwe.pvar",
         fam = output_dict["output_dir"] + "/hwe/{ancestry}_hwe.psam",
-        script = input_dict["pipeline_dir"] + "/scripts/filter_het.R"
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R"
     output:
         inds = output_dict["output_dir"] + "/het/{ancestry}_het.inds",
         het = output_dict["output_dir"] + "/het/{ancestry}_het.het"

@@ -8,18 +8,17 @@ refs:
 inputs:
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
   vcf: /path/to/input.vcf ### can be either hg19 or hg38
-  pipeline_dir: /path/to/cloned/pipeline/directory 
   bind_paths: /paths/to/bind ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2} 
   psam_file: /path/to/psam/file.psam ### Path to a fam file in plink format per https://www.cog-genomics.org/plink2/formats#fam with the following columns (LABELED): 1.  sFamily ID ('FID'); 2. Within-family ID ('IID'; cannot be '0') 3. Within-family ID of father ('0' if father isn't in dataset) 4. Within-family ID of mother ('0' if mother isn't in dataset) 5. Sex code ('1' = male, '2' = female, '0' = unknown) 6. Provided_Ancestry('AFR' = African, 'AMR' = Ad Mixed American, 'EAS' = East Asian, 'EUR' = European, 'SAS' = South Asian)
   
 outputs:
-  output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved.  s
+  output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved.
 
 options:
   ref: hg38 ### Reference that your input vcf is on (the array reference) either hg38 or hg19
 
 #########################################################################################################
-##### The following arguments are parameters that may be changed if needed depending on the dataset #####
+##### The following arguments are parameters that may be changed if needed depending on the dataset but can often #####
 #########################################################################################################
 ##### These are the options that will be used for plink QC steps #####
 plink_gender_ancestry_QC:
