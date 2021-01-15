@@ -1,21 +1,26 @@
 ---
+##############################################################################################################
+##### The following arguments need to be changed by the user to indicating file locations on your system #####
+##############################################################################################################
 refs:
   fasta19: /path/to/hg19fasta.fa
 
 inputs:
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
   vcf: /path/to/input.vcf ### can be either hg19 or hg38
-  pipeline_dir: /path/to/cloned/pipeline/directory ### This is the pipeline that was downloaded with `git clone https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git`
+  pipeline_dir: /path/to/cloned/pipeline/directory 
   bind_paths: /paths/to/bind ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2} 
-  psam_file: /path/to/psam/file.psam ### Path to a fam file in plink format per https://www.cog-genomics.org/plink2/formats#fam with the following columns (UNLABLED): 1. Family ID ('FID'); 2. Within-family ID ('IID'; cannot be '0') 3. Within-family ID of father ('0' if father isn't in dataset) 4. Within-family ID of mother ('0' if mother isn't in dataset) 5. Sex code ('1' = male, '2' = female, '0' = unknown) 6. Phenotype value ('1' = control, '2' = case, '-9'/'0'/non-numeric = missing data if case/control)
+  psam_file: /path/to/psam/file.psam ### Path to a fam file in plink format per https://www.cog-genomics.org/plink2/formats#fam with the following columns (LABELED): 1.  sFamily ID ('FID'); 2. Within-family ID ('IID'; cannot be '0') 3. Within-family ID of father ('0' if father isn't in dataset) 4. Within-family ID of mother ('0' if mother isn't in dataset) 5. Sex code ('1' = male, '2' = female, '0' = unknown) 6. Provided_Ancestry('AFR' = African, 'AMR' = Ad Mixed American, 'EAS' = East Asian, 'EUR' = European, 'SAS' = South Asian)
   
 outputs:
-  output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. The directory does not need to exist - snakemake will make it if it doesn't exist.
+  output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved.  s
 
 options:
   ref: hg38 ### Reference that your input vcf is on (the array reference) either hg38 or hg19
 
-
+#########################################################################################################
+##### The following arguments are parameters that may be changed if needed depending on the dataset #####
+#########################################################################################################
 ##### These are the options that will be used for plink QC steps #####
 plink_gender_ancestry_QC:
   ### If the vcf if on an hg38 reference, we need to liftover to hg19 using picard - this will only happen if the ref in the options categoray above is set to hg38
