@@ -92,7 +92,6 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 
     cd /opt
         wget https://www.dropbox.com/s/bvoejnq3mo2fzpi/ImputationTestDataset.tar.gz
-        tar -xzf ImputationTestDataset.tar.gz
 
     cd /opt
         git clone https://github.com/vcftools/vcftools.git
