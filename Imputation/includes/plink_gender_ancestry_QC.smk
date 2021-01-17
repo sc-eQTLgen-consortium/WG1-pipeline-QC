@@ -27,9 +27,9 @@ if options_dict["ref"] == "hg38":
 
 
 elif options_dict["ref"] == "hg19":
-    print("Looks like your vcf is already on hg19, no need to liftover for QC and imputation.")
+    logger.info("Looks like your vcf is already on hg19, no need to liftover for QC and imputation.")
 else:
-    print("The parameter that you put in for the inputs:ref: in the yaml file is not recognized. It should be either hg19 or hg38.")
+    logger.info("The parameter that you put in for the inputs:ref: in the yaml file is not recognized. It should be either hg19 or hg38.")
 
 
 if options_dict["ref"] == "hg38":
@@ -37,7 +37,7 @@ if options_dict["ref"] == "hg38":
 elif options_dict["ref"] == "hg19":
     input_vcf = input_dict["vcf"]
 else:
-    print("There's a problem with the reference name used in the inputs of your yaml file (inputs:ref:). Accepted options are either hg19 or hg38")
+    logger.info("There's a problem with the reference name used in the inputs of your yaml file (inputs:ref:). Accepted options are either hg19 or hg38")
 
 rule vcf_to_plink:
     input:
@@ -59,7 +59,7 @@ rule vcf_to_plink:
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}' {input.fam} > {output.indiv_file}
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --vcf {input.vcf} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out} --fam {input.fam} --id-delim _ --indiv-sort f {output.indiv_file} --max-alleles 2
+        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --vcf {input.vcf} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out} --psam {input.fam} --id-delim _ --indiv-sort f {output.indiv_file} --max-alleles 2
         """
         # singularity exec --bind {params.bind} {params.sif} plink --vcf {input.vcf} --make-bed --out {params.out} --fam {input.fam} --indiv-sort f {output.indiv_file}
 
@@ -127,8 +127,6 @@ rule common_snps:
         bed = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.pgen",
         bim = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.pvar",
         fam = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.psam",
-        log = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.log",
-        bim_1000 = "/opt/1000G/all_phase3_filtered.pvar"
     output:
         snps_data = output_dict["output_dir"] + "/common_snps/snps_data.tsv",
         snps_1000g = output_dict["output_dir"] + "/common_snps/snps_1000g.tsv",
@@ -143,6 +141,7 @@ rule common_snps:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["common_snps_memory"]
     threads: plink_gender_ancestry_QC_dict["common_snps_threads"]
     params:
+        bim_1000 = "/opt/1000G/all_phase3_filtered.pvar",
         bind = input_dict["bind_paths"],
         infile = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness",
         infile_1000g = "/opt/1000G/all_phase3_filtered",
@@ -151,8 +150,8 @@ rule common_snps:
         sif = input_dict["singularity_image"]
     shell:
         """
-        awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.bim} {input.bim_1000} > {output.snps_1000g}
-        awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.bim_1000} {input.bim} > {output.snps_data}
+        awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.bim} {params.bim_1000} > {output.snps_1000g}
+        awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {params.bim_1000} {input.bim} > {output.snps_data}
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --extract {output.snps_data} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile_1000g} --extract {output.snps_1000g} --make-pgen --out {params.out_1000g}
         """
