@@ -118,8 +118,7 @@ rule combine_vcfs:
     params:
         sif = input_dict["singularity_image"],
         bind = input_dict["bind_paths"],
-        # conversion = "/opt//WG1-pipeline-QC/Imputation/chr_conversions.tsv"
-        conversion = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/WG1-pipeline-QC/Imputation/chr_conversions.tsv"
+        conversion = "/opt/WG1-pipeline-QC/Imputation/chr_conversions.tsv"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools concat -Oz {input.vcfs} > {output.combined}
@@ -143,6 +142,6 @@ rule sex4imputation:
         """
         singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS="\t"}}{{OFS=""}}{{print($1,"_",$2,"\t",$5)}}' {input} | \
             singularity exec --bind {params.bind} {params.sif} sed '1d' | \
-            singularity exec --bind {params.bind} {params.sif} sed 's/1/M/g' | \
-            singularity exec --bind {params.bind} {params.sif} sed 's/2/F/g' > {output}
+            singularity exec --bind {params.bind} {params.sif} sed 's/\t1/\tM/g' | \
+            singularity exec --bind {params.bind} {params.sif} sed 's/\t2/\tF/g' > {output}
         """

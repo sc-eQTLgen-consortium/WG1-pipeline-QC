@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+shell.executable('bash')
 
 if options_dict["ref"] == "hg38":
     rule hg38_liftover:
@@ -24,7 +25,6 @@ if options_dict["ref"] == "hg38":
                 REJECT={params.out}/LiftOver_rejected_variants.vcf \
                 R={params.fasta}
             """
-
 
 elif options_dict["ref"] == "hg19":
     logger.info("Looks like your vcf is already on hg19, no need to liftover for QC and imputation.")
@@ -61,8 +61,6 @@ rule vcf_to_plink:
         singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}' {input.fam} > {output.indiv_file}
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --vcf {input.vcf} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out} --psam {input.fam} --id-delim _ --indiv-sort f {output.indiv_file} --max-alleles 2
         """
-        # singularity exec --bind {params.bind} {params.sif} plink --vcf {input.vcf} --make-bed --out {params.out} --fam {input.fam} --indiv-sort f {output.indiv_file}
-
 
 rule indiv_missingness:
     input:
@@ -85,7 +83,11 @@ rule indiv_missingness:
        sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --make-pgen 'psam-cols='fid,parents,sex,phenos --mind {params.mind} --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} \
+            --pfile {params.infile} \
+            --make-pgen 'psam-cols='fid,parents,sex,phenos \
+            --mind {params.mind} \
+            --out {params.out}
         """
 
 rule check_sex:
@@ -119,8 +121,6 @@ rule check_sex:
         singularity exec --bind {params.bind} {params.sif} sed 's/^ \+//g' {output.sexcheck} | singularity exec --bind {params.bind} {params.sif} sed 's/ \+/\t/g' > {output.sexcheck_tab}
         """
 
-
-
 ### Pull just common SNPs between two groups ###
 rule common_snps:
     input:
@@ -150,8 +150,8 @@ rule common_snps:
         sif = input_dict["singularity_image"]
     shell:
         """
-        awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.bim} {params.bim_1000} > {output.snps_1000g}
-        awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {params.bim_1000} {input.bim} > {output.snps_data}
+        singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.bim} {params.bim_1000} > {output.snps_1000g}
+        singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {params.bim_1000} {input.bim} > {output.snps_data}
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --extract {output.snps_data} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile_1000g} --extract {output.snps_1000g} --make-pgen --out {params.out_1000g}
         """
@@ -196,8 +196,11 @@ rule prune_1000g:
             --indep-pairwise 50 5 0.5 \
             --out {params.out_1000g}
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile_1000g} --extract {output.prune_out_1000g} --make-pgen --out {params.out_1000g}
-        singularity exec --bind {params.bind} {params.sif} grep "##" {input.bim} > {output.data_1000g_key}
-        singularity exec --bind {params.bind} {params.sif} awk -F"\t" 'BEGIN{{OFS=FS = "\t"}} NR==FNR{{a[$1 FS $2 FS $4 FS $5] = $0; next}} {{ind = $1 FS $2 FS $4 FS $5}} ind in a {{print a[ind], $3}}' {output.bim_1000g} {input.bim} | singularity exec --bind {params.bind} {params.sif} grep -v "##" >> {output.data_1000g_key}
+        if [[ $(grep "##" {input.bim} | wc -l) > 0 ]]
+        then
+            singularity exec --bind {params.bind} {params.sif} grep "##" {input.bim} > {output.data_1000g_key}
+        fi
+        singularity exec --bind {params.bind} {params.sif} awk -F"\\t" 'BEGIN{{OFS=FS = "\\t"}} NR==FNR{{a[$1 FS $2 FS $4 FS $5] = $0; next}} {{ind = $1 FS $2 FS $4 FS $5}} ind in a {{print a[ind], $3}}' {output.bim_1000g} {input.bim} | singularity exec --bind {params.bind} {params.sif} grep -v "##" >> {output.data_1000g_key}
         singularity exec --bind {params.bind} {params.sif} grep -v "##" {output.data_1000g_key} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print $NF}}' > {output.prune_out}
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --extract {output.prune_out} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         singularity exec --bind {params.bind} {params.sif} cp {output.bim} {output.bim_old}
@@ -208,18 +211,43 @@ rule prune_1000g:
         singularity exec --bind {params.bind} {params.sif} grep "##" {output.bim_1000g} > {output.bim}
         singularity exec --bind {params.bind} {params.sif} cat {output.bim_temp} >> {output.bim}
         """
+        
+rule final_pruning: ### put in contingency for duplicated snps - remove from both 1000G and your dataset
+    input:
+        bed = output_dict["output_dir"] + "/common_snps/subset_pruned_data.pgen",
+        bim = output_dict["output_dir"] + "/common_snps/subset_pruned_data.pvar",
+        fam = output_dict["output_dir"] + "/common_snps/subset_pruned_data.psam",
+    output:
+        bed = output_dict["output_dir"] + "/common_snps/final_subset_pruned_data.pgen",
+        bim = output_dict["output_dir"] + "/common_snps/final_subset_pruned_data.pvar",
+        fam = output_dict["output_dir"] + "/common_snps/final_subset_pruned_data.psam",
+    resources:
+        mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["prune_1000g_memory"],
+        disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["prune_1000g_memory"]
+    threads: plink_gender_ancestry_QC_dict["prune_1000g_threads"]
+    params:
+        bind = input_dict["bind_paths"],
+        sif = input_dict["singularity_image"],
+        infile = output_dict["output_dir"] + "/common_snps/subset_pruned_data",
+        out = output_dict["output_dir"] + "/common_snps/final_subset_pruned_data"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} plink2 --rm-dup 'force-first' -threads {threads} --pfile {params.infile} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
+        """
+
 
 ### use PCA from plink for PCA and projection
 rule pca_1000g:
     input:
         bed_1000g = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g.pgen",
         bim_1000g = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g.pvar",
-        fam_1000g = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g.psam" 
+        fam_1000g = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g.psam",
+        bed = output_dict["output_dir"] + "/common_snps/subset_pruned_data.pgen" 
     output:
-        out = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g_pcs.acount",
-        eig_all = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g_pcs.eigenvec.allele",
-        eig_vec = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g_pcs.eigenvec",
-        eig = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g_pcs.eigenval",
+        out = output_dict["output_dir"] + "/pca_projection/subset_pruned_1000g_pcs.acount",
+        eig_all = output_dict["output_dir"] + "/pca_projection/subset_pruned_1000g_pcs.eigenvec.allele",
+        eig_vec = output_dict["output_dir"] + "/pca_projection/subset_pruned_1000g_pcs.eigenvec",
+        eig = output_dict["output_dir"] + "/pca_projection/subset_pruned_1000g_pcs.eigenval",
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["pca_1000g_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["pca_1000g_memory"]
@@ -228,7 +256,7 @@ rule pca_1000g:
         bind = input_dict["bind_paths"],
         sif = input_dict["singularity_image"],
         infile = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g",
-        out = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g_pcs"
+        out = output_dict["output_dir"] + "/pca_projection/subset_pruned_1000g_pcs"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} \
@@ -241,14 +269,14 @@ rule pca_1000g:
 ### use plink pca results to plot with R ###
 rule pca_project:
     input:
-        bed = output_dict["output_dir"] + "/common_snps/subset_pruned_data.pgen",
-        bim = output_dict["output_dir"] + "/common_snps/subset_pruned_data.pvar",
-        fam = output_dict["output_dir"] + "/common_snps/subset_pruned_data.psam",
-        frq = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g_pcs.acount",
-        scores = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g_pcs.eigenvec.allele"
+        bed = output_dict["output_dir"] + "/common_snps/final_subset_pruned_data.pgen",
+        bim = output_dict["output_dir"] + "/common_snps/final_subset_pruned_data.pvar",
+        fam = output_dict["output_dir"] + "/common_snps/final_subset_pruned_data.psam",
+        frq = output_dict["output_dir"] + "/pca_projection/subset_pruned_1000g_pcs.acount",
+        scores = output_dict["output_dir"] + "/pca_projection/subset_pruned_1000g_pcs.eigenvec.allele"
     output:
-        projected_scores = output_dict["output_dir"] + "/common_snps/subset_pruned_data_pcs.sscore",
-        projected_1000g_scores = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g_pcs_projected.sscore"
+        projected_scores = output_dict["output_dir"] + "/pca_projection/final_subset_pruned_data_pcs.sscore",
+        projected_1000g_scores = output_dict["output_dir"] + "/pca_projection/subset_pruned_1000g_pcs_projected.sscore"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["pca_project_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["pca_project_memory"]
@@ -256,10 +284,10 @@ rule pca_project:
     params:
         bind = input_dict["bind_paths"],
         sif = input_dict["singularity_image"],
-        infile = output_dict["output_dir"] + "/common_snps/subset_pruned_data",
+        infile = output_dict["output_dir"] + "/common_snps/final_subset_pruned_data",
         infile_1000g = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g",
-        out = output_dict["output_dir"] + "/common_snps/subset_pruned_data_pcs",
-        out_1000g = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g_pcs_projected"
+        out = output_dict["output_dir"] + "/pca_projection/final_subset_pruned_data_pcs",
+        out_1000g = output_dict["output_dir"] + "/pca_projection/subset_pruned_1000g_pcs_projected"
     shell:
         """
         export OMP_NUM_THREADS={threads}
@@ -279,8 +307,8 @@ rule pca_project:
 
 rule pca_projection_assign:
     input:
-        projected_scores = output_dict["output_dir"] + "/common_snps/subset_pruned_data_pcs.sscore",
-        projected_1000g_scores = output_dict["output_dir"] + "/common_snps/subset_pruned_1000g_pcs_projected.sscore",
+        projected_scores = output_dict["output_dir"] + "/pca_projection/final_subset_pruned_data_pcs.sscore",
+        projected_1000g_scores = output_dict["output_dir"] + "/pca_projection/subset_pruned_1000g_pcs_projected.sscore",
         fam_1000g = output_dict["output_dir"] + "/common_snps/subset_1000g.psam",
         psam = input_dict["psam_file"],
         sexcheck = output_dict["output_dir"] + "/check_sex/check_sex.sexcheck.tsv",
@@ -440,6 +468,7 @@ rule maf:
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --freq --out {params.freq}
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --maf {params.maf} --allow-extra-chr --make-pgen --out {params.out}
         singularity exec --bind {params.bind} {params.sif} cp {output.bim} {output.bim}.original
+        singularity exec --bind {params.bind} {params.sif} sed -i "s/^XY/25/g" {output.bim} 
         singularity exec --bind {params.bind} {params.sif} sed -i "s/^X/23/g" {output.bim} 
         singularity exec --bind {params.bind} {params.sif} sed -i "s/ID=X/ID=23/g" {output.bim} 
         singularity exec --bind {params.bind} {params.sif} sed -i "s/^Y/24/g" {output.bim} 
@@ -478,7 +507,6 @@ rule het:
         bed = output_dict["output_dir"] + "/hwe/{ancestry}_hwe.pgen",
         bim = output_dict["output_dir"] + "/hwe/{ancestry}_hwe.pvar",
         fam = output_dict["output_dir"] + "/hwe/{ancestry}_hwe.psam",
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R"
     output:
         inds = output_dict["output_dir"] + "/het/{ancestry}_het.inds",
         het = output_dict["output_dir"] + "/het/{ancestry}_het.het"
@@ -487,11 +515,11 @@ rule het:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["het_memory"]
     threads: plink_gender_ancestry_QC_dict["het_threads"]
     params:
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R",
         bind = input_dict["bind_paths"],
         hwe = output_dict["output_dir"] + "/hwe/{ancestry}_hwe",
         out = output_dict["output_dir"] + "/het/{ancestry}_het",
         sif = input_dict["singularity_image"],
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.hwe} --het --read-freq {input.freq} --out {params.out}
