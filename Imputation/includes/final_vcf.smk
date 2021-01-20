@@ -112,7 +112,7 @@ rule combine_vcfs:
     output:
         combined = output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr.vcf.gz",
         updated = output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr_updated.vcf.gz",
-        final = output_dict["output_dir"] + "/vcf/files4submission/QC_filtered_sorted_chr_updated.vcf.gz"
+        final = output_dict["output_dir"] + "/vcf/files4submission/QC_filtered_sorted_chr_updated_final.vcf.gz"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["combine_vcfs_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["combine_vcfs_memory"]
