@@ -93,6 +93,7 @@ scores$Changed <- ifelse(is.na(scores$Provided_Ancestry), "Matched", ifelse(scor
 ##### Plot Results #####
 df4plots <- rbind(data.frame(scores[which(is.na(scores$Provided_Ancestry)),], Plot = "1000G Reference"), data.frame(scores[which(!is.na(scores$Provided_Ancestry)),], Plot = "Projected Data Assignments"), data.frame(scores[which(!is.na(scores$Provided_Ancestry)),], Plot = "Projected Data Assignments vs Original Assignments"))
 df4plots$Final_Assignment <- ifelse(df4plots$Plot == "Projected Data Assignments", df4plots$Assignment, ifelse(df4plots$Plot == "Projected Data Assignments vs Original Assignments", df4plots$Changed, df4plots$combined_assignment))
+df4plots <- arrange(df4plots, Final_Assignment)
 df4plots$Final_Assignment <- factor(df4plots$Final_Assignment, levels = c(unique(df4plots$Assignment), unique(df4plots$Changed)))
 
 

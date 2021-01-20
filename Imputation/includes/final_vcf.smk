@@ -130,7 +130,7 @@ rule sex4imputation:
     input:
         output_dict["output_dir"] + "/update_sex_ancestry/update_sex.psam"
     output:
-        output_dict["output_dir"] + "/vcf/files4submission/individual_sexes.tsv"
+        output_dict["output_dir"] + "/vcf/files4submission/samples.txt"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["sex4imputation_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["sex4imputation_memory"]
