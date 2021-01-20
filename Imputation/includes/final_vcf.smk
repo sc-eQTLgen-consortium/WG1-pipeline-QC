@@ -107,10 +107,12 @@ rule vcf_sort:
 
 rule combine_vcfs:
     input:
-        vcfs = expand(output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr{chr}.vcf.gz", chr = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23])
+        vcfs = expand(output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr{chr}.vcf.gz", chr = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]),
+        sexes = output_dict["output_dir"] + "/vcf/files4submission/samples.txt"
     output:
         combined = output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr.vcf.gz",
-        updated = output_dict["output_dir"] + "/vcf/files4submission/QC_filtered_sorted_chr_updated.vcf.gz"
+        updated = output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr_updated.vcf.gz"
+        final = output_dict["output_dir"] + "/vcf/files4submission/QC_filtered_sorted_chr_updated.vcf.gz"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["combine_vcfs_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["combine_vcfs_memory"]
@@ -124,6 +126,7 @@ rule combine_vcfs:
         singularity exec --bind {params.bind} {params.sif} bcftools concat -Oz {input.vcfs} > {output.combined}
         singularity exec --bind {params.bind} {params.sif} bcftools annotate -Oz --rename-chrs {params.conversion} {output.combined} > {output.updated}
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.updated}
+        singularity exec --bind {params.bind} {params.sif} bcftools +fixploidy {output.updated} -Oz -o {output.final} -- -s {input.sexes}
         """
 
 rule sex4imputation:
