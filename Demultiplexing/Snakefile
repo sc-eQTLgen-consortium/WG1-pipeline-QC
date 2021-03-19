@@ -5,18 +5,15 @@ import pandas as pd
 from glob import glob
 import subprocess
 import shutil
-
 # Import custom functions
 from mods import prepareArguments
 from mods import read10x
-
-
 ### Extract variables from configuration file for use within the rest of the pipeline
+config = prepareArguments.parsePaths(config)
 input_dict = config["inputs"]
 output_dict = config["outputs"]
 ref_dict = config["refs"]
 bind_path = input_dict["bind_path"]
-
 # Rule-specific arguments
 popscle_dict = config["popscle"]
 popscle_extra_dict = config["popscle_extra"]
@@ -30,20 +27,14 @@ scrublet_manual_dict = config["scrublet_manual"]
 scrublet_extra_dict = config["scrublet_extra"]
 scds_dict = config["scds"]
 CombineResults_dict = config["CombineResults"]
-
-
 # Use prepareArguments.py script to retrieve exact directories of single cell files
 scrnaseq_libs_df = prepareArguments.get_scrnaseq_dirs(config)
 scrnaseq_libs_df.to_csv(os.path.join(output_dict["output_dir"],'file_directories.txt'), sep = "\t", index = False)
-
-
 samples = pd.read_csv(input_dict["samplesheet_filepath"], sep = "\t")
 samples.columns = ["Pool", "N"]
-
 # If the scrublet_check output is present => all the contents are there that are needed to move past 
-if os.path.exists(output_dict["output_dir"] + "/scrublet/scrublet_check.done"):
-    scrublet_decisions = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet_gene_pctl.txt", sep = "\t")
-
+if os.path.exists(os.path.join(output_dict["output_dir"], "scrublet/scrublet_check.done")):
+    scrublet_decisions = pd.read_csv(os.path.join(output_dict["output_dir"], "manual_selections/scrublet_gene_pctl.txt"), sep = "\t")
 # Import individual rules
 include: "includes/Snakefile_popscle.smk"
 include: "includes/Snakefile_souporcell.smk"
@@ -51,22 +42,17 @@ include: "includes/Snakefile_scrublet.smk"
 include: "includes/Snakefile_scds.smk"
 include: "includes/Snakefile_DoubletDetection.smk"
 include: "includes/Snakefile_CombineResults.smk"
-
-
 # Generate list of files to expect
 ## Demuxlet
 demuxlet_files = []
 demuxlet_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/demuxlet_results.txt",  pool=samples.Pool))
-
 ## Souporcell
 souporcell_files = []
 souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/souporcell_results.txt", pool=samples.Pool))
 souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz", pool=samples.Pool))
-
 ## scds
 scds_files = []
 scds_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/scds_results.txt", pool=samples.Pool))
-
 ## scrublet 
 ## the scrublet files that will be run are dependent on user inputs in the yaml file
 scrublet_files = []
@@ -86,8 +72,6 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
                 fname = f.rstrip() 
                 if os.path.isfile(fname): 
                     os.remove(fname)
-
-
 ## DoubletDetection
 DoubletDetection_files = []
 DoubletDetection_files.append(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv")
@@ -105,8 +89,6 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
                 fname = f.rstrip() 
                 if os.path.isfile(fname): 
                     os.remove(fname)
-
-
 ## Combined files at the end
 combined_files = []
 if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv") and os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
@@ -115,8 +97,6 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
     if scrublet_selection["scrublet_Percentile"].count() == len(scrublet_selection) and len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) == len(DoubletDetection_selection):
         combined_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/Final_Assignments_demultiplexing_doublets.txt", pool = samples.Pool))
         combined_files.append(output_dict["output_dir"] + "/QC_figures/UMI_vs_Genes_QC_scatter.png")
-
-
 # Main rule - input will be all files generated at the top
 rule all:
     input:
