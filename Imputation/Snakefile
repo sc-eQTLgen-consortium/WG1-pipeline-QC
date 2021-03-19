@@ -7,6 +7,7 @@ from glob import glob
 
 
 # Extract variables from configuration file for use within the rest of the pipeline
+config = prepareArguments.parsePaths(config)
 input_dict = config["inputs"]
 output_dict = config["outputs"]
 options_dict = config["options"]
