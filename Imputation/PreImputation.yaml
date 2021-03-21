@@ -12,7 +12,7 @@ inputs:
   psam_file: /path/to/psam/file.psam ### Path to a fam file in plink format per https://www.cog-genomics.org/plink2/formats#fam with the following columns (LABELED): 1.  sFamily ID ('FID'); 2. Within-family ID ('IID'; cannot be '0') 3. Within-family ID of father ('0' if father isn't in dataset) 4. Within-family ID of mother ('0' if mother isn't in dataset) 5. Sex code ('1' = male, '2' = female, '0' = unknown) 6. Provided_Ancestry('AFR' = African, 'AMR' = Ad Mixed American, 'EAS' = East Asian, 'EUR' = European, 'SAS' = South Asian)
   
 outputs:
-  output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved.
+  output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
 
 options:
   ref: hg38 ### Reference that your input vcf is on (the array reference) either hg38 or hg19
