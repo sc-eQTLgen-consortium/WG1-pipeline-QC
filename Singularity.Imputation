@@ -87,7 +87,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 
 
     cd /opt
-        wget https://www.dropbox.com/s/nxvoekc3mb637qn/1000G.tar.gz
+        wget  wget https://www.dropbox.com/s/40tz2d8tbtbv1do/1000G.tar.gz
         tar -xzf 1000G.tar.gz
 
     cd /opt

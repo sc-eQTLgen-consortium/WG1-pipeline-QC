@@ -14,7 +14,7 @@ inputs:
   individual_list_dir: /path/to/individual_list/directory ### Directory that has a different file for each pool. Each file contains a list of the individuals IDs that are in the pool separated by line (match the genotype individual IDs)
 
 outputs: 
-  output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. The directory does not need to exist - snakemake will make it if it doesn't exist.
+  output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
 
   
 ##############################################################################################################
