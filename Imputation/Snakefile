@@ -6,6 +6,10 @@ import pandas as pd
 from glob import glob
 
 
+# Import custom functions
+from mods import prepareArguments
+
+
 # Extract variables from configuration file for use within the rest of the pipeline
 config = prepareArguments.parsePaths(config)
 input_dict = config["inputs"]
