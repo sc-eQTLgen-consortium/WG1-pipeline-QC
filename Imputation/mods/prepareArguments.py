@@ -8,5 +8,5 @@ import subprocess
 def parsePaths(config):
     # Strip trailing slashes from paths 
     # scrnaseq_dir, individual_list_dir, output_dir
-    config["inputs"]["scRNAseq_dir"] = (config["inputs"]["scRNAseq_dir"]).rstrip("/")
+    config["outputs"]["output_dir"] = (config["outputs"]["output_dir"]).rstrip("/")
     return(config) 
