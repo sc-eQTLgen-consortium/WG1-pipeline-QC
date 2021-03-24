@@ -3,7 +3,7 @@
 ##### The following arguments are for indicating file locations on your system #####
 ####################################################################################
 refs:
-  fasta_filepath: /path/to/hg38/reference/fasta/genome.fa ### Genome reference fasta
+  fasta_filepath: /path/to/hg38/reference/fasta/genome.fa ### Genome reference fasta for hg38 (bam files should be aligned to hg38)
 
 inputs:
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
