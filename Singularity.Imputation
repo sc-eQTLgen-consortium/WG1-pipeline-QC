@@ -87,11 +87,11 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 
 
     cd /opt
-        wget https://www.dropbox.com/s/40tz2d8tbtbv1do/1000G.tar.gz
+        wget https://www.dropbox.com/s/xso2vt3p9h2rh8m/1000G.tar.gz
         tar -xzf 1000G.tar.gz
 
     cd /opt
-        wget https://www.dropbox.com/s/bvoejnq3mo2fzpi/ImputationTestDataset.tar.gz
+        wget https://www.dropbox.com/s/3u7g4xdig8hyhle/ImputationTestDataset.tar.gz
 
 
     cd /opt

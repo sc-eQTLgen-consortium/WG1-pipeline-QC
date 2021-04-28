@@ -133,6 +133,10 @@ final_vcf:
   combine_vcfs_memory: 5
   combine_vcfs_threads: 1
 
-  ### Option for the final sex tsv file necessary for imputation of X chromosome
+  ### Options for the final sex tsv file necessary for imputation of X chromosome
   sex4imputation_memory: 5
   sex4imputation_threads: 1
+
+  ### Options for producing the donor metadata file for downstream processing ###
+  donor_meta_file_memory: 5
+  donor_meta_file_threads: 1
