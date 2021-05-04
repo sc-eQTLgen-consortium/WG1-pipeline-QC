@@ -65,12 +65,12 @@ rule pgen2vcf:
         singularity exec --bind {params.bind} {params.sif} tabix -p vcf {output.gvcf}
         """
 
-if os.path.exists(output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv"):
-    ancestry_file = pd.read_csv(output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv", sep = "\t", header = None, names = ["Ancestry"])
+# if os.path.exists(output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv"):
+    # ancestry_file = pd.read_csv(output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv", sep = "\t", header = None, names = ["Ancestry"])
 
 rule combine_ancestries:
     input:
-        vcfs = lambda wildcards: expand(output_dict["output_dir"] + "/vcf/{ancestry}/{ancestry}_QC_filtered_chr{chr}.vcf.gz", chr = wildcards.chr, ancestry = ancestry_file["Ancestry"])
+        vcfs = lambda wildcards: expand(output_dict["output_dir"] + "/vcf/{ancestry}/{ancestry}_QC_filtered_chr{chr}.vcf.gz", chr = wildcards.chr, ancestry = ancestry_file["unique_ancestry"])
     output:
         output_dict["output_dir"] + "/vcf/combined/QC_filtered_chr{chr}.vcf"
     resources:
@@ -83,7 +83,7 @@ rule combine_ancestries:
         bfile = output_dict["output_dir"] + "/hrc_check/strand_check-updated-chr{chr}"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} vcf-merge {input.vcfs} > {output}
+        singularity exec --bind {params.bind} {params.sif} bcftools merge {input.vcfs} > {output}
         """
 
 
@@ -108,11 +108,12 @@ rule vcf_sort:
 rule combine_vcfs:
     input:
         vcfs = expand(output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr{chr}.vcf.gz", chr = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]),
-        sexes = output_dict["output_dir"] + "/final_results/vcf/samples.txt"
+        sexes = output_dict["output_dir"] + "/vcf/files4submission/individual_sexes.txt"
     output:
-        combined = output_dict["output_dir"] + "/final_results/vcf/QC_filtered_sorted_chr.vcf.gz",
-        updated = output_dict["output_dir"] + "/final_results/vcf/QC_filtered_sorted_chr_updated.vcf.gz",
-        final = output_dict["output_dir"] + "/final_results/vcf/QC_filtered_sorted_chr_updated_final.vcf.gz"
+        combined = output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr.vcf.gz",
+        updated = output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr_updated.vcf.gz",
+        final = output_dict["output_dir"] + "/vcf/files4submission/QC_filtered_sorted_chr_updated_final.vcf.gz",
+        ind = output_dict["output_dir"] + "/vcf/files4submission/QC_filtered_sorted_chr_updated_final.vcf.gz.csi"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["combine_vcfs_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["combine_vcfs_memory"]
@@ -125,22 +126,22 @@ rule combine_vcfs:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools concat -Oz {input.vcfs} > {output.combined}
         singularity exec --bind {params.bind} {params.sif} bcftools annotate -Oz --rename-chrs {params.conversion} {output.combined} > {output.updated}
-        singularity exec --bind {params.bind} {params.sif} bcftools index {output.updated}
         singularity exec --bind {params.bind} {params.sif} bcftools +fixploidy {output.updated} -Oz -o {output.final} -- -s {input.sexes}
+        singularity exec --bind {params.bind} {params.sif} bcftools index {output.final}
         """
 
 rule sex4imputation:
     input:
         output_dict["output_dir"] + "/update_sex_ancestry/update_sex.psam"
     output:
-        output_dict["output_dir"] + "/final_results/vcf/samples.txt"
+        output_dict["output_dir"] + "/vcf/files4submission/individual_sexes.txt"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["sex4imputation_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["sex4imputation_memory"]
     threads: final_vcf_dict["sex4imputation_threads"]
     params:
         sif = input_dict["singularity_image"],
-        bind = input_dict["bind_paths"]
+        bind = input_dict["bind_paths"],
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS="\t"}}{{OFS=""}}{{print($1,"_",$2,"\t",$5)}}' {input} | \
@@ -148,25 +149,3 @@ rule sex4imputation:
             singularity exec --bind {params.bind} {params.sif} sed 's/\t1/\tM/g' | \
             singularity exec --bind {params.bind} {params.sif} sed 's/\t2/\tF/g' > {output}
         """
-
-
-rule donor_meta_file:
-	input:
-		output_dict["output_dir"] + "/update_sex_ancestry/update_sex.psam"
-	output:
-		output_dict["output_dir"] + "/final_results/donor_metadata.tsv"
-	resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["donor_meta_file_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["donor_meta_file_memory"]
-	threads: final_vcf_dict["donor_meta_file_threads"]
-	params:
-		sif = input_dict["singularity_image"],
-        bind = input_dict["bind_paths"],
-		variables = output_dict["output_dir"] + "/final_results/variables.tsv",
-		script = "/opt/WG1-pipeline-QC/Imputation/scripts/metadata_table.R"
-	shell:
-		"""
-        singularity exec --bind {params.bind} {params.sif} echo {input} > {params.variables}
-		singularity exec --bind {params.bind} {params.sif} echo {output} >> {params.variables}
-        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.variables}
-		"""

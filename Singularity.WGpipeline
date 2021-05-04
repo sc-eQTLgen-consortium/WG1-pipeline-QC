@@ -14,7 +14,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     yes | apt upgrade
 
     cd /opt
-        wget https://www.dropbox.com/s/uwvol8phqv6gin9/TestData4PipelineSmall.tar.gz
+        wget https://www.dropbox.com/s/m8u61jn4i1mcktp/TestData4PipelineSmall.tar.gz
 
     cd /opt
     git clone https://github.com/JonathanShor/DoubletDetection.git
@@ -133,6 +133,5 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 
 %labels 
     Authors Drew Neavin and Anne Senabouth
-
 
 

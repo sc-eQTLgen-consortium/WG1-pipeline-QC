@@ -60,7 +60,6 @@ plink_gender_ancestry_QC:
   pca_project_threads: 1
 
   ### Following options to remove snps with low maf with `plink --bfile <bfile> --maf <maf> --allow-extra-chr --make-bed --out <out>`
-  maf: 0.01 ## MAF threshold to use
   maf_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   maf_threads: 1 ### Number of threads to use
 

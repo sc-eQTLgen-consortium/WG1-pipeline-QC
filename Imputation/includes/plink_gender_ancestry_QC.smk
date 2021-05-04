@@ -46,20 +46,20 @@ rule vcf_to_plink:
     output:
         bed = output_dict["output_dir"] + "/plink_hg19/hg19_input.pgen",
         bim = output_dict["output_dir"] + "/plink_hg19/hg19_input.pvar",
-        fam = output_dict["output_dir"] + "/plink_hg19/hg19_input.psam",
-        indiv_file = output_dict["output_dir"] + "/plink_hg19/individual_file.txt"
+        fam = output_dict["output_dir"] + "/plink_hg19/hg19_input.psam"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["vcf_to_plink_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["vcf_to_plink_memory"]
     threads: plink_gender_ancestry_QC_dict["vcf_to_plink_threads"]
     params:
+        indiv_file = output_dict["output_dir"] + "/plink_hg19/individual_file.txt",
         bind = input_dict["bind_paths"],
         sif = input_dict["singularity_image"],
-        out = output_dict["output_dir"] + "/plink_hg19/hg19_input",
+        out = output_dict["output_dir"] + "/plink_hg19/hg19_input"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}' {input.fam} > {output.indiv_file}
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --vcf {input.vcf} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out} --psam {input.fam} --id-delim _ --indiv-sort f {output.indiv_file} --max-alleles 2
+        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}' {input.fam} > {params.indiv_file}
+        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --vcf {input.vcf} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out} --psam {input.fam} --id-delim _ --indiv-sort f {params.indiv_file} --max-alleles 2
         """
 
 rule indiv_missingness:
@@ -352,13 +352,18 @@ rule separate_indivs:
     params:
         bind = input_dict["bind_paths"],
         sif = input_dict["singularity_image"],
+        update_ancestry_temp = output_dict["output_dir"] + "/separate_indivs/update_anc_indivs_temp.tsv",
+        update_ancestry_temp2 = output_dict["output_dir"] + "/separate_indivs/update_anc_indivs_temp2.tsv"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} grep "UPDATE" {input.sexcheck} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2,$4)}}' | singularity exec --bind {params.bind} {params.sif} sed 's/SNPSEX/SEX/g'> {output.update_sex}
+        singularity exec --bind {params.bind} {params.sif} grep "UPDATE" {input.sexcheck} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2,$4)}}' | singularity exec --bind {params.bind} {params.sif} sed 's/SNPSEX/SEX/g' > {output.update_sex}
         singularity exec --bind {params.bind} {params.sif} grep "REMOVE" {input.sexcheck} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}'> {output.remove_indiv_temp}
         singularity exec --bind {params.bind} {params.sif} grep "REMOVE" {input.anc_check} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}' >> {output.remove_indiv_temp}
         singularity exec --bind {params.bind} {params.sif} sort -u {output.remove_indiv_temp} > {output.remove_indiv}
-        singularity exec --bind {params.bind} {params.sif} grep "UPDATE" {input.anc_check} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2,$3,$4,$5,$7)}}' > {output.update_ancestry}
+        singularity exec --bind {params.bind} {params.sif} grep "UPDATE" {input.anc_check} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2,$3,$4,$5,$(NF-1))}}' > {params.update_ancestry_temp}
+        singularity exec --bind {params.bind} {params.sif} grep "UPDATE" {input.anc_check} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{for(i=7;i<=NF-2;i++){{printf "%s\t", $i}} printf "\\n"}}' > {params.update_ancestry_temp2}
+        singularity exec --bind {params.bind} {params.sif} paste {params.update_ancestry_temp} {params.update_ancestry_temp2} > {output.update_ancestry}
+        singularity exec --bind {params.bind} {params.sif} rm {params.update_ancestry_temp} {params.update_ancestry_temp2}
         """
 
 
@@ -373,7 +378,6 @@ rule update_sex_ancestry:
         bed = output_dict["output_dir"] + "/update_sex_ancestry/update_sex.pgen",
         bim = output_dict["output_dir"] + "/update_sex_ancestry/update_sex.pvar",
         psam = output_dict["output_dir"] + "/update_sex_ancestry/update_sex.psam",
-        psam_temp = output_dict["output_dir"] + "/update_sex_ancestry/update_sex.psam_temp",
         unique_ancestries = output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["update_sex_memory"],
@@ -381,15 +385,20 @@ rule update_sex_ancestry:
     threads: plink_gender_ancestry_QC_dict["update_sex_threads"]
     params:
         infile = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness",
+        psam_temp = output_dict["output_dir"] + "/update_sex_ancestry/temp/indiv_missingness.psam_temp",
+        tdir = output_dict["output_dir"] + "/update_sex_ancestry/temp/",
         bind = input_dict["bind_paths"],
         out = output_dict["output_dir"] + "/update_sex_ancestry/update_sex",
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --update-sex {input.update_sex} --remove {input.remove_indiv} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
-        singularity exec --bind {params.bind} {params.sif} mv {output.psam} {output.psam_temp}
-        singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$3,$4,$5]=$0;next}} ($1,$2,$3,$4,$5) in a {{$0=a[$1,$2,$3,$4,$5]}}1' {input.update_ancestry} {output.psam_temp} | singularity exec --bind {params.bind} {params.sif} sed 's/PCA_Assignment/Ancestry/g' > {output.psam}
+        mkdir -p {params.tdir}
+        cp {params.infile}* {params.tdir}
+        mv {params.tdir}/indiv_missingness.psam {params.psam_temp}
+        singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$3,$4]=$0;next}} ($1,$2,$3,$4) in a {{$0=a[$1,$2,$3,$4]}}1' {input.update_ancestry} {params.psam_temp} | singularity exec --bind {params.bind} {params.sif} sed 's/PCA_Assignment/Ancestry/g' > {params.tdir}/indiv_missingness.psam
+        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.tdir}/indiv_missingness --update-sex {input.update_sex} --remove {input.remove_indiv} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         singularity exec --bind {params.bind} {params.sif} tail -n+2 {output.psam} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($6)}}' | singularity exec --bind {params.bind} {params.sif} sort -u > {output.unique_ancestries}
+        singularity exec --bind {params.bind} {params.sif} sed -i '1 i/unique_ancestry\tmaf_threshold' {output.unique_ancestries}
         """
 
 rule subset_ancestry:
@@ -460,13 +469,23 @@ rule maf:
         bind = input_dict["bind_paths"],
         freq = output_dict["output_dir"] + "/maf/{ancestry}_freq",
         out = output_dict["output_dir"] + "/maf/{ancestry}_maf",
+        outdir = output_dict["output_dir"] + "/maf/",
         chr_coding = output_dict["output_dir"] + "/maf/{ancestry}_chr_coding",
-        maf = plink_gender_ancestry_QC_dict["maf"],
+        maf = lambda wildcards: ancestry_file["maf_threshold"][wildcards.ancestry],
         sif = input_dict["singularity_image"]
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --freq --out {params.freq}
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --maf {params.maf} --allow-extra-chr --make-pgen --out {params.out}
+        if (( $(echo "{params.maf} > 0" | bc -l) ))
+        then
+            singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --maf {params.maf} --allow-extra-chr --make-pgen --out {params.out}
+        else
+            for file in `ls {params.infile}*`
+			do
+                filetype=$(echo $file | rev | cut -d. -f1 | rev)
+                singularity exec --bind {params.bind} {params.sif} cp $file {params.outdir}/{wildcards.ancestry}_maf.$filetype
+            done
+        fi
         singularity exec --bind {params.bind} {params.sif} cp {output.bim} {output.bim}.original
         singularity exec --bind {params.bind} {params.sif} sed -i "s/^XY/25/g" {output.bim} 
         singularity exec --bind {params.bind} {params.sif} sed -i "s/^X/23/g" {output.bim} 

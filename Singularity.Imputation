@@ -43,7 +43,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     apt-get install -y openjdk-11-jdk
     java -version
 
-    yes | /opt/conda/bin/conda create -n py36 python=3.6.8
+    # yes | /opt/conda/bin/conda create -n py36 python=3.6.8
     cd /opt
     yes | apt-get install git
     /opt/conda/bin/conda init bash
@@ -135,14 +135,14 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     cd /opt
         mkdir plink
         cd plink
-            wget http://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20200616.zip
-            unzip plink_linux_x86_64_20200616.zip
+            wget https://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20210416.zip
+            unzip plink_linux_x86_64_20210416.zip
 
     cd /opt
         mkdir plink2
         cd plink2
-			wget http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20210302.zip
-            unzip plink2_linux_x86_64_20210302.zip
+			wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20210420.zip
+            unzip plink2_linux_x86_64_20210420.zip
 
     cd /opt
         git clone https://github.com/broadinstitute/picard.git
@@ -197,4 +197,3 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 
 %labels 
     Author Drew Neavin
-

@@ -6,12 +6,7 @@ import pandas as pd
 from glob import glob
 
 
-# Import custom functions
-from mods import prepareArguments
-
-
 # Extract variables from configuration file for use within the rest of the pipeline
-config = prepareArguments.parsePaths(config)
 input_dict = config["inputs"]
 output_dict = config["outputs"]
 options_dict = config["options"]
@@ -42,13 +37,13 @@ if os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_r
     if ancestry_check["UPDATE/REMOVE/KEEP"].count() == len(ancestry_check) and sex_check["UPDATE/REMOVE/KEEP"].count() == len(sex_check):
         plinkQC_files.append(output_dict["output_dir"] + "/update_sex_ancestry/update_sex.pgen")
         if os.path.exists(output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv"):
-            ancestry_file = pd.read_csv(output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv", sep = "\t", header = None, names = ["Ancestry"])
-            grm_files.append(expand(output_dict["output_dir"] + "/grm/{ancestry}_paired_relatedness.tsv", ancestry = ancestry_file["Ancestry"]))
-            plinkQC_files.append(expand(output_dict["output_dir"] + "/convert_files/{ancestry}/{ancestry}_strand_check-updated-chr{chr}.pvar.temp", ancestry = ancestry_file["Ancestry"], chr = chromosomes))
+            ancestry_file = pd.read_csv(output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv", sep = "\t")
+            ancestry_file.index = ancestry_file["unique_ancestry"]
+            grm_files.append(expand(output_dict["output_dir"] + "/grm/{ancestry}_paired_relatedness.tsv", ancestry = ancestry_file["unique_ancestry"]))
+            plinkQC_files.append(expand(output_dict["output_dir"] + "/convert_files/{ancestry}/{ancestry}_strand_check-updated-chr{chr}.pvar.temp", ancestry = ancestry_file["unique_ancestry"], chr = chromosomes))
             vcf_files.append(expand(output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr{chr}.vcf.gz", chr = chromosomes))
-            vcf_files.append(output_dict["output_dir"] + "/final_results/vcf/QC_filtered_sorted_chr_updated_final.vcf.gz")
-            vcf_files.append(output_dict["output_dir"] + "/final_results/vcf/samples.txt")
-			vcf_files.append(output_dict["output_dir"] + "/final_results/donor_metadata.tsv")
+            vcf_files.append(output_dict["output_dir"] + "/vcf/files4submission/QC_filtered_sorted_chr_updated_final.vcf.gz.csi")
+            vcf_files.append(output_dict["output_dir"] + "/vcf/files4submission/individual_sexes.txt")
 else:
     plinkQC_files.append(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv")
 
