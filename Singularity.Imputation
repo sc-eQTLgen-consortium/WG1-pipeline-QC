@@ -94,13 +94,13 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         wget https://www.dropbox.com/s/3u7g4xdig8hyhle/ImputationTestDataset.tar.gz
 
 
-    cd /opt
-        git clone https://github.com/vcftools/vcftools.git
-        cd vcftools
-            ./autogen.sh
-            ./configure
-            make
-            make install
+    # cd /opt
+    #     git clone https://github.com/vcftools/vcftools.git
+    #     cd vcftools
+    #         ./autogen.sh
+    #         ./configure
+    #         make
+    #         make install
             
     cd /opt
     wget https://github.com/samtools/htslib/releases/download/1.10.2/htslib-1.10.2.tar.bz2
