@@ -95,7 +95,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 
 
     cd /opt
-	ll
+	ls
         git clone https://github.com/vcftools/vcftools.git
         cd vcftools
             ./autogen.sh
