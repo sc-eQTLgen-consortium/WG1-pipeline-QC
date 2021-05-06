@@ -142,8 +142,8 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     cd /opt
         mkdir plink2
         cd plink2
-			wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20210420.zip
-            unzip plink2_linux_x86_64_20210420.zip
+			wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20210505.zip
+            unzip plink2_linux_x86_64_20210505.zip
 
     cd /opt
         git clone https://github.com/broadinstitute/picard.git
