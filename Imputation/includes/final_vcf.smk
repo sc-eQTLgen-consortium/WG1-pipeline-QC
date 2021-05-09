@@ -83,7 +83,7 @@ rule combine_ancestries:
         bfile = output_dict["output_dir"] + "/hrc_check/strand_check-updated-chr{chr}"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} bcftools merge {input.vcfs} > {output}
+        singularity exec --bind {params.bind} {params.sif} vcf-merge {input.vcfs} > {output}
         """
 
 

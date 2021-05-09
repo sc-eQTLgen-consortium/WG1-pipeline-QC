@@ -26,8 +26,6 @@ if options_dict["ref"] == "hg38":
                 R={params.fasta}
             """
 
-elif options_dict["ref"] == "hg19":
-    logger.info("Looks like your vcf is already on hg19, no need to liftover for QC and imputation.")
 else:
     logger.info("The parameter that you put in for the inputs:ref: in the yaml file is not recognized. It should be either hg19 or hg38.")
 
@@ -398,7 +396,7 @@ rule update_sex_ancestry:
         singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$3,$4]=$0;next}} ($1,$2,$3,$4) in a {{$0=a[$1,$2,$3,$4]}}1' {input.update_ancestry} {params.psam_temp} | singularity exec --bind {params.bind} {params.sif} sed 's/PCA_Assignment/Ancestry/g' > {params.tdir}/indiv_missingness.psam
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.tdir}/indiv_missingness --update-sex {input.update_sex} --remove {input.remove_indiv} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         singularity exec --bind {params.bind} {params.sif} tail -n+2 {output.psam} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($6)}}' | singularity exec --bind {params.bind} {params.sif} sort -u > {output.unique_ancestries}
-        singularity exec --bind {params.bind} {params.sif} sed -i '1 i/unique_ancestry\tmaf_threshold' {output.unique_ancestries}
+        singularity exec --bind {params.bind} {params.sif} sed -i '1i unique_ancestry\tmaf_threshold' {output.unique_ancestries}
         """
 
 rule subset_ancestry:
@@ -481,7 +479,7 @@ rule maf:
             singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --maf {params.maf} --allow-extra-chr --make-pgen --out {params.out}
         else
             for file in `ls {params.infile}*`
-			do
+            do
                 filetype=$(echo $file | rev | cut -d. -f1 | rev)
                 singularity exec --bind {params.bind} {params.sif} cp $file {params.outdir}/{wildcards.ancestry}_maf.$filetype
             done
