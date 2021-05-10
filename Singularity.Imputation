@@ -151,7 +151,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         ./gradlew shadowJar
 
     cd /opt
-        wget https://cnsgenomics.com/software/gcta/bin/gcta_1.93.2beta.zip
+        wget --no-check-certificate https://cnsgenomics.com/software/gcta/bin/gcta_1.93.2beta.zip
         unzip gcta_1.93.2beta.zip
 
     cd /opt
