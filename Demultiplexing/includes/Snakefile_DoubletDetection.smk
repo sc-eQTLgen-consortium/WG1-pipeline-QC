@@ -76,12 +76,11 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
             voter_thresh = voter_thresh,
             ready = ready,
             step = step
-        log: output_dict["output_dir"] + "/logs/DoubletDetection." + step + ".{pool}.log"
         shell:
             """
             if [ {params.ready} == "True" ]
             then 
-                "No need to rerun DoubletDetection since the parameters have alreeady been chosen. Will move on to sorting results and merging with results from all other softwares" 2> {log}
+                echo "No need to rerun DoubletDetection since the parameters have alreeady been chosen. Will move on to sorting results and merging with results from all other softwares"
             elif [ {params.ready} == "False" ]
             then 
                 singularity exec --bind {params.bind} {params.sif} python {params.script} \
@@ -92,7 +91,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
                     --standard_scaling {params.standard_scaling} \
                     --p_thresh {params.p_thresh} \
                     --voter_thresh {params.voter_thresh} \
-                    -o {params.out} 2> {log}
+                    -o {params.out}
             singularity exec --bind {params.bind} {params.sif} echo "The pool:" {wildcards.pool} >> {output.log}
             singularity exec --bind {params.bind} {params.sif} echo "This was a" {params.step} "run" >> {output.log}
             singularity exec --bind {params.bind} {params.sif} echo "The number of iterations used to determine doublets:" {params.n_iterations} >> {output.log}
@@ -101,8 +100,6 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
             singularity exec --bind {params.bind} {params.sif} echo "The p threshold was used:" {params.p_thresh} >> {output.log}
             singularity exec --bind {params.bind} {params.sif} echo "The voter threshold is:" {params.voter_thresh} >> {output.log}
             fi
-            [[ -s {output.doublets} ]]
-            echo $?
             """
             
     rule DoubletDetection_check_user_input:

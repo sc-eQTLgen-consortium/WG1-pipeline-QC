@@ -13,6 +13,10 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     apt update
     yes | apt upgrade
 
+	ldconfig
+	yes | apt-get install -y python3-tk
+
+
     cd /opt
         wget https://www.dropbox.com/s/m8u61jn4i1mcktp/TestData4PipelineSmall.tar.gz
 

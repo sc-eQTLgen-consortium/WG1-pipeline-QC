@@ -77,12 +77,11 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
             scrublet_doublet_threshold = scrublet_doublet_threshold,
             step = step,
             ready = ready
-        log: output_dict["output_dir"] + "/logs/scrublet." + step + ".{pool}_{pctl}.log"
         shell:
             """
             if [ {params.ready} == "True" ]
             then 
-                "No need to rerun scrublet since the parameters have alreeady been chosen. Will move on to sorting results and merging with results from all other softwares" 2> {log}
+                echo "No need to rerun scrublet since the parameters have alreeady been chosen. Will move on to sorting results and merging with results from all other softwares"
             elif [ {params.ready} == "False" ]
             then 
                 if [ {params.step} == "default" ]
@@ -95,7 +94,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
                         --min_cells {params.min_cells} \
                         --n_prin_comps {params.n_prin_comps} \
                         --min_gene_variability_pctl {wildcards.pctl} \
-                        -o {params.out} 2> {log}
+                        -o {params.out}
                 elif [ {params.step} == "manual" ]
                 then
                     singularity exec --bind {params.bind} {params.sif} python {params.script} \
@@ -107,7 +106,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
                         --n_prin_comps {params.n_prin_comps} \
                         --min_gene_variability_pctl {wildcards.pctl} \
                         -o {params.out} \
-                        --scrublet_doublet_threshold {params.scrublet_doublet_threshold} 2> {log}
+                        --scrublet_doublet_threshold {params.scrublet_doublet_threshold}
                 fi
                 singularity exec --bind {params.bind} {params.sif} echo "The pool:" {wildcards.pool} >> {output.log}
                 singularity exec --bind {params.bind} {params.sif} echo "This was a" {params.step} "run" >> {output.log}
