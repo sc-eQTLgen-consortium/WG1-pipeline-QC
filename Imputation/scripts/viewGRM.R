@@ -43,11 +43,16 @@ omxReadGRMBin_updated <- function (prefix, AllN = FALSE, size = 4, returnList = 
 ##### Read in files #####
 id <- read_delim(paste0(in_file, ".grm.id"), delim = "\t", col_names = c("FID","IID"))
 
-matrix <- omxReadGRMBin_updated(in_file)
-pairs <- data.frame(t(combn(paste0(id$FID, "_",id$IID), 2, simplify = TRUE)))
-colnames(pairs) <- c("Individual1", "Individual2")
-pairs$genetic_relatedness <- t(matrix)[lower.tri(t(matrix))]
+if (nrow(id) > 1){
+	matrix <- omxReadGRMBin_updated(in_file)
+	pairs <- data.frame(t(combn(paste0(id$FID, "_",id$IID), 2, simplify = TRUE)))
+	colnames(pairs) <- c("Individual1", "Individual2")
+	pairs$genetic_relatedness <- t(matrix)[lower.tri(t(matrix))]
+	pairs <- pairs[rev(order(pairs$genetic_relatedness)),]
+} else {
+	pairs <- data.frame(matrix(ncol = 3, nrow = 0))
+	colnames(pairs) <- c("Individual1", "Individual2", "genetic_relatedness")
+}
 
-pairs <- pairs[rev(order(pairs$genetic_relatedness)),]
 
 write_delim(pairs, paste0(out,"paired_relatedness.tsv"), delim = "\t")

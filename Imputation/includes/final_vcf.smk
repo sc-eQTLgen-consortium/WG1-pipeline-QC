@@ -149,3 +149,35 @@ rule sex4imputation:
             singularity exec --bind {params.bind} {params.sif} sed 's/\t1/\tM/g' | \
             singularity exec --bind {params.bind} {params.sif} sed 's/\t2/\tF/g' > {output}
         """
+
+
+
+rule genotype_donor_annotation:
+    input:
+        het_psams = lambda wildcards: expand(output_dict["output_dir"] + "/het_filter/{ancestry}_het_filter.psam", ancestry = ancestry_file["unique_ancestry"]),
+        updated_psam = output_dict["output_dir"] + "/update_sex_ancestry/update_sex.psam"
+    output:
+        output_dict["output_dir"] + "/genotype_donor_annotation.tsv"
+    resources:
+        mem_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["sex4imputation_memory"],
+        disk_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["sex4imputation_memory"]
+    threads: final_vcf_dict["sex4imputation_threads"]
+    params:
+        bind = input_dict["bind_paths"],
+        sif = input_dict["singularity_image"],
+        out_temp = output_dict["output_dir"] + "/genotype_donor_annotation_temp.tsv",
+        out_temp2 = output_dict["output_dir"] + "/genotype_donor_annotation_temp2.tsv"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} head -n 1 {input.updated_psam}  > {params.out_temp}
+        singularity exec --bind {params.bind} {params.sif} cat {input.het_psams} | grep -v "#" >> {params.out_temp}
+        singularity exec --bind {params.bind} {params.sif} sed -r 's/\t/_/' {params.out_temp} | \
+        singularity exec --bind {params.bind} {params.sif} sed 's/\t1/\tM/g' | \
+        singularity exec --bind {params.bind} {params.sif} sed 's/\t2/\tF/g' | \
+        singularity exec --bind {params.bind} {params.sif} sed 's/#FID_IID/donor_id/g' > {params.out_temp2}
+        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN {{FS="\t"; OFS="\t"}}{{$2=$3="";gsub("\t+","\t",$0)}}1' {params.out_temp2} > {output}
+        singularity exec --bind {params.bind} {params.sif} sed -i 's/$/\tSangerImputationServer/' {output}
+        singularity exec --bind {params.bind} {params.sif} sed -i '1s/SangerImputationServer/imputation_server/g' {output}
+        singularity exec --bind {params.bind} {params.sif} rm {params.out_temp}
+        singularity exec --bind {params.bind} {params.sif} rm {params.out_temp2}
+        """

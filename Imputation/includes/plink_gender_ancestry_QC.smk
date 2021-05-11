@@ -445,7 +445,7 @@ rule snp_missingness:
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --pfile {params.infile} --make-pgen --geno {params.snp_rate} --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --pfile {params.infile} --make-pgen 'psam-cols='fid,parents,sex,phenos --geno {params.snp_rate} --out {params.out}
         """
 
 rule maf:
@@ -476,7 +476,7 @@ rule maf:
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --freq --out {params.freq}
         if (( $(echo "{params.maf} > 0" | bc -l) ))
         then
-            singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --maf {params.maf} --allow-extra-chr --make-pgen --out {params.out}
+            singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --maf {params.maf} --allow-extra-chr --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         else
             for file in `ls {params.infile}*`
             do
@@ -515,7 +515,7 @@ rule hwe:
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.maf} --hardy --hwe {params.hwe_p} --make-pgen --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.maf} --hardy --hwe {params.hwe_p} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         """
 
 rule het:
@@ -563,9 +563,8 @@ rule het_filter:
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.hwe} --remove {input.inds} --make-pgen --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.hwe} --remove {input.inds} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         """
-
 
 
 
