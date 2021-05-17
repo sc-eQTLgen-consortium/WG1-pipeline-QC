@@ -5,7 +5,7 @@ import os
 import scrublet as scr
 import scipy.io
 import matplotlib
-Matplotlib.use('AGG')
+matplotlib.use('AGG')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
