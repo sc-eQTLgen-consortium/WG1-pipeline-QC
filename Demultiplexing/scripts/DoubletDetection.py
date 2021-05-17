@@ -2,6 +2,8 @@
 import numpy as np
 import doubletdetection
 import tarfile
+import matplotlib
+matplotlib.use('PDF')
 import matplotlib.pyplot as plt
 import os
 import argparse
@@ -69,6 +71,6 @@ dataframe.to_csv(os.path.join(args.outdir,'DoubletDetection_results.txt'), sep =
 
 
 ### Figures ###
-doubletdetection.plot.convergence(clf, save=os.path.join(args.outdir,'convergence_test.pdf'), show=True, p_thresh=args.p_thresh, voter_thresh=args.voter_thresh)
+doubletdetection.plot.convergence(clf, save=os.path.join(args.outdir,'convergence_test.pdf'), show=False, p_thresh=args.p_thresh, voter_thresh=args.voter_thresh)
 
-f3 = doubletdetection.plot.threshold(clf, save=os.path.join(args.outdir,'threshold_test.pdf'), show=True, p_step=6)
+f3 = doubletdetection.plot.threshold(clf, save=os.path.join(args.outdir,'threshold_test.pdf'), show=False, p_step=6)
