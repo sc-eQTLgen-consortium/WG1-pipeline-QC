@@ -108,7 +108,7 @@ rule vcf_sort:
 rule combine_vcfs:
     input:
         vcfs = expand(output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr{chr}.vcf.gz", chr = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]),
-        sexes = output_dict["output_dir"] + "/vcf/files4submission/individual_sexes.txt"
+        sexes = output_dict["output_dir"] + "/vcf/files4submission/samples.txt"
     output:
         combined = output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr.vcf.gz",
         updated = output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr_updated.vcf.gz",
@@ -134,7 +134,7 @@ rule sex4imputation:
     input:
         output_dict["output_dir"] + "/update_sex_ancestry/update_sex.psam"
     output:
-        output_dict["output_dir"] + "/vcf/files4submission/individual_sexes.txt"
+        output_dict["output_dir"] + "/vcf/files4submission/samples.txt"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["sex4imputation_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * final_vcf_dict["sex4imputation_memory"]

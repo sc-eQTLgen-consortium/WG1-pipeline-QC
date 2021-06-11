@@ -49,7 +49,7 @@ if os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_r
                 plinkQC_files.append(expand(output_dict["output_dir"] + "/convert_files/{ancestry}/{ancestry}_strand_check-updated-chr{chr}.pvar.temp", ancestry = ancestry_file["unique_ancestry"], chr = chromosomes))
                 vcf_files.append(expand(output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr{chr}.vcf.gz", chr = chromosomes))
                 vcf_files.append(output_dict["output_dir"] + "/vcf/files4submission/QC_filtered_sorted_chr_updated_final.vcf.gz.csi")
-                vcf_files.append(output_dict["output_dir"] + "/vcf/files4submission/individual_sexes.txt")
+                vcf_files.append(output_dict["output_dir"] + "/vcf/files4submission/samples.txt")
                 vcf_files.append(output_dict["output_dir"] + "/genotype_donor_annotation.tsv")
             else:
                 logger.info("The minor allele frequency has not been chosen for all the ancestries in update_sex_ancestry/uniq_acestries.tsv. Please update the file to include the minor allele frequency selections with a number between 0 and 1 or NA if you don't want to filter based on a minor allele frequency. Please see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---minor-allele-frequency-selections for more details")

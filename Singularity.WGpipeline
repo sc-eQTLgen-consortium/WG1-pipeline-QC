@@ -23,6 +23,11 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
             gunzip hg19ToHg38.over.chain.gz
 
     cd /opt
+        git clone https://github.com/broadinstitute/picard.git
+        cd picard/
+        ./gradlew shadowJar
+
+    cd /opt
         wget https://www.dropbox.com/s/m8u61jn4i1mcktp/TestData4PipelineSmall.tar.gz
 
     cd /opt
