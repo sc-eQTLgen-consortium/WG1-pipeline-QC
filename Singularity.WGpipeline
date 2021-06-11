@@ -14,10 +14,12 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     yes | apt upgrade
 
 	ldconfig
+
+    mkdir -p /usr/share/man/man1
 	yes | apt-get install -y python3-tk
     apt-get install -y openjdk-11-jdk
     java -version
-	
+
     cd /opt
         mkdir liftover_refs
         cd liftover_refs
