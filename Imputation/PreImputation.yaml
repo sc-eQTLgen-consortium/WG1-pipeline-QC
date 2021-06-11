@@ -15,7 +15,7 @@ outputs:
   output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
 
 options:
-  ref: hg38 ### Reference that your input vcf is on (the array reference) either hg38 or hg19
+  ref: hg19 ### Reference that your input vcf is on (the array reference) either hg38 or hg19
 
 #########################################################################################################
 ##### The following arguments are parameters that may be changed if needed depending on the dataset but can often #####

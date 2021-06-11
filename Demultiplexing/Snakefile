@@ -21,6 +21,7 @@ bind_path = input_dict["bind_path"]
 
 
 # Rule-specific arguments
+liftover_dict = config["liftover"]
 popscle_dict = config["popscle"]
 popscle_extra_dict = config["popscle_extra"]
 souporcell_dict = config["souporcell"]
@@ -48,6 +49,7 @@ if os.path.exists(os.path.join(output_dict["output_dir"], "scrublet/scrublet_che
 
 
 # Import individual rules
+include: "includes/Snakefile_vcfLiftOver.smk"
 include: "includes/Snakefile_popscle.smk"
 include: "includes/Snakefile_souporcell.smk"
 include: "includes/Snakefile_scrublet.smk"

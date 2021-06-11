@@ -20,6 +20,10 @@ outputs:
 ##############################################################################################################
 ##### The following arguments are common parameters that may need to be changed depending on the dataset #####
 ##############################################################################################################
+liftover:
+  hg19_liftover_threads: 10 ### This is the number of threads that will be  used to lift over the imputed SNP genotype vcf to hg38
+  hg19_liftover_memory: 20 ### This is the memory in Gb per thread that will be  used to lift over the imputed SNP genotype vcf to hg38
+
 popscle:
   pileup_memory: 10 ### This is the number of gigs that will be used for memory and disk space per thread for the pileup step.
   pileup_threads: 10 ### The number threads that will be used for the pileup step

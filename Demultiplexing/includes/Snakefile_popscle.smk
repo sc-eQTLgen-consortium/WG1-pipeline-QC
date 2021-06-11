@@ -9,7 +9,7 @@ from glob import glob
 ###### popscle Preprocessing ######
 rule popscle_pileup:
     input:
-        vcf = input_dict["snp_genotypes_filepath"],
+        vcf = output_dict["output_dir"] + "/liftover_hg19_to_hg38/hg38.vcf",
         barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool],
         bam = lambda wildcards: scrnaseq_libs_df["Bam_Files"][wildcards.pool],
         individuals = lambda wildcards: scrnaseq_libs_df["Individuals_Files"][wildcards.pool]
