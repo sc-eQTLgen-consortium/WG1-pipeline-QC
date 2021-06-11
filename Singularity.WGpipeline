@@ -15,7 +15,9 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 
 	ldconfig
 	yes | apt-get install -y python3-tk
-
+    apt-get install -y openjdk-11-jdk
+    java -version
+	
     cd /opt
         mkdir liftover_refs
         cd liftover_refs
