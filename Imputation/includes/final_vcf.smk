@@ -16,7 +16,7 @@ rule bed2pgen:
         out = output_dict["output_dir"] + "/convert_files/{ancestry}/{ancestry}_strand_check-updated-chr{chr}"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.bfile} --make-pgen --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.bfile} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         """
 
 rule fix_pvar:
