@@ -14,7 +14,6 @@ from mods import prepareArguments
 config = prepareArguments.parsePaths(config)
 input_dict = config["inputs"]
 output_dict = config["outputs"]
-options_dict = config["options"]
 ref_dict = config["refs"]
 plink_gender_ancestry_QC_dict = config["plink_gender_ancestry_QC"]
 grm_QC_dict = config["grm_QC"]
