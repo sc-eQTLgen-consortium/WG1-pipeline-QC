@@ -16,7 +16,7 @@ rule bed2pgen:
         out = output_dict["output_dir"] + "/convert_files/{ancestry}/{ancestry}_strand_check-updated-chr{chr}"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.bfile} --make-pgen 'psam-cols='fid,parents,sex,phenos 'id-delim='_ 'id-paste='fid,iid --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.bfile} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         """
 
 rule fix_pvar:
@@ -60,7 +60,7 @@ rule pgen2vcf:
         out = output_dict["output_dir"] + "/vcf/{ancestry}/{ancestry}_QC_filtered_chr{chr}"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --pfile {params.pfile} --recode vcf --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --pfile {params.pfile} --recode vcf 'id-delim='_ 'id-paste='fid,iid --out {params.out}
         singularity exec --bind {params.bind} {params.sif} bgzip {params.out}.vcf
         singularity exec --bind {params.bind} {params.sif} tabix -p vcf {output.gvcf}
         """
