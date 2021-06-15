@@ -1,45 +1,10 @@
 #!/usr/bin/env python
 shell.executable('bash')
 
-if options_dict["ref"] == "hg38":
-    rule hg38_liftover:
-        input:
-            vcf = input_dict["vcf"]
-        output:
-            output_dict["output_dir"] + "/liftover_hg38_to_hg19/hg19.vcf"
-        resources:
-            mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["hg38_liftover_memory"],
-            disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["hg38_liftover_memory"]
-        threads: plink_gender_ancestry_QC_dict["hg38_liftover_threads"]
-        params:
-            bind = input_dict["bind_paths"],
-            out = output_dict["output_dir"] + "/liftover",
-            sif = input_dict["singularity_image"],
-            fasta = ref_dict["fasta19"]
-        shell:
-            """
-            singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.mem_per_thread_gb}g -jar /opt/picard/build/libs/picard.jar LiftoverVcf \
-                I={input.vcf} \
-                O={output} \
-                CHAIN=/opt/liftover_refs/hg38ToHg19.over.chain \
-                REJECT={params.out}/LiftOver_rejected_variants.vcf \
-                R={params.fasta}
-            """
-
-else:
-    logger.info("The parameter that you put in for the inputs:ref: in the yaml file is not recognized. It should be either hg19 or hg38.")
-
-
-if options_dict["ref"] == "hg38":
-    input_vcf = output_dict["output_dir"] + "/liftover/hg19.vcf"
-elif options_dict["ref"] == "hg19":
-    input_vcf = input_dict["vcf"]
-else:
-    logger.info("There's a problem with the reference name used in the inputs of your yaml file (inputs:ref:). Accepted options are either hg19 or hg38")
 
 rule vcf_to_plink:
     input:
-        vcf = input_vcf,
+        vcf = input_dict["vcf"],
         fam = input_dict["psam_file"]
     output:
         bed = output_dict["output_dir"] + "/plink_hg19/hg19_input.pgen",
