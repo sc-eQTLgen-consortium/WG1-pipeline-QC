@@ -2,14 +2,11 @@
 ##############################################################################################################
 ##### The following arguments need to be changed by the user to indicating file locations on your system #####
 ##############################################################################################################
-refs:
-  fasta19: /path/to/hg19fasta.fa
-
 inputs:
+  ref_dir: /path/to/provided/ref/dir ### This is the path to the directory containing the imputation references provided for the SNP processing and imputation
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
-  vcf: /path/to/input.vcf ### can be either hg19 or hg38
+  plink_dir: /path/to/input_plink/dir ### path to directory that contains plink2 pgen, pvar and psam files for pipeline on hg19
   bind_paths: /paths/to/bind ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2} 
-  psam_file: /path/to/psam/file.psam ### Path to a fam file in plink format per https://www.cog-genomics.org/plink2/formats#fam with the following columns (LABELED): 1.  sFamily ID ('FID'); 2. Within-family ID ('IID'; cannot be '0') 3. Within-family ID of father ('0' if father isn't in dataset) 4. Within-family ID of mother ('0' if mother isn't in dataset) 5. Sex code ('1' = male, '2' = female, '0' = unknown) 6. Provided_Ancestry('AFR' = African, 'AMR' = Ad Mixed American, 'EAS' = East Asian, 'EUR' = European, 'SAS' = South Asian)
   
 outputs:
   output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
@@ -20,14 +17,6 @@ outputs:
 #########################################################################################################
 ##### These are the options that will be used for plink QC steps #####
 plink_gender_ancestry_QC:
-  ### If the vcf if on an hg38 reference, we need to liftover to hg19 using picard - this will only happen if the ref in the options categoray above is set to hg38
-  hg38_liftover_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
-  hg38_liftover_threads: 10 ### Number of threads to use
-
-  ### Following options for converting vcf to plink with `plink --vcf <vcf> --fam <fam_file> --make-bed --out <out>`
-  vcf_to_plink_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  vcf_to_plink_threads: 2 ### Number of threads to use
-
   ### Following options for removing individuals missing too many snps with `plink --bfile <bfile> --make-bed --mind <mind> --out <out> --noweb`
   indiv_missingness_mind: 0.03 ### Missingness rate threshold
   indiv_missingness_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
@@ -57,83 +46,42 @@ plink_gender_ancestry_QC:
   pca_project_memory: 20
   pca_project_threads: 1
 
-  ### Following options to remove snps with low maf with `plink --bfile <bfile> --maf <maf> --allow-extra-chr --make-bed --out <out>`
-  maf_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  maf_threads: 1 ### Number of threads to use
+imputation:
+  crossmap_memory: 20
+  crossmap_threads: 1
 
-  ### Following options to remove snps that fail hwe with `plink --bfile <bfile> --hardy --hwe --make-bed --out <out> --noweb`
-  hwe_memory: 5 ### Number of gigs that will be used for memory and disk space per thread
-  hwe_threads: 1 ### Number of threads to use
-  hwe_pvalue: 1e-6
+  sort_bed_memory: 5
+  sort_bed_threads: 1
 
-  ### Following options to identify the heterozygosity per individual with `plink --bfile <bfile --het --out <out> --noweb`
-  het_memory: 15 ### Amount of gigs that will be used for memory and disk space per thread
-  het_threads: 2 ### Number of threads to use
-  het_sd: 3 ## Number of sd from mean to allow for heterozygosity. Those that fall outside will be filtered out
+  harmonize_hg38_memory: 5
+  harmonize_hg38_threads: 2
 
-  ### Following options to filter individuals that don't fall within heterozygosity acceptable range with `plink --bfile <hwe> --remove <individuals> --make-bed --out <out> --noweb`
+  plink_to_vcf_memory: 2
+  plink_to_vcf_threads: 2
+
+  vcf_fixref_hg38_memory: 5
+  vcf_fixref_hg38_threads: 2
+
+  filter_preimpute_vcf_memory: 10
+  filter_preimpute_vcf_threads: 2
+
+  het_memory: 15
+  het_threads: 2
+
   het_filter_memory: 5
   het_filter_threads: 1
 
-  ### Following options for removing snps that are missing in too many individuals with `plink --bfile <bfile> --make-bed --geno <maf> --out <out> --noweb`
-  snp_missingness_snp_rate: 0.03 ### Missingness rate threshold
-  snp_missingness_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  snp_missingness_threads: 1 ### Number of threads to use
+  calculate_missingness_memory: 5
+  calculate_missingness_threads: 1
 
+  split_by_chr_memory: 5
+  split_by_chr_threads: 1
 
-##### These are the options that will be used for the grm_QC steps #####
-grm_QC:
-  ### Following options to make grm with `gcta64 --bfile <bfile> --make-grm --out <out>` (first removes Y chromosome snps)
-  grm_memory: 10
-  grm_threads: 1
+  eagle_prephasing_memory: 20
+  eagle_prephasing_threads: 8
 
-  ### The following options are for an Rscript that takes the grm output and makes it into a table with all pairwise individual correlations, sorted by most related to least related
-  report_relatedness_memory: 10
-  report_relatedness_threads: 2
+  minimac_imputation_memory: 10
+  minimac_imputation_threads: 5
 
-HRC_check:
-  ### Options to get all SNPs on forward strand
-  forward_strand_memory: 10
-  forward_strand_threads: 1
-
-  ### Options to use for hrc check ewith `perl HRC-1000G-check-bim.pl -b <bfile> -f <frequencies> -r /opt/HRC.r1-1.GRCh37.wgs.mac5.sites.tab -h -o <out>`
-  hrc_check_memory: 20
-  hrc_check_threads: 1
-
-  ### Options to use for fixing identified issues from hrc check `sh Run-plink.sh`
-  hrc_fix_memory: 15
-  hrc_fix_threads: 2
-
-##### These are the options that will be used for preparing the final vcf #####
-final_vcf:
-  ### Options to convert bed file to pgen file
-  bed2pgen_memory: 2
-  bed2pgen_threads: 1
-
-  ### Options for fixing pvar file to have original vcf comments etc
-  fix_pvar_memory: 2
-  fix_pvar_threads: 1
-
-  ### Options for converting bed to vcf (only run if individuals in european file) with `plink --bfile <input> --recode --keep <european_individuals> vcf --out <output>`
-  pgen2vcf_memory: 10
-  pgen2vcf_threads: 1
-
-  ### Options for cobmining ancestry files together aggain with vcf-merge
-  combine_ancestries_memory: 5
-  combine_ancestries_threads: 1
-
-  ### Options for sorting european final vcf (only run if individuals in european file) with `bcftools sort <input> -Oz -o <output>
-  vcf_sort_memory: 10
-  vcf_sort_threads: 1
-
-  ### Options for combining all final vcfs and updating chr 23 to be labeled as X
-  combine_vcfs_memory: 5
-  combine_vcfs_threads: 1
-
-  ### Options for the final sex tsv file necessary for imputation of X chromosome
-  sex4imputation_memory: 5
-  sex4imputation_threads: 1
-
-  ### Options for producing the donor metadata file for downstream processing ###
-  donor_meta_file_memory: 5
-  donor_meta_file_threads: 1
+  genotype_donor_annotation_memory: 5
+  genotype_donor_annotation_threads: 1

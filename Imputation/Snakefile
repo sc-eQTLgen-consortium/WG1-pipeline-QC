@@ -14,55 +14,108 @@ from mods import prepareArguments
 config = prepareArguments.parsePaths(config)
 input_dict = config["inputs"]
 output_dict = config["outputs"]
-ref_dict = config["refs"]
+bind_path = input_dict["bind_paths"]
+
+pgen = prepareArguments.getPGEN(input_dict["plink_dir"])
+pvar = prepareArguments.getPVAR(input_dict["plink_dir"])
+psam = prepareArguments.getPSAM(input_dict["plink_dir"])
+
+### Check that actaully found the correct files and print the files being used
+if None in [pgen,pvar,psam]:
+    print("Could not find the pgen, pvar and/or psam file(s). Please check that " + input_dict["plink_dir"] + " contains the pgen, pvar and psam files.\n Exiting.")
+    exit()
+else:
+    print("Using these files from the plink directory (" + input_dict["plink_dir"] + ") as input:")
+    print("The pgen file: " + pgen)
+    print("The pvar file: " + pvar)
+    print("The psam file: " + psam + "\n")
+
+
+vcf_dir = prepareArguments.getVCFdir(input_dict["ref_dir"])
+fasta = prepareArguments.getFASTA(input_dict["ref_dir"])
+genetic_map = prepareArguments.getMAP(input_dict["ref_dir"])
+phasing_dir = prepareArguments.getPHASINGdir(input_dict["ref_dir"])
+impute_dir = prepareArguments.getIMPUTATIONdir(input_dict["ref_dir"])
+
+### Check that was able to find all the required reference files
+if all(v is None for v in [vcf_dir, fasta, genetic_map, phasing_dir, impute_dir]):
+    print("Could not find the required reference files in " + input_dict["ref_dir"] + "\nPlease check that you have the correct directory.")
+elif None in [vcf_dir, fasta, genetic_map, phasing_dir, impute_dir]:
+    if vcf_dir is None:
+        print("Could not find directory containing the reference vcf (searching for 30x-GRCh38_NoSamplesSorted.vcf.gz.tbi) in " + input_dict["ref_dir"])
+    if fasta is None:
+        print("Could not find the reference fasta (searching for Homo_sapiens.GRCh38.dna.primary_assembly.fa) in " + input_dict["ref_dir"])
+    if genetic_map is None:
+        print("Could not find directory containing the reference genetic map (searching for genetic_map_hg38_withX.txt.gz) in " + input_dict["ref_dir"])
+    if phasing_dir is None:
+        print("Could not find directory containing the reference phasing files (searching for chr10.bcf) in " + input_dict["ref_dir"])
+    if impute_dir is None:
+        print("Could not find directory containing the reference phasing files (searching for chr10.m3vcf.gz) in " + input_dict["ref_dir"])
+    print("Exiting.")
+    exit()
+else:
+    print("Found all the required refernce files in " + input_dict["ref_dir"] + "\n")
+
+
+### Define dictionaries ###
 plink_gender_ancestry_QC_dict = config["plink_gender_ancestry_QC"]
-grm_QC_dict = config["grm_QC"]
-HRC_check_dict = config["HRC_check"]
-final_vcf_dict = config["final_vcf"]
+imputation_dict = config["imputation"]
+
 
 
 # Import individual rules
 include: "includes/plink_gender_ancestry_QC.smk"
-include: "includes/grm_QC.smk"
-include: "includes/HRC_check.smk"
-include: "includes/final_vcf.smk"
+include: "includes/urmo_imputation_hg38.smk"
+
 
 
 ## Define the chromosomes to be used downstream (post-gcta)
-chromosomes = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
+chromosomes = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22]
+
+
+### Add in checks for psam file ###
+psam_df = pd.read_csv(psam, sep = "\t")
+
+## Check if column names are correct
+if (psam_df.columns != ['#FID', 'IID', 'PAT', 'MAT', 'SEX', 'Provided_Ancestry','genotyping_platform', 'array_available', 'wgs_available','wes_available', 'age', 'age_range', 'Study']).any():
+    print("The column names of your psam file are not correct.\n\
+    They should be: #FID', 'IID', 'PAT', 'MAT', 'SEX', 'Provided_Ancestry','genotyping_platform', 'array_available', 'wgs_available','wes_available', 'age', 'age_range', 'Study'.\n\
+    If the names look the same, check that the file is tab separated, without any spaces or other weird characters.\n\n\
+    Exiting.")
+
 
 
 plinkQC_files = []
-grm_files = []
-vcf_files = []
-if os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv") and os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv"):
+impute_files = []
+if os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv") and os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv") and os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/predicted_ancestry_summary_MAF_threshold.tsv"):
     ancestry_check = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv", sep = "\t")
     sex_check = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv", sep = "\t")
-    if ancestry_check["UPDATE/REMOVE/KEEP"].count() == len(ancestry_check) and sex_check["UPDATE/REMOVE/KEEP"].count() == len(sex_check):
+    ancestry_summary = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/predicted_ancestry_summary_MAF_threshold.tsv", sep = "\t")
+    if ancestry_check["UPDATE/REMOVE/KEEP"].count() == len(ancestry_check) and sex_check["UPDATE/REMOVE/KEEP"].count() == len(sex_check) and ancestry_summary["REMOVE/KEEP"].count() == len(ancestry_summary) and ancestry_summary["MAF_filter_threshold"].count() == len(ancestry_summary):
         plinkQC_files.append(output_dict["output_dir"] + "/update_sex_ancestry/update_sex.pgen")
-        if os.path.exists(output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv"):
-            ancestry_file = pd.read_csv(output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv", sep = "\t")
-            if ancestry_file["maf_threshold"].count() == len(ancestry_file):
-                ancestry_file.index = ancestry_file["unique_ancestry"]
-                grm_files.append(expand(output_dict["output_dir"] + "/grm/{ancestry}_paired_relatedness.tsv", ancestry = ancestry_file["unique_ancestry"]))
-                plinkQC_files.append(expand(output_dict["output_dir"] + "/convert_files/{ancestry}/{ancestry}_strand_check-updated-chr{chr}.pvar.temp", ancestry = ancestry_file["unique_ancestry"], chr = chromosomes))
-                vcf_files.append(expand(output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr{chr}.vcf.gz", chr = chromosomes))
-                vcf_files.append(output_dict["output_dir"] + "/vcf/files4submission/QC_filtered_sorted_chr_updated_final.vcf.gz.csi")
-                vcf_files.append(output_dict["output_dir"] + "/vcf/files4submission/samples.txt")
-                vcf_files.append(output_dict["output_dir"] + "/genotype_donor_annotation.tsv")
-            else:
-                logger.info("The minor allele frequency has not been chosen for all the ancestries in update_sex_ancestry/uniq_acestries.tsv. Please update the file to include the minor allele frequency selections with a number between 0 and 1 or NA if you don't want to filter based on a minor allele frequency. Please see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---minor-allele-frequency-selections for more details")
-        else:
-            logger.info("The UPDATE/REMOVE/KEEP column in the pca_sex_checks/ancestry_update_remove.tsv and/or the pca_sex_checks/check_sex_update_remove.tsv file are not completed. Please fill in these selections for the pipeline to continue. Please see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.")
+        ancestry_subsets = ancestry_summary["Predicted_Ancestry"][ancestry_summary['REMOVE/KEEP'] == "KEEP"].values
+        impute_files.append(expand(output_dict["output_dir"] + "/convert_files/{ancestry}/{ancestry}_strand_check-updated-chr{chr}.pvar.temp", ancestry = ancestry_subsets, chr = chromosomes))
+
+#         if os.path.exists(output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv"):
+#             ancestry_file = pd.read_csv(output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv", sep = "\t")
+#             if ancestry_file["maf_threshold"].count() == len(ancestry_file):
+#                 ancestry_file.index = ancestry_file["unique_ancestry"]
+                # grm_files.append(expand(output_dict["output_dir"] + "{ancestry}_chr{chr}.dose.vcf.gz", ancestry = ancestry_subsets))
+#                 # vcf_files.append(expand(output_dict["output_dir"] + "/vcf/combined_sorted/QC_filtered_sorted_chr{chr}.vcf.gz", chr = chromosomes))
+#                 # vcf_files.append(output_dict["output_dir"] + "/vcf/files4submission/QC_filtered_sorted_chr_updated_final.vcf.gz.csi")
+#                 # vcf_files.append(output_dict["output_dir"] + "/vcf/files4submission/samples.txt")
+#                 # vcf_files.append(output_dict["output_dir"] + "/genotype_donor_annotation.tsv")
+#             else:
+#                 logger.info("The minor allele frequency has not been chosen for all the ancestries in update_sex_ancestry/uniq_acestries.tsv. Please update the file to include the minor allele frequency selections with a number between 0 and 1 or NA if you don't want to filter based on a minor allele frequency. Please see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---minor-allele-frequency-selections for more details")
+    else:
+        logger.info("ERROR:\nThe UPDATE/REMOVE/KEEP column in the pca_sex_checks/ancestry_update_remove.tsv and/or the pca_sex_checks/check_sex_update_remove.tsv file are not completed.\nPlease fill in these selections for the pipeline to continue.\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.")
 else:
     plinkQC_files.append(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv")
 
 rule all:
     input:
+        # output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.pgen"
         plinkQC_files,
-        grm_files,
-        vcf_files
-
-
+        impute_files
 
 

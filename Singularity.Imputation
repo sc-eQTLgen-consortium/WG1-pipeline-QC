@@ -91,8 +91,10 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         tar -xzf 1000G.tar.gz
 
     cd /opt
-        wget https://www.dropbox.com/s/3u7g4xdig8hyhle/ImputationTestDataset.tar.gz
+        wget https://www.dropbox.com/s/uy9828g1r1jt5xy/ImputationTestDataset_plink.tar.gz
 
+	cd /opt
+		wget https://www.dropbox.com/s/u8haw4n5t3b8b34/GRCh37_to_GRCh38.chain
 
     cd /opt
 	ls
@@ -111,14 +113,14 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         make
         make install
 
-    cd /opt
-        wget https://github.com/samtools/samtools/releases/download/1.10/samtools-1.10.tar.bz2
-        tar xvfj samtools-1.10.tar.bz2
-        rm samtools-1.10.tar.bz2
-        cd samtools-1.10
-        ./configure
-        make
-        make install
+    # cd /opt
+    #     wget https://github.com/samtools/samtools/releases/download/1.10/samtools-1.10.tar.bz2
+    #     tar xvfj samtools-1.10.tar.bz2
+    #     rm samtools-1.10.tar.bz2
+    #     cd samtools-1.10
+    #     ./configure
+    #     make
+    #     make install
     
     cd /opt
         wget https://github.com/samtools/bcftools/releases/download/1.10.2/bcftools-1.10.2.tar.bz2
@@ -130,10 +132,6 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         make install
 
     cd /opt
-        wget ftp://ngs.sanger.ac.uk/production/hrc/HRC.r1-1/HRC.r1-1.GRCh37.wgs.mac5.sites.tab.gz
-        gunzip HRC.r1-1.GRCh37.wgs.mac5.sites.tab.gz
-
-    cd /opt
         mkdir plink
         cd plink
             wget https://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20210606.zip
@@ -142,29 +140,8 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     cd /opt
         mkdir plink2
         cd plink2
-			wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20210608.zip
-            unzip plink2_linux_x86_64_20210608.zip
-
-    cd /opt
-        git clone https://github.com/broadinstitute/picard.git
-        cd picard/
-        ./gradlew shadowJar
-
-    cd /opt
-        wget --no-check-certificate https://cnsgenomics.com/software/gcta/bin/gcta_1.93.2beta.zip
-        unzip gcta_1.93.2beta.zip
-
-    cd /opt
-        mkdir HRC-1000G-check
-        cd HRC-1000G-check
-            wget https://www.well.ox.ac.uk/~wrayner/tools/HRC-1000G-check-bim-v4.3.0.zip
-            unzip HRC-1000G-check-bim-v4.3.0.zip
-
-    cd /opt
-        mkdir liftover_refs
-        cd liftover_refs
-            wget http://hgdownload.cse.ucsc.edu/goldenpath/hg38/liftOver/hg38ToHg19.over.chain.gz
-            gunzip hg38ToHg19.over.chain.gz
+			wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20210826.zip
+            unzip plink2_linux_x86_64_20210826.zip
 
     cd /opt
         git clone https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git

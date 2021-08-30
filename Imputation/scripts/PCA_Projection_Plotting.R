@@ -141,9 +141,13 @@ colnames(anc_mismatch)[1] <- paste0("#",colnames(anc_mismatch)[1])
 write_delim(anc_mismatch, paste0(outdir,"/ancestry_update_remove.tsv"), na = "", delim = "\t")
 
 
+### Make table of predicted ancestries ###
+anc_summary <- data.frame(table(scores$Assignment[which(!is.na(scores$Provided_Ancestry))]))
+colnames(anc_summary) <- c("Predicted_Ancestry", "N")
 
+anc_summary$`REMOVE/KEEP` <- NA
+anc_summary$MAF_filter_threshold <- NA
 
-
-
+write_delim(anc_mismatch, paste0(outdir,"/predicted_ancestry_summary_MAF_threshold.tsv"), na = "", delim = "\t")
 
 

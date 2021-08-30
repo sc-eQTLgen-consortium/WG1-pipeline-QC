@@ -2,34 +2,11 @@
 shell.executable('bash')
 
 
-rule vcf_to_plink:
-    input:
-        vcf = input_dict["vcf"],
-        fam = input_dict["psam_file"]
-    output:
-        bed = output_dict["output_dir"] + "/plink_hg19/hg19_input.pgen",
-        bim = output_dict["output_dir"] + "/plink_hg19/hg19_input.pvar",
-        fam = output_dict["output_dir"] + "/plink_hg19/hg19_input.psam"
-    resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["vcf_to_plink_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["vcf_to_plink_memory"]
-    threads: plink_gender_ancestry_QC_dict["vcf_to_plink_threads"]
-    params:
-        indiv_file = output_dict["output_dir"] + "/plink_hg19/individual_file.txt",
-        bind = input_dict["bind_paths"],
-        sif = input_dict["singularity_image"],
-        out = output_dict["output_dir"] + "/plink_hg19/hg19_input"
-    shell:
-        """
-        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}' {input.fam} > {params.indiv_file}
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --vcf {input.vcf} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out} --psam {input.fam} --id-delim _ --indiv-sort f {params.indiv_file} --max-alleles 2
-        """
-
 rule indiv_missingness:
     input:
-        bed = output_dict["output_dir"] + "/plink_hg19/hg19_input.pgen",
-        bim = output_dict["output_dir"] + "/plink_hg19/hg19_input.pvar",
-        fam = output_dict["output_dir"] + "/plink_hg19/hg19_input.psam",
+        pgen = pgen,
+        pvar = pvar,
+        psam = psam,
     output:
         bed = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.pgen",
         bim = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.pvar",
@@ -40,12 +17,13 @@ rule indiv_missingness:
     threads: plink_gender_ancestry_QC_dict["indiv_missingness_threads"]
     params:
        bind = input_dict["bind_paths"],
-       infile = output_dict["output_dir"] + "/plink_hg19/hg19_input",
+       infile = re.sub(".psam", "", psam),
        out = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness",
        mind = plink_gender_ancestry_QC_dict["indiv_missingness_mind"],
        sif = input_dict["singularity_image"]
     shell:
         """
+		singularity exec --bind {params.bind} {params.sif} echo {params.infile}
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} \
             --pfile {params.infile} \
             --make-pgen 'psam-cols='fid,parents,sex,phenos \
@@ -273,11 +251,12 @@ rule pca_projection_assign:
         projected_scores = output_dict["output_dir"] + "/pca_projection/final_subset_pruned_data_pcs.sscore",
         projected_1000g_scores = output_dict["output_dir"] + "/pca_projection/subset_pruned_1000g_pcs_projected.sscore",
         fam_1000g = output_dict["output_dir"] + "/common_snps/subset_1000g.psam",
-        psam = input_dict["psam_file"],
+        psam = psam,
         sexcheck = output_dict["output_dir"] + "/check_sex/check_sex.sexcheck.tsv",
     output:
         sexcheck = output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv",
-        anc_check = output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv"
+        anc_check = output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv",
+        anc_size_maf = output_dict["output_dir"] + "/pca_sex_checks/predicted_ancestry_summary_MAF_threshold.tsv"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * 10,
         disk_per_thread_gb=lambda wildcards, attempt: attempt * 10
@@ -333,7 +312,7 @@ rule separate_indivs:
 rule update_sex_ancestry:
     input:
         bim = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.pgen",
-        psam = input_dict["psam_file"],
+        psam = psam,
         update_sex = output_dict["output_dir"] + "/separate_indivs/sex_update_indivs.tsv",
         remove_indiv = output_dict["output_dir"] + "/separate_indivs/remove_indivs.tsv",
         update_ancestry = output_dict["output_dir"] + "/separate_indivs/update_anc_indivs.tsv"
@@ -388,170 +367,4 @@ rule subset_ancestry:
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --keep {output.keep} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         """
 
-rule snp_missingness:
-    input:
-        pgen = output_dict["output_dir"] + "/subset_ancestry/{ancestry}_subset.pgen",
-        psam = output_dict["output_dir"] + "/subset_ancestry/{ancestry}_subset.psam",
-        pvar = output_dict["output_dir"] + "/subset_ancestry/{ancestry}_subset.pvar"
-    output:
-        bed = output_dict["output_dir"] + "/snp_missingness/{ancestry}_snp_missingness.pgen",
-        bim = output_dict["output_dir"] + "/snp_missingness/{ancestry}_snp_missingness.pvar",
-        fam = output_dict["output_dir"] + "/snp_missingness/{ancestry}_snp_missingness.psam",
-        log = output_dict["output_dir"] + "/snp_missingness/{ancestry}_snp_missingness.log",
-    resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["snp_missingness_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["snp_missingness_memory"]
-    threads: plink_gender_ancestry_QC_dict["snp_missingness_threads"]
-    params:
-        bind = input_dict["bind_paths"],
-        infile = output_dict["output_dir"] + "/subset_ancestry/{ancestry}_subset",
-        out = output_dict["output_dir"] + "/snp_missingness/{ancestry}_snp_missingness",
-        snp_rate = plink_gender_ancestry_QC_dict["snp_missingness_snp_rate"],
-        sif = input_dict["singularity_image"]
-    shell:
-        """
-        singularity exec --bind {params.bind} {params.sif} plink2 --pfile {params.infile} --make-pgen 'psam-cols='fid,parents,sex,phenos --geno {params.snp_rate} --out {params.out}
-        """
 
-rule maf:
-    input:
-        bed = output_dict["output_dir"] + "/snp_missingness/{ancestry}_snp_missingness.pgen",
-        bim = output_dict["output_dir"] + "/snp_missingness/{ancestry}_snp_missingness.pvar",
-        fam = output_dict["output_dir"] + "/snp_missingness/{ancestry}_snp_missingness.psam",
-    output:
-        bed = output_dict["output_dir"] + "/maf/{ancestry}_maf.pgen",
-        bim = output_dict["output_dir"] + "/maf/{ancestry}_maf.pvar",
-        fam = output_dict["output_dir"] + "/maf/{ancestry}_maf.psam",
-        freq = output_dict["output_dir"] + "/maf/{ancestry}_freq.afreq"
-    resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["maf_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["maf_memory"]
-    threads: plink_gender_ancestry_QC_dict["maf_threads"]
-    params:
-        infile = output_dict["output_dir"] + "/subset_ancestry/{ancestry}_subset",
-        bind = input_dict["bind_paths"],
-        freq = output_dict["output_dir"] + "/maf/{ancestry}_freq",
-        out = output_dict["output_dir"] + "/maf/{ancestry}_maf",
-        outdir = output_dict["output_dir"] + "/maf/",
-        chr_coding = output_dict["output_dir"] + "/maf/{ancestry}_chr_coding",
-        maf = lambda wildcards: ancestry_file["maf_threshold"][wildcards.ancestry],
-        sif = input_dict["singularity_image"]
-    shell:
-        """
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --freq --out {params.freq}
-        if (( $(echo "{params.maf} > 0" | bc -l) ))
-        then
-            singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --maf {params.maf} --allow-extra-chr --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
-        else
-            for file in `ls {params.infile}*`
-            do
-                filetype=$(echo $file | rev | cut -d. -f1 | rev)
-                singularity exec --bind {params.bind} {params.sif} cp $file {params.outdir}/{wildcards.ancestry}_maf.$filetype
-            done
-        fi
-        singularity exec --bind {params.bind} {params.sif} cp {output.bim} {output.bim}.original
-        singularity exec --bind {params.bind} {params.sif} sed -i "s/^XY/25/g" {output.bim} 
-        singularity exec --bind {params.bind} {params.sif} sed -i "s/^X/23/g" {output.bim} 
-        singularity exec --bind {params.bind} {params.sif} sed -i "s/ID=X/ID=23/g" {output.bim} 
-        singularity exec --bind {params.bind} {params.sif} sed -i "s/^Y/24/g" {output.bim} 
-        singularity exec --bind {params.bind} {params.sif} sed -i "s/ID=Y/ID=24/g" {output.bim} 
-        singularity exec --bind {params.bind} {params.sif} sed -i "s/^MT/26/g" {output.bim} 
-        singularity exec --bind {params.bind} {params.sif} sed -i "s/ID=MT/ID=26/g" {output.bim} 
-        """
-
-rule hwe:
-    input:
-        bed = output_dict["output_dir"] + "/maf/{ancestry}_maf.pgen",
-        bim = output_dict["output_dir"] + "/maf/{ancestry}_maf.pvar",
-        fam = output_dict["output_dir"] + "/maf/{ancestry}_maf.psam",
-    output:
-        bed = output_dict["output_dir"] + "/hwe/{ancestry}_hwe.pgen",
-        bim = output_dict["output_dir"] + "/hwe/{ancestry}_hwe.pvar",
-        fam = output_dict["output_dir"] + "/hwe/{ancestry}_hwe.psam"
-    resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["hwe_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["hwe_memory"]
-    threads: plink_gender_ancestry_QC_dict["hwe_threads"]
-    params: 
-        bind = input_dict["bind_paths"],
-        hwe_p = plink_gender_ancestry_QC_dict["hwe_pvalue"],
-        maf = output_dict["output_dir"] + "/maf/{ancestry}_maf",
-        out = output_dict["output_dir"] + "/hwe/{ancestry}_hwe",
-        sif = input_dict["singularity_image"]
-    shell:
-        """
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.maf} --hardy --hwe {params.hwe_p} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
-        """
-
-rule het:
-    input:
-        freq = output_dict["output_dir"] + "/maf/{ancestry}_freq.afreq",
-        bed = output_dict["output_dir"] + "/hwe/{ancestry}_hwe.pgen",
-        bim = output_dict["output_dir"] + "/hwe/{ancestry}_hwe.pvar",
-        fam = output_dict["output_dir"] + "/hwe/{ancestry}_hwe.psam",
-    output:
-        inds = output_dict["output_dir"] + "/het/{ancestry}_het.inds",
-        het = output_dict["output_dir"] + "/het/{ancestry}_het.het"
-    resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["het_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["het_memory"]
-    threads: plink_gender_ancestry_QC_dict["het_threads"]
-    params:
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R",
-        bind = input_dict["bind_paths"],
-        hwe = output_dict["output_dir"] + "/hwe/{ancestry}_hwe",
-        out = output_dict["output_dir"] + "/het/{ancestry}_het",
-        sif = input_dict["singularity_image"],
-    shell:
-        """
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.hwe} --het --read-freq {input.freq} --out {params.out}
-        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.out}.het {output.inds}
-        """
-
-
-rule het_filter:
-    input:
-        inds = output_dict["output_dir"] + "/het/{ancestry}_het.inds",
-        het = output_dict["output_dir"] + "/het/{ancestry}_het.het"
-    output:
-        bim = output_dict["output_dir"] + "/het_filter/{ancestry}_het_filter.pgen",
-        bed = output_dict["output_dir"] + "/het_filter/{ancestry}_het_filter.pvar",
-        fam = output_dict["output_dir"] + "/het_filter/{ancestry}_het_filter.psam"
-    resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["het_filter_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["het_filter_memory"]
-    threads: plink_gender_ancestry_QC_dict["het_filter_threads"]
-    params:
-        bind = input_dict["bind_paths"],
-        hwe = output_dict["output_dir"] + "/hwe/{ancestry}_hwe",
-        out = output_dict["output_dir"] + "/het_filter/{ancestry}_het_filter",
-        sif = input_dict["singularity_image"]
-    shell:
-        """
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.hwe} --remove {input.inds} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
-        """
-
-
-
-
-### Probably don't need this since using grm instead
-    # rule ibd:
-    #     input:
-    #         bim = output_dict["output_dir"] + "/het_filter/het_filter.bim",
-    #         bed = output_dict["output_dir"] + "/het_filter/het_filter.bed",
-    #         fam = output_dict["output_dir"] + "/het_filter/het_filter.fam"
-    #     output:
-    #         genome = output_dict["output_dir"] + "/ibd/ibd.genome",
-    #         hh = output_dict["output_dir"] + "/ibd/ibd.hh"
-    #     resources:
-    #         mem_per_thread_gb=lambda wildcards, attempt: attempt * 10,
-    #         disk_per_thread_gb=lambda wildcards, attempt: attempt * 10
-    #     threads: 1
-    #     params:
-    #         het_filter = output_dict["output_dir"] + "/het_filter/het_filter",
-    #         ibd = output_dict["output_dir"] + "/ibd/ibd",
-    #         sif = input_dict["singularity_image"]
-    #     shell:
-    #         """
-    #         singularity exec --bind {params.bind} {params.sif} plink --bfile {params.het_filter} --genome --out {params.ibd} --noweb
-    #         """
