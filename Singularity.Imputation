@@ -13,7 +13,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     #!/bin/bash
     eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
     export PATH=/opt/conda/bin/:$PATH
-    apt update
+    apt --allow-releaseinfo-change update
     yes | apt upgrade
     yes | apt-get install build-essential
     apt-get install -y gcc-7 g++-7 gfortran-7 libgfortran-7-dev
