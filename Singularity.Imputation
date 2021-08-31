@@ -69,7 +69,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     cd /root
     wget https://github.com/Kitware/CMake/releases/download/v3.21.2/cmake-3.21.2.tar.gz
     tar -xzf cmake-3.21.2.tar.gz
-    cd  cmake-3.21.2.tar.gz
+    cd  cmake-3.21.2
     ./configure
     make
     make install
@@ -84,9 +84,9 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     /opt/conda/envs/py36/bin/pip install altair
     /opt/conda/envs/py36/bin/pip install matplotlib
     /opt/conda/envs/py36/bin/pip install numpy
+	/opt/conda/envs/py36/bin/pip install CrossMap
 	
 	yes | conda install -c bioconda csvtk
-	yes | conda install -c bioconda crossmap=0.4.1
 
     cd /opt
         wget https://www.dropbox.com/s/xso2vt3p9h2rh8m/1000G.tar.gz
