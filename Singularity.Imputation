@@ -25,17 +25,17 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     apt install -y dirmngr --install-recommends
     apt install -y software-properties-common
     apt install -y apt-transport-https
-    add-apt-repository 'deb http://deb.debian.org/debian buster-backports main'
-    yes | apt-get update
-    yes | apt-get upgrade
-    apt install -y ca-certificates gnupg2
-    apt-key adv --keyserver keys.gnupg.net --recv-key 'E19F5F87128899B192B1A2C2AD5F960A256A04AF'
-    add-apt-repository 'deb https://cloud.r-project.org/bin/linux/debian buster-cran35/'
-    apt-get update
-    apt install -y r-base
-    apt install -y r-base-dev
-    apt install -y r-cran-tidyr
-    apt install -y r-cran-tidyverse
+    # add-apt-repository 'deb http://deb.debian.org/debian buster-backports main'
+    # yes | apt-get update
+    # yes | apt-get upgrade
+    # apt install -y ca-certificates gnupg2
+    # apt-key adv --keyserver keys.gnupg.net --recv-key 'E19F5F87128899B192B1A2C2AD5F960A256A04AF'
+    # add-apt-repository 'deb https://cloud.r-project.org/bin/linux/debian buster-cran35/'
+    # apt-get update
+    # apt install -y r-base
+    # apt install -y r-base-dev
+    # apt install -y r-cran-tidyr
+    # apt install -y r-cran-tidyverse
     apt-get update
     apt-get install -y libv8-dev
     apt-get update
@@ -84,7 +84,8 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     /opt/conda/envs/py36/bin/pip install altair
     /opt/conda/envs/py36/bin/pip install matplotlib
     /opt/conda/envs/py36/bin/pip install numpy
-
+	
+	yes | conda install -c bioconda csvtk
 
     cd /opt
         wget https://www.dropbox.com/s/xso2vt3p9h2rh8m/1000G.tar.gz
@@ -145,8 +146,6 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 
     cd /opt
         git clone https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
-
-    R --slave -e 'install.packages("magrittr", repos = "http://cran.us.r-project.org")'
 
 
 ##############################
