@@ -2,7 +2,7 @@ Bootstrap: shub
 From: shub://drneavin/SingularityBaseImages:r363_python368
 
 %environment
-    export PATH=/opt/plink2:/opt/plink:/opt:/usr/games:/opt/conda/envs/py36/bin:/opt/conda/bin:/opt/picard/build/libs:/opt/gcta_1.93.2beta:/opt/HRC-1000G-check:/opt/ancestry_viz:$PATH
+    export PATH=/opt/plink2:/opt/plink:/opt:/usr/games:/opt/conda/envs/py36/bin:/opt/conda/bin:/opt/ancestry_viz:/opt/Eagle_v2.4.1:/opt/Minimac4:/opt/GenotypeHarmonizer-1.4.23:$PATH
     export PYTHONPATH=/opt/conda/envs/py36/lib/python3.6/site-packages/
     export LC_ALL=C 
     alias python=python3
@@ -67,9 +67,9 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         apt-get install -y eigensoft
 
     cd /root
-    wget https://github.com/Kitware/CMake/releases/download/v3.14.4/cmake-3.14.4.tar.gz
-    tar -xzf cmake-3.14.4.tar.gz
-    cd  cmake-3.14.4
+    wget https://github.com/Kitware/CMake/releases/download/v3.21.2/cmake-3.21.2.tar.gz
+    tar -xzf cmake-3.21.2.tar.gz
+    cd  cmake-3.21.2.tar.gz
     ./configure
     make
     make install
@@ -86,6 +86,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     /opt/conda/envs/py36/bin/pip install numpy
 	
 	yes | conda install -c bioconda csvtk
+	yes | conda install -c bioconda crossmap=0.4.1
 
     cd /opt
         wget https://www.dropbox.com/s/xso2vt3p9h2rh8m/1000G.tar.gz
@@ -93,9 +94,23 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 
     cd /opt
         wget https://www.dropbox.com/s/uy9828g1r1jt5xy/ImputationTestDataset_plink.tar.gz
+		tar -xzf ImputationTestDataset_plink.tar.gz
 
 	cd /opt
 		wget https://www.dropbox.com/s/u8haw4n5t3b8b34/GRCh37_to_GRCh38.chain
+
+	cd /opt
+		wget https://alkesgroup.broadinstitute.org/Eagle/downloads/Eagle_v2.4.1.tar.gz
+		tar -xzf Eagle_v2.4.1.tar.gz
+
+	cd /opt
+		git clone https://github.com/statgen/Minimac4.git
+		cd Minimac4
+		bash install.sh
+
+	cd /opt
+		wget https://github.com/molgenis/systemsgenetics/releases/download/1.4.0_20-8.1/GenotypeHarmonizer-1.4.23-dist.tar.gz
+		tar -xzf GenotypeHarmonizer-1.4.23-dist.tar.gz
 
     cd /opt
 	ls
