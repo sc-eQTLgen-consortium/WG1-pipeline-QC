@@ -202,8 +202,7 @@ rule het:
     threads: imputation_dict["het_threads"]
     params:
         het_base = output_dict["output_dir"] + "/het/{ancestry}_het",
-        # script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R",
-        script = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/WG1-pipeline-QC/Imputation/scripts/filter_het.R",
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R",
         bind = input_dict["bind_paths"],
         hwe = output_dict["output_dir"] + "/hwe/{ancestry}_hwe",
         out = output_dict["output_dir"] + "/het/{ancestry}_het",
@@ -394,10 +393,9 @@ rule filter4demultiplexing:
         output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38.vcf.gz"
     output:
         qc_filtered = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05.vcf.gz",
-        location_filtered = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons.recode.vcf",
-        # location_filtered = temp(output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons.recode.vcf"),
+        location_filtered = temp(output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons.recode.vcf"),
         complete_cases = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf",
-        # complete_cases_sorted = output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
+        complete_cases_sorted = output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["filter4demultiplexing_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["filter4demultiplexing_memory"]
@@ -407,8 +405,7 @@ rule filter4demultiplexing:
         bind = input_dict["bind_paths"],
         out = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons",
         complete_out = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases",
-        # bed = "/opt/WG1-pipeline-QC/Imputation/hg38exonsUCSC.bed"
-        bed = "/directflow/SCCGGroupShare/projects/DrewNeavin/References/GenCode/GRCh38/hg38exonsUCSC.bed"
+        bed = "/opt/WG1-pipeline-QC/Imputation/hg38exonsUCSC.bed"
     shell:
         """
         ##### Filter the Imputed SNP Genotype by Minor Allele Frequency (MAF) and INFO scores #####
@@ -426,10 +423,10 @@ rule filter4demultiplexing:
 
         singularity exec --bind {params.bind} {params.sif} vcftools --recode --vcf {output.location_filtered} --max-missing 1 --out {params.complete_out}
 
+        singularity exec --bind {params.bind} {params.sif} java -jar /opt/picard/build/libs/picard.jar SortVcf \
+            I={output.complete_cases} \
+            O={output.complete_cases_sorted}
         """
-        # singularity exec --bind {params.bind} {params.sif} java -jar /opt/picard/build/libs/picard.jar SortVcf \
-        #     I={output.complete_cases} \
-        #     O={output.complete_cases_sorted}
 
 
 

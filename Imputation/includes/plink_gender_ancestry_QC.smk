@@ -264,8 +264,7 @@ rule pca_projection_assign:
         bind = input_dict["bind_paths"],
         sif = input_dict["singularity_image"],
         outdir = output_dict["output_dir"] + "/pca_sex_checks/",
-        # script = "/opt/WG1-pipeline-QC/Imputation/scripts/PCA_Projection_Plotting.R"
-        script = "/directflow/SCCGGroupShare/projects/DrewNeavin/Demultiplex_Benchmark/WG1-pipeline-QC/Imputation/scripts/PCA_Projection_Plotting.R"
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/PCA_Projection_Plotting.R"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.outdir} > {params.variables}
@@ -285,7 +284,6 @@ rule separate_indivs:
         update_sex = output_dict["output_dir"] + "/separate_indivs/sex_update_indivs.tsv",
         remove_indiv = output_dict["output_dir"] + "/separate_indivs/remove_indivs.tsv",
         remove_indiv_temp = output_dict["output_dir"] + "/separate_indivs/remove_indivs_temp.tsv",
-        # update_ancestry = output_dict["output_dir"] + "/separate_indivs/update_anc_indivs.tsv"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * 5,
         disk_per_thread_gb=lambda wildcards, attempt: attempt * 5
@@ -293,8 +291,6 @@ rule separate_indivs:
     params:
         bind = input_dict["bind_paths"],
         sif = input_dict["singularity_image"],
-        # update_ancestry_temp = output_dict["output_dir"] + "/separate_indivs/update_anc_indivs_temp.tsv",
-        # update_ancestry_temp2 = output_dict["output_dir"] + "/separate_indivs/update_anc_indivs_temp2.tsv"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} grep "UPDATE" {input.sexcheck} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2,$4)}}' | singularity exec --bind {params.bind} {params.sif} sed 's/SNPSEX/SEX/g' > {output.update_sex}
@@ -302,10 +298,6 @@ rule separate_indivs:
         singularity exec --bind {params.bind} {params.sif} grep "REMOVE" {input.anc_check} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}' >> {output.remove_indiv_temp}
         singularity exec --bind {params.bind} {params.sif} sort -u {output.remove_indiv_temp} > {output.remove_indiv}
         """
-        # singularity exec --bind {params.bind} {params.sif} grep "UPDATE" {input.anc_check} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2,$3,$4,$5,$(NF-1))}}' > {params.update_ancestry_temp}
-        # singularity exec --bind {params.bind} {params.sif} grep "UPDATE" {input.anc_check} | singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{for(i=7;i<=NF-2;i++){{printf "%s\t", $i}} printf "\\n"}}' > {params.update_ancestry_temp2}
-        # singularity exec --bind {params.bind} {params.sif} paste {params.update_ancestry_temp} {params.update_ancestry_temp2} > {output.update_ancestry}
-        # singularity exec --bind {params.bind} {params.sif} rm {params.update_ancestry_temp} {params.update_ancestry_temp2}
 
 
 rule update_sex_ancestry:
@@ -314,12 +306,10 @@ rule update_sex_ancestry:
         psam = psam,
         update_sex = output_dict["output_dir"] + "/separate_indivs/sex_update_indivs.tsv",
         remove_indiv = output_dict["output_dir"] + "/separate_indivs/remove_indivs.tsv",
-        # update_ancestry = output_dict["output_dir"] + "/separate_indivs/update_anc_indivs.tsv"
     output:
         bed = output_dict["output_dir"] + "/update_sex_ancestry/update_sex.pgen",
         bim = output_dict["output_dir"] + "/update_sex_ancestry/update_sex.pvar",
         psam = output_dict["output_dir"] + "/update_sex_ancestry/update_sex.psam",
-        # unique_ancestries = output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["update_sex_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["update_sex_memory"]
@@ -339,12 +329,10 @@ rule update_sex_ancestry:
         singularity exec --bind {params.bind} {params.sif} cp {params.anc_updated_psam} {params.tdir}/indiv_missingness.psam 
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.tdir}/indiv_missingness --update-sex {input.update_sex} --remove {input.remove_indiv} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         """
-        # singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$3,$4]=$0;next}} ($1,$2,$3,$4) in a {{$0=a[$1,$2,$3,$4]}}1' {input.update_ancestry} {params.psam_temp} | singularity exec --bind {params.bind} {params.sif} sed 's/PCA_Assignment/Ancestry/g' > {params.tdir}/indiv_missingness.psam
-        # singularity exec --bind {params.bind} {params.sif} sed -i '1i unique_ancestry\tmaf_threshold' {output.unique_ancestries}
+
 
 rule subset_ancestry:
     input:
-        # unique_ancestries = output_dict["output_dir"] + "/update_sex_ancestry/uniq_acestries.tsv",
         psam = output_dict["output_dir"] + "/update_sex_ancestry/update_sex.psam"
     output:
         keep = output_dict["output_dir"] + "/subset_ancestry/{ancestry}_individuals.psam",

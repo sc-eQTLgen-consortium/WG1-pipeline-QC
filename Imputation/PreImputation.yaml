@@ -53,8 +53,8 @@ imputation:
   sort_bed_memory: 5
   sort_bed_threads: 1
 
-  harmonize_hg38_memory: 5
-  harmonize_hg38_threads: 2
+  harmonize_hg38_memory: 10
+  harmonize_hg38_threads: 5
 
   plink_to_vcf_memory: 2
   plink_to_vcf_threads: 2
@@ -64,6 +64,9 @@ imputation:
 
   filter_preimpute_vcf_memory: 10
   filter_preimpute_vcf_threads: 2
+
+  snp_missing_pct: 0.05 ### the minimum proportion that can be missing for a snp to be included (5% by default)
+  snp_hwe: 1e-6 ### the threshold used for calling a SNP outside of HWE
 
   het_memory: 15
   het_threads: 2
@@ -82,6 +85,16 @@ imputation:
 
   minimac_imputation_memory: 10
   minimac_imputation_threads: 5
+  chunk_length: 20 ## length in Mb for minimac4 imputation chunks (20 by default)
 
+  combine_vcfs_memory: 2
+  combine_vcfs_threads: 2
+
+  combine_vcfs_ancestry_memory: 2
+  combine_vcfs_ancestry_threads: 2
+
+  filter4demultiplexing_memory: 5
+  filter4demultiplexing_threads: 2
+  
   genotype_donor_annotation_memory: 5
   genotype_donor_annotation_threads: 1
