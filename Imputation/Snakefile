@@ -169,11 +169,10 @@ if not None in [pgen,pvar,psam]:
                         plinkQC_files.append(output_dict["output_dir"] + "/update_sex_ancestry/update_sex.pgen")
 
                         plinkQC_files.append(expand(output_dict["output_dir"] + "/subset_ancestry/{ancestry}_individuals.psam", ancestry = ancestry_subsets))
-                        # impute_files.append(expand(output_dict["output_dir"] + "/filter_preimpute_vcf/{ancestry}_filtered.vcf.gz", ancestry = ancestry_subsets))
                         impute_files.append(expand(output_dict["output_dir"] + "/minimac_imputed/{ancestry}_chr{chr}.dose.vcf.gz", ancestry = ancestry_subsets, chr = chromosomes))
                         impute_files.append(output_dict["output_dir"] + "/genotype_donor_annotation/genotype_donor_annotation.tsv")
                         impute_files.append(expand(output_dict["output_dir"] + "/vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi", ancestry = ancestry_subsets))
-                        # impute_files.append(output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf")
+                        impute_files.append(output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf")
                         impute_files.append(output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf")
 
 
