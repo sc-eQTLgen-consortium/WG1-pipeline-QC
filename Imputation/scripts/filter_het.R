@@ -28,18 +28,24 @@ output_pass_inds <- args[4]
 het <- read_delim(input, delim = "\t")
 
 
-# Remove individuals ------------------------------------------------------
+if (nrow(het) >= 3){
+	# Remove individuals ------------------------------------------------------
 
-het$HET_RATE <- (het$"OBS_CT" - het$"O(HOM)") / het$"OBS_CT"
-het_fail <- subset(het, (het$HET_RATE < mean(het$HET_RATE) - 3*sd(het$HET_RATE)) | (het$HET_RATE > mean(het$HET_RATE) +3 * sd(het$HET_RATE)));
-het_pass <- subset(het, (het$HET_RATE < mean(het$HET_RATE) - 3*sd(het$HET_RATE)) | (het$HET_RATE < mean(het$HET_RATE) +3 * sd(het$HET_RATE)));
-het_fail$HET_DST <- (het_fail$HET_RATE-mean(het$HET_RATE))/sd(het$HET_RATE)
-het_pass$HET_DST <- (het_pass$HET_RATE-mean(het$HET_RATE))/sd(het$HET_RATE)
+	het$HET_RATE <- (het$"N_SITES" - het$"O(HOM)") / het$"N_SITES"
+	het_fail <- subset(het, (het$HET_RATE < mean(het$HET_RATE) - 3*sd(het$HET_RATE)) | (het$HET_RATE > mean(het$HET_RATE) +3 * sd(het$HET_RATE)));
+	het_pass <- subset(het, (het$HET_RATE < mean(het$HET_RATE) - 3*sd(het$HET_RATE)) | (het$HET_RATE < mean(het$HET_RATE) +3 * sd(het$HET_RATE)));
+	het_fail$HET_DST <- (het_fail$HET_RATE-mean(het$HET_RATE))/sd(het$HET_RATE)
+	het_pass$HET_DST <- (het_pass$HET_RATE-mean(het$HET_RATE))/sd(het$HET_RATE)
 
 
-# Write results -----------------------------------------------------------
+	# Write results -----------------------------------------------------------
 
-write.table(het_fail, output_fail row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
-write.table(het_pass, output_pass, row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
-write.table(het_pass$INDV, output_pass_inds, row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
+	write.table(het_fail, output_fail, row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
+	write.table(het_pass, output_pass, row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
+	write.table(het_pass$INDV, output_pass_inds, row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
 
+} else {
+	write.table(het$INDV, output_pass_inds, row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
+	system(paste0("touch ", output_fail))
+	system(paste0("touch ", output_pass))
+}

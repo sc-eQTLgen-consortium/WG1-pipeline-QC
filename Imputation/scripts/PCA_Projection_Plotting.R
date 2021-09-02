@@ -122,6 +122,8 @@ sex_mismatch <- sex_check[which(sex_check$STATUS == "PROBLEM"),]
 print(head(sex_mismatch))
 if (nrow(sex_mismatch) > 0){
   sex_mismatch$`UPDATE/REMOVE/KEEP` <- NA
+} else {
+   sex_mismatch$`UPDATE/REMOVE/KEEP` <- character()
 }
 colnames(sex_mismatch)[1] <- paste0("#",colnames(sex_mismatch)[1])
 write_delim(sex_mismatch, paste0(outdir, "/check_sex_update_remove.tsv"), na = "", delim = "\t")
@@ -136,18 +138,13 @@ anc_mismatch <- unique(anc_mismatch)
 
 if (nrow(anc_mismatch) > 0){
   anc_mismatch$`UPDATE/REMOVE/KEEP` <- NA
+} else {
+   anc_mismatch$`UPDATE/REMOVE/KEEP` <- character()
 }
 colnames(anc_mismatch)[1] <- paste0("#",colnames(anc_mismatch)[1])
+
+anc_mismatch <- anc_mismatch[,c("#FID", "IID", "Provided_Ancestry", "PCA_Assignment", "UPDATE/REMOVE/KEEP")]
+
+print("writing acestryupdate_remove.tsv file")
 write_delim(anc_mismatch, paste0(outdir,"/ancestry_update_remove.tsv"), na = "", delim = "\t")
-
-
-### Make table of predicted ancestries ###
-anc_summary <- data.frame(table(scores$Assignment[which(!is.na(scores$Provided_Ancestry))]))
-colnames(anc_summary) <- c("Predicted_Ancestry", "N")
-
-anc_summary$`REMOVE/KEEP` <- NA
-anc_summary$MAF_filter_threshold <- NA
-
-write_delim(anc_mismatch, paste0(outdir,"/predicted_ancestry_summary_MAF_threshold.tsv"), na = "", delim = "\t")
-
 
