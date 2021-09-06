@@ -405,7 +405,7 @@ rule filter4demultiplexing:
         bind = input_dict["bind_paths"],
         out = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons",
         complete_out = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases",
-        bed = "/opt/WG1-pipeline-QC/Imputation/hg38exonsUCSC.bed"
+        bed = "/opt/hg38exonsUCSC.bed"
     shell:
         """
         ##### Filter the Imputed SNP Genotype by Minor Allele Frequency (MAF) and INFO scores #####
