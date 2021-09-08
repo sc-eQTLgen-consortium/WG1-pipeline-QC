@@ -36,7 +36,7 @@ calculate_DS <- function(GP_df){
 pearson_correlation <- function(df, ref_df, clust_df){
     for (col in colnames(df)){
         for (row in rownames(df)){
-            df[row,col] <- cor(as.numeric(pull(ref_df, col)), as.numeric(pull(clust_df, row)), method = "pearson")
+            df[row,col] <- cor(as.numeric(pull(ref_df, col)), as.numeric(pull(clust_df, row)), method = "pearson", use = "complete.obs")
         }
     }
     return(df)

@@ -36,7 +36,7 @@ rule crossmap:
         singularity exec --bind {params.bind} {params.sif} CrossMap.py bed {params.chain_file} {output.inbed} {output.outbed}
         singularity exec --bind {params.bind} {params.sif} awk '{{print $4}}' {output.outbed}.unmap > {output.excluded_ids}
         singularity exec --bind {params.bind} {params.sif} plink2 --pfile {params.in_plink} --exclude {output.excluded_ids} --make-bed --output-chr MT --out {params.out}
-        singularity exec --bind {params.bind} {params.sif} awk -F'\t' 'BEGIN {{OFS=FS}} {{print $1,$4,0,$2,$5,$6}}' {output.outbed} > {output.bim}
+        singularity exec --bind {params.bind} {params.sif} awk -F'\t' 'BEGIN {{OFS=FS}} {{print $1,$4,0,$2,$6,$5}}' {output.outbed} > {output.bim}
         """
 
 rule sort_bed:

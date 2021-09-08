@@ -150,7 +150,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         git clone https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
 
 	cd /opt
-		git clone https://www.dropbox.com/s/fvd4pl8no3ngg0l/hg38exonsUCSC.bed
+		wget https://www.dropbox.com/s/fvd4pl8no3ngg0l/hg38exonsUCSC.bed
 
 
 ##############################
