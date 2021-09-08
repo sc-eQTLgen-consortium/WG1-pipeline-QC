@@ -37,8 +37,8 @@ rule souporcell:
     input:
         bam = lambda wildcards: scrnaseq_libs_df["Bam_Files"][wildcards.pool],
         barcodes = output_dict["output_dir"] + "/{pool}/souporcell/barcodes.tsv",
-        fasta = ref_dict["fasta_filepath"],
-        snps = output_dict["output_dir"] + "/liftover_hg19_to_hg38/hg38.vcf",
+        fasta = fasta,
+        snps = input_dict["snp_genotypes_filepath"]
     threads: souporcell_dict["souporcell_threads"]
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * souporcell_dict["souporcell_memory"],

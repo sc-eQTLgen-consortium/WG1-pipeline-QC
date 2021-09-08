@@ -3,7 +3,7 @@
 ##### The following arguments are for indicating file locations on your system #####
 ####################################################################################
 refs:
-  fasta_filepath: /path/to/hg38/reference/fasta/genome.fa ### Genome reference fasta for hg38 (bam files should be aligned to hg38)
+  ref_dir: /path/to/provided/ref/dir ### This is the path to the directory containing the imputation references provided for the SNP processing and imputation
 
 inputs:
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
@@ -20,10 +20,6 @@ outputs:
 ##############################################################################################################
 ##### The following arguments are common parameters that may need to be changed depending on the dataset #####
 ##############################################################################################################
-liftover:
-  hg19_liftover_threads: 10 ### This is the number of threads that will be  used to lift over the imputed SNP genotype vcf to hg38
-  hg19_liftover_memory: 20 ### This is the memory in Gb per thread that will be  used to lift over the imputed SNP genotype vcf to hg38
-
 popscle:
   pileup_memory: 10 ### This is the number of gigs that will be used for memory and disk space per thread for the pileup step.
   pileup_threads: 10 ### The number threads that will be used for the pileup step

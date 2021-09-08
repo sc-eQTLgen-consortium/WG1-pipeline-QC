@@ -21,7 +21,6 @@ bind_path = input_dict["bind_path"]
 
 
 # Rule-specific arguments
-liftover_dict = config["liftover"]
 popscle_dict = config["popscle"]
 popscle_extra_dict = config["popscle_extra"]
 souporcell_dict = config["souporcell"]
@@ -42,6 +41,8 @@ scrnaseq_libs_df.to_csv(os.path.join(output_dict["output_dir"],'file_directories
 samples = pd.read_csv(input_dict["samplesheet_filepath"], sep = "\t")
 samples.columns = ["Pool", "N"]
 
+fasta = prepareArguments.getFASTA(input_dict["ref_dir"])
+
 
 # If the scrublet_check output is present => all the contents are there that are needed to move past 
 if os.path.exists(os.path.join(output_dict["output_dir"], "scrublet/scrublet_check.done")):
@@ -49,7 +50,6 @@ if os.path.exists(os.path.join(output_dict["output_dir"], "scrublet/scrublet_che
 
 
 # Import individual rules
-include: "includes/Snakefile_vcfLiftOver.smk"
 include: "includes/Snakefile_popscle.smk"
 include: "includes/Snakefile_souporcell.smk"
 include: "includes/Snakefile_scrublet.smk"

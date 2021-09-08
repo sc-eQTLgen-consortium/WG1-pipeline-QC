@@ -15,7 +15,12 @@ tenX <- arguments[3,]
 
 ## Read in data
 counts <- Read10X(as.character(tenX[1]), gene.column = 1)
-sce <- SingleCellExperiment(list(counts=counts))
+
+if (is.list(counts)){
+	sce <- SingleCellExperiment(list(counts=counts[[grep("Gene", names(counts))]]))
+} else {
+	sce <- SingleCellExperiment(list(counts=counts))
+}
 
 ## Annotate doublet using binary classification based doublet scoring:
 sce = bcds(sce, retRes = TRUE, estNdbl=TRUE)

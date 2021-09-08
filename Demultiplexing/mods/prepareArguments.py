@@ -21,7 +21,8 @@ def get_barcodes_files(pool_dir):
     for dirpath, dirnames, filenames in os.walk(pool_dir):
         for filename in [f for f in filenames if re.search("barcodes.tsv", f)]:
             if re.search(r'filtered', os.path.join(dirpath, filename)):
-                return(os.path.join(dirpath, filename))
+                if (re.search(r'feature', os.path.join(dirpath, filename)) or re.search(r'gene', os.path.join(dirpath, filename))):
+                    return(os.path.join(dirpath, filename))
 
 ### Get the barcode files for each pool     
 def get_barcodes_dir(scrnaseq_filelist, pools = None):    
@@ -53,10 +54,10 @@ def get_matrix_files(pool_dir):
     for dirpath, dirnames, filenames in os.walk(pool_dir):
         for filename in [f for f in filenames if re.search("matrix.mtx", f)]:
             if re.search(r'filtered', os.path.join(dirpath, filename)):
-                return(os.path.join(dirpath, filename))
+                if (re.search(r'feature', os.path.join(dirpath, filename)) or re.search(r'gene', os.path.join(dirpath, filename))):
+                    return(os.path.join(dirpath, filename))
 
 def get_matrix_dirs(matrix_libs, pools = None):
-
     try:
         matrix_filelist = [get_matrix_files(pool) for pool in scrnaseq_filelist]
         matrix_filedict = dict(zip(pools, matrix_filelist))
@@ -91,7 +92,12 @@ def get_individual_dirs(individual_list_dir, pools = None):
     except Exception as error:
         print(error)
         raise SystemExit("Could not find a files of individuals in {}. Please check that they exist somewhere in this directory and contain the pool names within the name of the file.".format(individual_list_dir))
-    
+
+def getFASTA(ref_dir):
+	for dirpath, dirnames, filenames in os.walk(ref_dir):
+		for filename in [f for f in filenames if re.search("Homo_sapiens.GRCh38.dna.primary_assembly.fa", f)]:
+			return(os.path.join(dirpath, filename))
+
 def get_scrnaseq_dirs(config):
     # Extract variables from configuration file for use within the rest of the pipeline
     input_dict = config["inputs"]
