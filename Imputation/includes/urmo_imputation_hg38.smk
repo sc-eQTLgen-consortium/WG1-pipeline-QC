@@ -392,6 +392,7 @@ rule filter4demultiplexing:
     input:
         output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38.vcf.gz"
     output:
+        info_filled = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_info_filled.vcf.gz",
         qc_filtered = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05.vcf.gz",
         location_filtered = temp(output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons.recode.vcf"),
         complete_cases = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf",
@@ -408,8 +409,11 @@ rule filter4demultiplexing:
         bed = "/opt/hg38exonsUCSC.bed"
     shell:
         """
+        ##### Add all the info fields
+        singularity exec --bind {params.bind} {params.sif} bcftools +fill-tags -Oz --output {output.info_filled} {input} 
+
         ##### Filter the Imputed SNP Genotype by Minor Allele Frequency (MAF) and INFO scores #####
-        singularity exec --bind {params.bind} {params.sif} bcftools filter --include 'MAF>=0.05 & R2>=0.3' -Oz --output {output.qc_filtered} {input}
+        singularity exec --bind {params.bind} {params.sif} bcftools filter --include 'MAF>=0.05 & R2>=0.3' -Oz --output {output.qc_filtered} {output.info_filled}
 
 
         singularity exec --bind {params.bind} {params.sif} vcftools \
@@ -421,7 +425,7 @@ rule filter4demultiplexing:
             --recode-INFO-all \
             --out {params.out}
 
-        singularity exec --bind {params.bind} {params.sif} vcftools --recode --vcf {output.location_filtered} --max-missing 1 --out {params.complete_out}
+        singularity exec --bind {params.bind} {params.sif} vcftools --recode --recode-INFO-all --vcf {output.location_filtered} --max-missing 1 --out {params.complete_out}
 
         singularity exec --bind {params.bind} {params.sif} java -jar /opt/picard/build/libs/picard.jar SortVcf \
             I={output.complete_cases} \
