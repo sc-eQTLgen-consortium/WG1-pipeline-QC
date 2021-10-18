@@ -60,7 +60,7 @@ cluster_geno_tidy <- as_tibble(lapply(cluster_geno_tidy, function(x) {gsub("0/0"
                                 lapply(., function(x) {gsub("1/1",2, x)}))
 cluster_geno_tidy$ID <- paste0(cluster_geno@fix[,'CHROM'],":", cluster_geno@fix[,'POS'],"_", cluster_geno@fix[,'REF'], "_",cluster_geno@fix[,'ALT'])
 cluster_geno_tidy <- cluster_geno_tidy[colSums(!is.na(cluster_geno_tidy)) > 0]
-cluster_geno_tidy <- cluster_geno_tidy[complete.cases(cluster_geno_tidy),]
+# cluster_geno_tidy <- cluster_geno_tidy[complete.cases(cluster_geno_tidy),]
 cluster_geno_tidy <- cluster_geno_tidy[!(cluster_geno_tidy$ID %in% cluster_geno_tidy$ID[duplicated(cluster_geno_tidy$ID)]),]
 
 

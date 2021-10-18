@@ -77,6 +77,7 @@ rule harmonize_hg38:
         fam = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}.fam"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["harmonize_hg38_memory"],
+        java_mem = lambda wildcards, attempt: attempt * imputation_dict["harmonize_hg38_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["harmonize_hg38_memory"]
     threads:
         imputation_dict["harmonize_hg38_threads"]
@@ -88,7 +89,7 @@ rule harmonize_hg38:
         jar = "/opt/GenotypeHarmonizer-1.4.23/GenotypeHarmonizer.jar"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} java -Xmx25g -jar {params.jar}\
+        singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.java_mem}g -jar {params.jar}\
             --input {params.infile}\
             --inputType PLINK_BED\
             --ref {input.vcf}\
