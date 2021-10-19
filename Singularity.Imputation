@@ -138,8 +138,8 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
     cd /opt
         mkdir plink2
         cd plink2
-			wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20210826.zip
-            unzip plink2_linux_x86_64_20210826.zip
+			wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20211011.zip
+            unzip plink2_linux_x86_64_20211011.zip
 
     cd /opt
         git clone https://github.com/broadinstitute/picard.git
@@ -152,6 +152,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 	cd /opt
 		wget https://www.dropbox.com/s/fvd4pl8no3ngg0l/hg38exonsUCSC.bed
 
+	conda clean --all
 
 ##############################
 # setup scripts for users
