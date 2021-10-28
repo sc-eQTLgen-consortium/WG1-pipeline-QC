@@ -105,7 +105,8 @@ rule plink_to_vcf:
         bim = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}.bim",
         fam = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}.fam"
     output:
-        output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf"
+        data_vcf_gz = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz"
+    	index = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz.csi"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["plink_to_vcf_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["plink_to_vcf_memory"]
@@ -118,18 +119,20 @@ rule plink_to_vcf:
         out = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.infile} --recode vcf-iid --chr 1-22 --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.infile} --recode vcf id-paste=iid --chr 1-22 --out {params.out}
+        
+        singularity exec --bind {params.bind} {params.sif} bgzip {params.out}.vcf
+        singularity exec --bind {params.bind} {params.sif} bcftools index {output.data_vcf_gz}
         """
 
 
 rule vcf_fixref_hg38:
     input:
-        data_vcf = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf",
         fasta = fasta,
         vcf = vcf_dir + "/30x-GRCh38_NoSamplesSorted.vcf.gz",
         index = vcf_dir + "/30x-GRCh38_NoSamplesSorted.vcf.gz.tbi"
+        data_vcf = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz",
     output:
-        data_vcf_gz = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz",
         vcf = output_dict["output_dir"] + "/vcf_fixref_hg38/{ancestry}_fixref_hg38.vcf.gz",
         index = output_dict["output_dir"] + "/vcf_fixref_hg38/{ancestry}_fixref_hg38.vcf.gz.csi"
     resources:
@@ -142,10 +145,7 @@ rule vcf_fixref_hg38:
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} bgzip {input.data_vcf}
-        singularity exec --bind {params.bind} {params.sif} bcftools index {output.data_vcf_gz}
-        
-        singularity exec --bind {params.bind} {params.sif} bcftools +fixref {output.data_vcf_gz} -- -f {input.fasta} -i {input.vcf} | \
+        singularity exec --bind {params.bind} {params.sif} bcftools +fixref {input.data_vcf} -- -f {input.fasta} -i {input.vcf} | \
         singularity exec --bind {params.bind} {params.sif} bcftools norm --check-ref x -f {input.fasta} -Oz -o {output.vcf}
 
         #Index

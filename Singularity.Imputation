@@ -176,5 +176,6 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 
 
 
-%labels 
-    Author Drew Neavin
+%labels
+	Author = Drew Neavin
+	Image_version = 0.0.2
