@@ -77,7 +77,7 @@ rule harmonize_hg38:
         fam = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}.fam"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["harmonize_hg38_memory"],
-        java_mem = lambda wildcards, attempt: attempt * 0.8 * imputation_dict["harmonize_hg38_memory"],
+        java_mem = lambda wildcards, attempt: attempt * imputation_dict["harmonize_hg38_java_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["harmonize_hg38_memory"]
     threads:
         imputation_dict["harmonize_hg38_threads"]

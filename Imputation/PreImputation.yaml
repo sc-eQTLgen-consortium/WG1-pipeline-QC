@@ -55,6 +55,7 @@ imputation:
 
   harmonize_hg38_memory: 10
   harmonize_hg38_threads: 5
+  harmonize_hg38_java_memory: 25 ### Memory passed to java for GenotypeHarmonizer.jar in GB. 25GB is typically sufficient but if you are getting java memory issues with this rule, increase the java memory (and make sure you have enough memory allocated to the job to cover it)
 
   plink_to_vcf_memory: 2
   plink_to_vcf_threads: 2
