@@ -4,6 +4,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
 %environment
     export PATH=/opt/plink2:/opt/plink:/opt:/usr/games:/opt/conda/envs/py36/bin:/opt/conda/bin:/opt/ancestry_viz:/opt/Eagle_v2.4.1:/opt/Minimac4:/opt/GenotypeHarmonizer-1.4.23:/opt/picard/build/libs:$PATH
     export PYTHONPATH=/opt/conda/envs/py36/lib/python3.6/site-packages/
+	export BCFTOOLS_PLUGINS=/opt/bcftools-1.10.2/plugins
     export LC_ALL=C 
     alias python=python3
 

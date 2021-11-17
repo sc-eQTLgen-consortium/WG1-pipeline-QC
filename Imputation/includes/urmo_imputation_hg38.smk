@@ -4,8 +4,8 @@ shell.executable('bash')
 
 
 
-# Converts BIM to BED and converts the BED file via CrossMap. 
-# Finds excluded SNPs and removes them from the original plink file. 
+# Converts BIM to BED and converts the BED file via CrossMap.
+# Finds excluded SNPs and removes them from the original plink file.
 # Then replaces the BIM with CrossMap's output.
 rule crossmap:
     input:
@@ -30,7 +30,7 @@ rule crossmap:
         in_plink = output_dict["output_dir"] + "/subset_ancestry/{ancestry}_subset",
         out = output_dict["output_dir"] + "/crossmapped/{ancestry}_crossmapped_plink",
         chain_file = "/opt/GRCh37_to_GRCh38.chain"
-    shell: 
+    shell:
         """
         singularity exec --bind {params.bind} {params.sif} awk 'BEING{{FS=OFS="\t"}}{{print $1,$2,$2+1,$3,$4,$5}}' {input.pvar} > {output.inbed}
         singularity exec --bind {params.bind} {params.sif} CrossMap.py bed {params.chain_file} {output.inbed} {output.outbed}
@@ -105,8 +105,8 @@ rule plink_to_vcf:
         bim = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}.bim",
         fam = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}.fam"
     output:
-        data_vcf_gz = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz"
-    	index = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz.csi"
+        data_vcf_gz = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz",
+        index = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz.csi"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["plink_to_vcf_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["plink_to_vcf_memory"]
@@ -120,7 +120,7 @@ rule plink_to_vcf:
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.infile} --recode vcf id-paste=iid --chr 1-22 --out {params.out}
-        
+
         singularity exec --bind {params.bind} {params.sif} bgzip {params.out}.vcf
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.data_vcf_gz}
         """
@@ -130,8 +130,8 @@ rule vcf_fixref_hg38:
     input:
         fasta = fasta,
         vcf = vcf_dir + "/30x-GRCh38_NoSamplesSorted.vcf.gz",
-        index = vcf_dir + "/30x-GRCh38_NoSamplesSorted.vcf.gz.tbi"
-        data_vcf = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz",
+        index = vcf_dir + "/30x-GRCh38_NoSamplesSorted.vcf.gz.tbi",
+        data_vcf = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz"
     output:
         vcf = output_dict["output_dir"] + "/vcf_fixref_hg38/{ancestry}_fixref_hg38.vcf.gz",
         index = output_dict["output_dir"] + "/vcf_fixref_hg38/{ancestry}_fixref_hg38.vcf.gz.csi"
@@ -288,7 +288,7 @@ rule split_by_chr:
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
         """
 
- 
+
 rule eagle_prephasing:
     input:
         vcf = output_dict["output_dir"] + "/split_by_chr/{ancestry}_chr_{chr}.vcf.gz",
@@ -411,7 +411,7 @@ rule filter4demultiplexing:
     shell:
         """
         ##### Add all the info fields
-        singularity exec --bind {params.bind} {params.sif} bcftools +fill-tags -Oz --output {output.info_filled} {input} 
+        singularity exec --bind {params.bind} {params.sif} bcftools +fill-tags -Oz --output {output.info_filled} {input}
 
         ##### Filter the Imputed SNP Genotype by Minor Allele Frequency (MAF) and INFO scores #####
         singularity exec --bind {params.bind} {params.sif} bcftools filter --include 'MAF>=0.05 & R2>=0.3' -Oz --output {output.qc_filtered} {output.info_filled}
