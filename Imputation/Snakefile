@@ -203,7 +203,7 @@ if not None in [pgen,pvar,psam]:
                                                                                                     psam_df_local.index = psam_df_local.IID.values
                                                                                                     psam_df_local.update(updates)
 
-                                                                                                psam_df.to_csv(output_dict["output_dir"] + "/pca_sex_checks/updated_psam.psam", sep = "\t")
+                                                                                                psam_df.to_csv(output_dict["output_dir"] + "/pca_sex_checks/updated_psam.psam", sep = "\t", na_rep = "NA")
 
                                                                                                 ### identify the ancestries in total and provide user input for maf selection
                                                                                                 uniq_ancestries = psam_df_local['Provided_Ancestry'].unique()
@@ -219,7 +219,7 @@ if not None in [pgen,pvar,psam]:
                                                                                                         maf_df.loc[i]=[pop,maf_prompt]
                                                                                                     i=+1
 
-                                                                                                maf_df.to_csv(output_dict["output_dir"] + "/pca_sex_checks/ancestry_mafs.tsv", sep = "\t")
+                                                                                                maf_df.to_csv(output_dict["output_dir"] + "/pca_sex_checks/ancestry_mafs.tsv", sep = "\t", na_rep = "NA")
 
                                                                                             
                                                                                             maf_df = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/ancestry_mafs.tsv", sep = "\t")
