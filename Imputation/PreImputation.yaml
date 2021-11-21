@@ -95,7 +95,11 @@ imputation:
   combine_vcfs_ancestry_threads: 2
 
   filter4demultiplexing_memory: 5
-  filter4demultiplexing_threads: 2
+  filter4demultiplexing_threads: 4
   
+  sort4demultiplexing_memory: 5
+  sort4demultiplexing_threads: 5
+  sort4demultiplexing_java_memory: 10
+
   genotype_donor_annotation_memory: 5
   genotype_donor_annotation_threads: 1

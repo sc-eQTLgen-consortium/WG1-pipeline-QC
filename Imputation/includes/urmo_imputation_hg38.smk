@@ -396,8 +396,7 @@ rule filter4demultiplexing:
         info_filled = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_info_filled.vcf.gz",
         qc_filtered = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05.vcf.gz",
         location_filtered = temp(output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons.recode.vcf"),
-        complete_cases = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf",
-        complete_cases_sorted = output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
+        complete_cases = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["filter4demultiplexing_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["filter4demultiplexing_memory"]
@@ -427,9 +426,25 @@ rule filter4demultiplexing:
             --out {params.out}
 
         singularity exec --bind {params.bind} {params.sif} vcftools --recode --recode-INFO-all --vcf {output.location_filtered} --max-missing 1 --out {params.complete_out}
+        """
 
-        singularity exec --bind {params.bind} {params.sif} java -jar /opt/picard/build/libs/picard.jar SortVcf \
-            I={output.complete_cases} \
+rule sort4demultiplexing:
+    input:
+        complete_cases = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf"
+    output:
+        complete_cases_sorted = output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
+    resources:
+        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["sort4demultiplexing_memory"],
+        java_mem = lambda wildcards, attempt: attempt * imputation_dict["sort4demultiplexing_java_memory"],
+        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["sort4demultiplexing_memory"]
+    threads: imputation_dict["sort4demultiplexing_threads"]
+    params:
+        sif = input_dict["singularity_image"],
+        bind = input_dict["bind_paths"]
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.java_mem}g -Xms{resources.java_mem}g -jar /opt/picard/build/libs/picard.jar SortVcf \
+            I={input.complete_cases} \
             O={output.complete_cases_sorted}
         """
 
