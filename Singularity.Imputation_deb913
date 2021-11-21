@@ -35,7 +35,7 @@ From: debian:9.13
     yes | apt-get update
     yes | apt-get upgrade
     apt install -y ca-certificates gnupg2
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-key 'E19F5F87128899B192B1A2C2AD5F960A256A04AF'
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-key '95C0FAF38DB3CCAD0C080A7BDC78B2DDEABC47B7'
     add-apt-repository 'deb https://cloud.r-project.org/bin/linux/debian stretch-cran35/'
     apt-get update
     apt install -y --allow-unauthenticated r-base
@@ -95,12 +95,11 @@ From: debian:9.13
 	/opt/conda/envs/py36/bin/pip install cget
 
 	
+
 #    cp /opt/conda/lib/libstdc++.so.6.0.26 /usr/lib/x86_64-linux-gnu/
 #    mv /usr/lib/x86_64-linux-gnu/libstdc++.so.6 /usr/lib/x86_64-linux-gnu/libstdc++.so.6.bkp
 #    ln -s /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.26 /usr/lib/x86_64-linux-gnu/libstdc++.so.6
 
-ls /opt/conda/lib/
-ls /usr/lib/x86_64-linux-gnu/
 
     R --slave -e 'install.packages("tidyverse", repos = "http://cran.us.r-project.org")'
     R --slave -e 'install.packages("ggpubr", repos = "http://cran.us.r-project.org")'
