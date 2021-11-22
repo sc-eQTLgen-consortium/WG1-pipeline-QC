@@ -472,8 +472,8 @@ rule genotype_donor_annotation:
         singularity exec --bind {params.bind} {params.sif} cat {input.individuals} >> {output.combined_individuals}
         singularity exec --bind {params.bind} {params.sif} sed -i '1 i\IID' {output.combined_individuals}
         singularity exec --bind {params.bind} {params.sif} awk -F"\t" 'NR==FNR {{a[$1]; next}} $1 in a' {output.combined_individuals} {output.out_temp} | awk 'BEGIN{{FS=OFS="\t"}}{{sub("1","M",$2);print}}' | awk 'BEGIN{{FS=OFS="\t"}}{{sub("2","F",$2);print}}' > {output.final}
-        singularity exec --bind {params.bind} {params.sif} sed -i 's/^IID\tSEX\tAncestry/donor_id\tsex\tethnicity_super_population/g' {output.final}
+        singularity exec --bind {params.bind} {params.sif} sed -i 's/^IID\tSEX\tProvided_Ancestry/donor_id\tsex\tethnicity_super_population/g' {output.final}
         singularity exec --bind {params.bind} {params.sif} sed -i 's/$/\tsceQTL-Gen_hg38_imputation_pipeline\t1000g_30x_GRCh38_ref/' {output.final}
         singularity exec --bind {params.bind} {params.sif} sed -i '1s/SangerImputationServer/imputation_method/g' {output.final}
-        singularity exec --bind {params.bind} {params.sif} sed -i '1s/100g_30x_GRCh38_ref/imputation_reference/g' {output.final}
+        singularity exec --bind {params.bind} {params.sif} sed -i '1s/1000g_30x_GRCh38_ref/imputation_reference/g' {output.final}
         """

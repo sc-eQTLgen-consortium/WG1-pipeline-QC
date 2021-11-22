@@ -42,6 +42,7 @@ if not None in [pgen,pvar,psam]:
 
     if not True in result:
 
+
         ### Add in checks for psam file ###
         psam_df = pd.read_csv(psam, sep = "\t")
 
@@ -188,9 +189,9 @@ if not None in [pgen,pvar,psam]:
                                                                                                 ##### First, need to provide users summary of the ancestries and get interactive allele frequency selections ###
                                                                                                 ### if there are any individuals chosen to remove, remove them from the psam
                                                                                                 psam_df_local = psam_df
-                                                                                                if (ancestry_check["UPDATE/REMOVE/KEEP"] == "REMOVE").any():
-                                                                                                    ids2remove = ancestry_check['IID'][ancestry_check["UPDATE/REMOVE/KEEP"] == "REMOVE"].values
-                                                                                                    psam_df_local = psam_df_local[~psam_df_local.IID.isin(ids2remove)] 
+                                                                                                # if (ancestry_check["UPDATE/REMOVE/KEEP"] == "REMOVE").any():
+                                                                                                #     ids2remove = ancestry_check['IID'][ancestry_check["UPDATE/REMOVE/KEEP"] == "REMOVE"].values
+                                                                                                #     psam_df_local = psam_df_local[~psam_df_local.IID.isin(ids2remove)] 
 
                                                                                                 ### if htere are any individuals chosen to update the ancestry, update them
                                                                                                 if (ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE").any():
@@ -198,12 +199,10 @@ if not None in [pgen,pvar,psam]:
                                                                                                     updates = pd.DataFrame(ancestry_check['PCA_Assignment'][ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE"])
                                                                                                     updates.index = ids2update
                                                                                                     updates.columns = ['Provided_Ancestry']
-                                                                                                    psam_df.index = psam_df.IID.values
-                                                                                                    psam_df.update(updates)
                                                                                                     psam_df_local.index = psam_df_local.IID.values
                                                                                                     psam_df_local.update(updates)
 
-                                                                                                psam_df.to_csv(output_dict["output_dir"] + "/pca_sex_checks/updated_psam.psam", sep = "\t", na_rep = "NA")
+                                                                                                psam_df_local.to_csv(output_dict["output_dir"] + "/pca_sex_checks/updated_psam.psam", sep = "\t", na_rep = "NA", index = False)
 
                                                                                                 ### identify the ancestries in total and provide user input for maf selection
                                                                                                 uniq_ancestries = psam_df_local['Provided_Ancestry'].unique()
