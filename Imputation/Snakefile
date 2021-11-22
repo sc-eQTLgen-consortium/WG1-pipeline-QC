@@ -189,9 +189,6 @@ if not None in [pgen,pvar,psam]:
                                                                                                 ##### First, need to provide users summary of the ancestries and get interactive allele frequency selections ###
                                                                                                 ### if there are any individuals chosen to remove, remove them from the psam
                                                                                                 psam_df_local = psam_df
-                                                                                                # if (ancestry_check["UPDATE/REMOVE/KEEP"] == "REMOVE").any():
-                                                                                                #     ids2remove = ancestry_check['IID'][ancestry_check["UPDATE/REMOVE/KEEP"] == "REMOVE"].values
-                                                                                                #     psam_df_local = psam_df_local[~psam_df_local.IID.isin(ids2remove)] 
 
                                                                                                 ### if htere are any individuals chosen to update the ancestry, update them
                                                                                                 if (ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE").any():
