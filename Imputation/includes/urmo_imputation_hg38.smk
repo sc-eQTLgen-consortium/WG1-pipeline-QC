@@ -32,7 +32,7 @@ rule crossmap:
         chain_file = "/opt/GRCh37_to_GRCh38.chain"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} awk 'BEING{{FS=OFS="\t"}}{{print $1,$2,$2+1,$3,$4,$5}}' {input.pvar} > {output.inbed}
+        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print $1,$2,$2+1,$3,$4,$5}}' {input.pvar} > {output.inbed}
         singularity exec --bind {params.bind} {params.sif} CrossMap.py bed {params.chain_file} {output.inbed} {output.outbed}
         singularity exec --bind {params.bind} {params.sif} awk '{{print $4}}' {output.outbed}.unmap > {output.excluded_ids}
         singularity exec --bind {params.bind} {params.sif} plink2 --pfile {params.in_plink} --exclude {output.excluded_ids} --make-bed --output-chr MT --out {params.out}
@@ -60,7 +60,7 @@ rule sort_bed:
         out = output_dict["output_dir"] + "/crossmapped_sorted/{ancestry}_crossmapped_sorted"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.infile} --make-bed --output-chr MT --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.infile} --make-bed --max-alleles 2 --output-chr MT --out {params.out}
         """
 
 
