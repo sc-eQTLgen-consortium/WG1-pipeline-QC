@@ -56,7 +56,7 @@ rule check_sex:
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --make-bed --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --make-bed --max-alleles 2 --out {params.out}
         singularity exec --bind {params.bind} {params.sif} plink --threads {threads} --bfile {params.out} --check-sex --out {params.out}
         singularity exec --bind {params.bind} {params.sif} touch {output.nosex}
         singularity exec --bind {params.bind} {params.sif} sed 's/^ \+//g' {output.sexcheck} | singularity exec --bind {params.bind} {params.sif} sed 's/ \+/\t/g' > {output.sexcheck_tab}
@@ -351,7 +351,7 @@ rule subset_ancestry:
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} grep {wildcards.ancestry} {input.psam} > {output.keep}
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --keep {output.keep} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --keep {output.keep} --max-alleles 2 --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         """
 
 
