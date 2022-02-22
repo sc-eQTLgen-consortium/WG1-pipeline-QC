@@ -24,7 +24,7 @@ rule make_scrublet_selection_df:
         singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{OFS=FS="\t"}}{{print $1 "\t"}}' {input} | sed "1s/.*/Pool\tscrublet_Percentile/" > {output} 2> {log}
         """
 
-if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv"):
+if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv") and os.path.getsize(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv") > 0:
     scrublet_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv", sep = "\t")
     if scrublet_selection["scrublet_Percentile"].count() != len(scrublet_selection):
         ready = False

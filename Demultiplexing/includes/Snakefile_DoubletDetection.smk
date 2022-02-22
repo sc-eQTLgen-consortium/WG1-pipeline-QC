@@ -24,7 +24,7 @@ rule make_DoubletDetection_selection_df:
         singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{OFS=FS="\t"}}{{print $1 "\t"}}' {input} | sed "1s/.*/Pool\tDoubletDetection_PASS_FAIL/" > {output} 2> {log}
         """
 
-if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
+if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv") and os.path.getsize(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv") > 0:
     DoubletDetection_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv", sep = "\t")
     if len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) != len(DoubletDetection_selection):
         ready = False
