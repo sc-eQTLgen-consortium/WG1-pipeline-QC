@@ -3,7 +3,9 @@
 QC Filtering
 =============
 
-After discussing the best thresholds for this dataset that are consistent with other thresholds set in the consortium, you can filter the data based on the agreed method and thresholds.
+The last part of the Demultiplexing and Doublet Detecting pipeline calculated QC metrics for each pool and across all pools.
+It also produced some figures that can be used for discussion with WG1 to select final QC thresholds for this dataset.
+The next sections will provide details on each figure and then provides pseudocode to help filter for high quality cells after selecting thresholds with the consortium.
 
 
 .. toctree::
@@ -13,4 +15,3 @@ After discussing the best thresholds for this dataset that are consistent with o
    
    QC_Figures
    Filtering
-   Final_Object

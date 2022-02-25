@@ -9,9 +9,11 @@ If you have any questions or issues, feel free to open an issue_ or directly ema
 
 
 
-In the last step :ref:`Demultiplexing and Doublet Removal <Demultiplexing_Introduction-docs>`, you identified droplets that contained a single cell and assigned them to the correct individual. Next, we will use typical scRNA-seq QC metrics to assess the quality of those singlets and remove cells that don't pass those QC thresholds. 
+In the last step, :ref:`Demultiplexing and Doublet Removal <Demultiplexing_Introduction-docs>`, you identified droplets that contained a single cell and assigned them to the correct individual. 
+Next, we will use typical scRNA-seq QC metrics to assess the quality of those singlets and remove cells that don't pass those QC thresholds. 
 For clarity, in the :ref:`Demultiplexing and Doublet Removal <Demultiplexing_Introduction-docs>` example we used just one pool. 
-To look at the QC metrics figures, we will be using the results from two pools so we can easily see a comparison between the two pools. The QC metrics that the pipeline provides figures for by default are:
+To look at the QC metrics figures, we will be using the results from two pools so we can easily see a comparison between the two pools. 
+The QC metrics that the pipeline provides figures for by default are:
 
 #. Mitochondrial percent
 
@@ -166,3 +168,11 @@ These figures can be used for discussion with the other members of WG1 of the sc
 - ``seurat_object_all_pools_singlet_barcodes_final_assignments.rds`` to look at the singlets as defined by the intersectional method
 
 
+
+Next Steps
+------------
+
+The next steps are to discuss the results with the consortium in order to identify filtering thresholds for your dataset.
+Please reach out to Drew Neavin (d.neavin @ garvan.org.au) to set up a time for a discussion once you have completed these steps.
+This process helps ensure consistency between different datasets used in the consortium.
+After discussion with the consortium, you can move to the :ref:`QC Filtering section <Filtering>` which has pseudocode to help direct how to filter depending on the method selected in discussions with WG1.

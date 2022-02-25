@@ -10,6 +10,7 @@ Required Input
 
 If you have any questions or issues, feel free to open an issue_ or directly email Drew Neavin (d.neavin @ garvan.org.au)
 
+This section explains the data and it's structure which will be required for the Demultiplexing pipeline.
 
 *Please note that all data must be aligned to hg38*
 
@@ -202,3 +203,8 @@ In the test dataset, this file is `TestData4PipelineFull/individuals_list_dir/do
   633_634
   660_661
 
+
+Next Steps
+------------
+
+Now that you have the data prepared, we can move on to getting the :ref:`required software <Demultiplexing_Software-docs>` for the demultiplexing pipeline.

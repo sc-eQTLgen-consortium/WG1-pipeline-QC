@@ -5,6 +5,8 @@ Required Software
 .. _Singularity: https://singularity.lbl.gov/archive/docs/v2-2/index.html
 .. _Snakemake: https://snakemake.readthedocs.io/en/stable/getting_started/installation.html
 
+This section will provide instructions for installing the required software to run the demultiplexing and doublet detecting pipeline.
+
 Here is a table listing all the required software to run this pipeline:
 
 +--------------------+-----------------------------------+
@@ -22,13 +24,16 @@ Here is a table listing all the required software to run this pipeline:
 Singularity Image
 -----------------
 
-You will need the Singularity_ image (has all softwares needed for the pipeline installed for consistency across different systems). Most HPCs have Singularity_ installed so you should be able to run Singularity_ images without any issue. If you are unsure, try running ``singularity --help``. If Singularity_ is not installed on your HPC, reach out to your system administrators and see if they can install it. Otherwise, feel free to open an issue and we can find another solution. To install the singularity image with the pipeline:
+You will need the Singularity_ image (has all softwares needed for the pipeline installed for consistency across different systems). 
+Most HPCs have Singularity_ installed so you should be able to run Singularity_ images without any issue. If you are unsure, try running ``singularity --help``. 
+If Singularity_ is not installed on your HPC, reach out to your system administrators and see if they can install it. Otherwise, feel free to open an issue and we can find another solution. 
+To install the singularity image with the pipeline:
 
 #. Make a directory where you want to house the pipeline 
 
-#. Move to the directory that you just make to house the pipeline
+#. Move to the directory that you just made to house the pipeline
 
-#. Download the singularity bucket from singularity hub. You will need to provide an absolute directory path to allow singularity to find the correct directories - this must be a directory somewhere above where you current working directory or the current working directory itself:
+#. Download the singularity bucket from singularity hub.
 
    .. code-block:: bash
 
@@ -80,3 +85,11 @@ Snakemake
 You will also need Snakemake_ and scipy to run the pipeline. You can either use a conda environment that we have prepared with all the requirements (recommended) or install these yourself. 
 You likely already created an environment when preparing for the :ref:`SNP Genotype Imputation<Imputation_Background-docs>` steps. If you didn't, you can find the steps for the Snakemake_ conda environment :ref:`here <install_snakemake-docs>`.
 
+
+
+Next Steps
+------------
+
+Now you have prepared the required data and installed the required software, we can move on to :ref:`running the pipeline <Demultiplexing_Pipeline-docs>`.
+If you are familiar and comfortable with Snakemake_ pipelines and structures, you can use the :ref:`Quick Run instructions <Demultiplexing_Quickstart-docs>`.
+However, they contain far less detail than the main sections so we only recommend using the :ref:`Quick Run instructions <Demultiplexing_Quickstart-docs>` if you have quite a bit of experience with Snakemake_ pipelines.

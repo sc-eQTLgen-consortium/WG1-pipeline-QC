@@ -55,9 +55,9 @@ If you have any questions or issues, feel free to open an issue_ or directly ema
 
 
         .. admonition:: Note
-         :class: hint
+           :class: hint
                
-         ``$BIND_DIR`` is the path to a parent directory of all the files being used in the command, ``$SIF`` is the path to the singularity image.if not all your files are below the directory you are running from and ``$FAI`` is the path to your fast fai file.
+           ``$BIND_DIR`` is the path to a parent directory of all the files being used in the command, ``$SIF`` is the path to the singularity image.if not all your files are below the directory you are running from and ``$FAI`` is the path to your fast fai file.
 
      #. *Optional*: if your bam file uses chr encoding for the chromosomes (*ie* "chr1" instead of "1"), you will also need to add chr onto the beginning of each chromosome in the vcf which you can do with the following code:
 

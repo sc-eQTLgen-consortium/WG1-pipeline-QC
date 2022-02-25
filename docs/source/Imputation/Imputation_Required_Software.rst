@@ -11,6 +11,19 @@ If you have any questions or issues, feel free to open an issue_ or directly ema
 
 This table illustrates the input that the pipeline requires to run and whether it is provided or needs to be prepared and provided by the user. 
 
++--------------------------------------------+----------------------------------+
+| Input                                      | Example Included with Test Data? |
++============================================+==================================+
+| Sample Table tsv                           | Yes                              |
++--------------------------------------------+----------------------------------+
+| Cellranger output directory                | Yes                              |
++--------------------------------------------+----------------------------------+
+| Reference genotypes vcf                    | Yes                              |
++--------------------------------------------+----------------------------------+
+| Per pool files that contain individual IDs | Yes                              |
++--------------------------------------------+----------------------------------+
+
+
 
 Singularity Image
 -----------------
@@ -82,3 +95,10 @@ Then, to activate this environment, run:
 
 
 If you would prefer to install snakemake and scipy yourself, you can follow the instructions for installing `Snakemake <https://snakemake.readthedocs.io/en/stable/getting_started/installation.html>`__ and then install scipy with ``pip install scipy``.
+
+
+
+Next Steps
+------------
+
+Now that you have all the required files organized and the software installed, you can move on to running the :ref:`SNP genotype imputation pipeline <Imputation-docs>`.

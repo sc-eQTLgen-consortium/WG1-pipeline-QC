@@ -606,7 +606,12 @@ Checking the Output
 
   - percent.rb: Percent of genes that are ribosomal per droplet
 
-A number of QC figures of the singlet droplets have also been produced. These can be used to discuss possible QC thresholds with the WG1 and before final QC filtering. Let's move to the `QC Filtering Section <QC_Figures-docs>` to discuss the figures produced and next next steps for additional QC filtering.
+
+
+Next Steps
+------------
+
+A number of QC figures of the singlet droplets have also been produced. These can be used to discuss possible QC thresholds with the WG1 and before final QC filtering. Let's move to the :ref:`QC Filtering Section <QC_Figures-docs>` to discuss the figures produced and next next steps for additional QC filtering.
 
 
 

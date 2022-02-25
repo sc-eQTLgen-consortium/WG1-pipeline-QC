@@ -115,7 +115,7 @@ Your reference SNP genotype data will need to be supplied in the plink2_ format 
   - Creating a per-individual meta-data file for use in WG3 (eQTL detection)
 
 
-The psam should look like this (and requires these headings):
+The psam must be tab separated with the following headers and contents should look like this (and requires these headings):
 
 +------+--------+--------+-------+------+-------------------+--------------------------------------+-----------------+---------------+---------------+-----+-----------+--------+----------------+--------------------------------------+-----------+------------------+
 | #FID |  IID   |  PAT   |  MAT  |  SEX | Provided_Ancestry | genotyping_platform                  | array_available | wgs_available | wes_available | age | age_range | Study  | smoking_status | hormonal_contraception_use_currently | menopause | pregnancy_status |
@@ -179,3 +179,7 @@ Key for column contents:
 
 
 
+Next Steps
+------------
+
+Now that you have the required inputs organized, you can move on to the :ref:`Required Software <Imputation_Software-docs>` for the imputation pipeline.

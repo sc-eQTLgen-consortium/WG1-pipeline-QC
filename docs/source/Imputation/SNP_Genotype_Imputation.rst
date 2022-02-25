@@ -8,6 +8,9 @@ SNP Genotype Imputation
 
 If you have any questions or issues, feel free to open an issue_ or directly email Drew Neavin (d.neavin @ garvan.org.au)
 
+You previously :ref:`prepared the files <Imputation_Input-docs>` and :ref:`installed the software <Imputation_Software-docs>` required for the pipeline.
+Now we're ready to run the SNP imputation pipeline.
+
 Here's an outline of the general steps that will be taken by this pipeline:
 
 .. figure:: https://user-images.githubusercontent.com/44268007/131951722-ea3eb43b-83d5-4a2c-9091-31bfb1f486de.png
@@ -19,20 +22,20 @@ Preparing to Run the Pipeline
 
 #. The first step is to copy the ``PreImputation.yaml`` from the pipeline directory to a working directory and edit it based on your system, directories and setup. The contents of this file are used to pass arguments to the pipeline.
 
-#. There are only five parameters that need user input:
+   - There are only five parameters that need user input:
 
-   - **ref_dir**: the directory to the 1000G hg38 reference that you downloaded in the :ref:`Reference section <Imputation_Reference-docs>`
+     - **ref_dir**: the directory to the 1000G hg38 reference that you downloaded in the :ref:`Reference section <Imputation_Reference-docs>`
 
-   - **singularity_image**: path to the singularity image
+     - **singularity_image**: path to the singularity image
 
-   - **plink_dir**: directory to your reference SNP genotype plink2 files
+     - **plink_dir**: directory to your reference SNP genotype plink2 files
 
-   - **bind_paths**: the paths to use to bind for the singularity image. Singularity needs this to mount all the files and directories under that path to be able to find and call required files. You can use more than one path, just separate them by a comma.
+     - **bind_paths**: the paths to use to bind for the singularity image. Singularity needs this to mount all the files and directories under that path to be able to find and call required files. You can use more than one path, just separate them by a comma.
 
-   - **output_dir**: the directory where you want to write all the files to. Make sure this directory exists before running snakemake.
+     - **output_dir**: the directory where you want to write all the files to. Make sure this directory exists before running snakemake.
 
 
-    The other parameters are used for specific rules to indicate memory or threads for each command. Hopefully, you shouldn't need to edit any of these but if you are running out of memory for a specific rule, you can change them in this file.
+   The other parameters are used for specific rules to indicate memory or threads for each command. Hopefully, you shouldn't need to edit any of these but if you are running out of memory for a specific rule, you can change them in this file.
 
 
 #. Before running Snakemake_, let's define some variables that will make it easier and cleaner to run.
@@ -61,7 +64,7 @@ Preparing to Run the Pipeline
   :class: caution
 
   If you log out of the cluster and log back in to run more jobs, you will have to redefine each of those variables. 
-  We recommend keeping the commands in a file that can easily be used to define each variable
+  We recommend keeping the commands in a file that can easily be used to define each variable or putting them in a file that you can ``source`` before running Snakemake_ each time
 
 
 Running the Pipeline - Phase 1
@@ -279,9 +282,9 @@ Now that we have provided the manual information that is required, we can run th
    .. admonition:: Note
     :class: hint
     
-      Your responses to the manual entry steps are saved to a file to be used downstream. If you made an error in the manual entry or want to change your responses, you can either edit the file directly or delete it and run the dryrun command again to enter new answers.
+    Your responses to the manual entry steps are saved to a file to be used downstream. If you made an error in the manual entry or want to change your responses, you can either edit the file directly or delete it and run the dryrun command again to enter new answers.
     
-      The file is located at `results/pca_sex_checks/ancestry_mafs.tsv`
+    The file is located at `results/pca_sex_checks/ancestry_mafs.tsv`
 
 
 
@@ -377,6 +380,9 @@ You should have the following results directories:
 - The files in ``vcf_4_demultiplex`` will be input for the next step - :ref:`Demultiplexing and Doublet Removal <Demultiplexing_Introduction-docs>`
 - The files in ``vcf_merged_by_ancestries`` and ``vcf_all_merged`` will likely be used (after further processing) for eQTL detection by WG3
 
+
+Next Steps
+------------
 
 |:tada:| **Congrats!** |:tada:| You have successfully completed the first step for the sceQTL-Gen Consortium. Now you can move on to :ref:`Demultiplexing and Doublet Removal <Demultiplexing_Introduction-docs>`.
    

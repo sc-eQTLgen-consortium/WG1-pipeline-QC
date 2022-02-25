@@ -4,6 +4,7 @@ Quick Start
 =============
 
 .. _issue: https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/issues
+.. _Snakemake: https://snakemake.readthedocs.io/en/stable/getting_started/installation.html
 
 If you are quite comfortable with Snakemake_, these instructions should be sufficient to run the pipeline.
 If you need further details, feel free to go to the more detailed :ref:`Running the Pipeline section <Demultiplexing_Pipeline-docs>`.
