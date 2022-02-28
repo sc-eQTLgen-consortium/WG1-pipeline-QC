@@ -95,7 +95,7 @@ def get_individual_dirs(individual_list_dir, pools = None):
 
 def getFASTA(ref_dir):
 	for dirpath, dirnames, filenames in os.walk(ref_dir):
-		for filename in [f for f in filenames if re.search("Homo_sapiens.GRCh38.dna.primary_assembly.fa", f)]:
+		for filename in [f for f in filenames if re.search("Homo_sapiens.GRCh38.dna.primary_assembly.fa$", f)]:
 			return(os.path.join(dirpath, filename))
 
 def get_scrnaseq_dirs(config):
