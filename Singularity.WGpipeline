@@ -74,7 +74,7 @@ From: shub://drneavin/SingularityBaseImages:r363_python368
         make install
 
     cd /opt
-    git clone https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
+        git clone --single-branch --branch v1.0.0 https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
 
     cd /opt
         wget https://github.com/samtools/samtools/releases/download/1.10/samtools-1.10.tar.bz2

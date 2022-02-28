@@ -149,7 +149,7 @@ From: drneavin/SingularityBaseImages:r363_python368
         ./gradlew shadowJar
 
     cd /opt
-        git clone --single-branch --branch v0.0.3 https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
+        git clone --single-branch --branch v1.0.0 https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
 
 	cd /opt
 		wget https://www.dropbox.com/s/fvd4pl8no3ngg0l/hg38exonsUCSC.bed
