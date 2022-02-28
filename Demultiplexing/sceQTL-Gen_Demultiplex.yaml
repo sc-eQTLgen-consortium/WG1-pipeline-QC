@@ -34,6 +34,7 @@ souporcell:
   souporcell_memory: 10  ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell step
   souporcell_correlations_threads: 2 ### The number of threads to be used to run R script that will correlate the souporcell cluster genotypes wiht the reference genotypes
   souporcell_correlations_memory: 20 ### Amount of memory (in GB) that will be allocated for each thread
+  souporcell_genotype_correlation_threshold: 0.7 ### The minimum correlation between a cluster and provided SNP genotypes to consider that cluster assigned to that individual
 
 scrublet:
   scrublet_threads: 1 ### The number threads that will be used for the scrublet step
@@ -53,7 +54,8 @@ CombineResults:
   FinalAssignments_memory: 20 ### Amount of memory used in GB used for the R script that will read in all the software results from all pools and make a final call on the assignment for each barcode
   FinalQC_threads: 2 ### Threads used for the R script that will make seurat objects and make QC figures for selecting ideal QC thresholds
   FinalQC_memory: 20 ### Memory (in GB) used for the R script that will make seurat objects and make QC figures for selecting ideal QC thresholds
-
+  expected_observed_numbers_threads: 2 ### Threads used for the R script that will generate figures comparing expected vs observed thresholds
+  expected_observed_numbers_memory: 20 ### Memory (in GB) used for the R script that will generate figures comparing expected vs observed thresholds
 
 
 

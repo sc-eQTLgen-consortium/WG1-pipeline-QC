@@ -12,6 +12,7 @@ arguments <- read.table(args, header = F)
 dir <- arguments[1,]
 pool <- arguments[2,]
 result_file <- arguments[3,]
+correlation_limit <- as.numeric(as.character(arguments[4,]))
 dir.create(paste0(dir,"/",pool,"/souporcell/genotype_correlations/"))
 
 ########## Set up functions ##########
@@ -97,7 +98,7 @@ key <- as.data.frame(matrix(nrow = ncol(pearson_correlations), ncol = 3))
 colnames(key) <- c("Genotype_ID","Cluster_ID","Correlation")
 key$Genotype_ID <- colnames(pearson_correlations)
 for (id in key$Genotype_ID){
-    if (max(pearson_correlations[,id]) == max(pearson_correlations[rownames(pearson_correlations)[which.max(pearson_correlations[,id])],])){
+    if (max(pearson_correlations[,id]) == max(pearson_correlations[rownames(pearson_correlations)[which.max(pearson_correlations[,id])],]) & max(pearson_correlations[,id]) > correlation_limit){
         key$Cluster_ID[which(key$Genotype_ID == id)] <- rownames(pearson_correlations)[which.max(pearson_correlations[,id])]
         key$Correlation[which(key$Genotype_ID == id)] <- max(pearson_correlations[,id])
     } else {

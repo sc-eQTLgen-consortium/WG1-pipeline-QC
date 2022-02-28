@@ -101,5 +101,8 @@ imputation:
   sort4demultiplexing_threads: 5
   sort4demultiplexing_java_memory: 10
 
+  count_snps_memory: 20
+  count_snps_threads: 2
+
   genotype_donor_annotation_memory: 5
   genotype_donor_annotation_threads: 1

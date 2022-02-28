@@ -7,6 +7,7 @@ from glob import glob
 import subprocess
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
+from pathlib import Path
 
 
 # Import custom functions
@@ -19,9 +20,18 @@ input_dict = config["inputs"]
 output_dict = config["outputs"]
 bind_path = input_dict["bind_paths"]
 
-pgen = prepareArguments.getPGEN(input_dict["plink_dir"])
-pvar = prepareArguments.getPVAR(input_dict["plink_dir"])
-psam = prepareArguments.getPSAM(input_dict["plink_dir"])
+pgen_names = {f.stem for f in Path(input_dict["plink_dir"]).iterdir() if f.suffix == '.pgen'}
+pvar_names = {f.stem for f in Path(input_dict["plink_dir"]).iterdir() if f.suffix == '.pvar'}
+psam_names = {f.stem for f in Path(input_dict["plink_dir"]).iterdir() if f.suffix == '.psam'}
+
+basename = list(pgen_names.intersection(pvar_names).intersection(psam_names))[0]
+
+
+pgen = prepareArguments.getPGEN(input_dict["plink_dir"], basename)
+pvar = prepareArguments.getPVAR(input_dict["plink_dir"], basename)
+psam = prepareArguments.getPSAM(input_dict["plink_dir"], basename)
+
+
 ### Check that actaully found the correct files and logger.info the files being used
 if not None in [pgen,pvar,psam]:
     ### Add in checks for pvar file ###
@@ -128,7 +138,7 @@ if not None in [pgen,pvar,psam]:
 
                                                                                         os.mkdir(os.path.join(output_dict["output_dir"], "updated_input/"))
 
-                                                                                        psam_df.to_csv(os.path.join(output_dict["output_dir"], "updated_input/input.psam"), sep = "\t", na_rep = "NA", index = False)
+                                                                                        psam_df.to_csv(os.path.join(output_dict["output_dir"], "updated_input/input.psam"), na_rep = "NA", sep = "\t", index = False)
 
                                                                                         copy_pgen = "cp " + pgen + " " + os.path.join(output_dict["output_dir"], "updated_input/input.pgen")
                                                                                         copy_pvar = "cp " + pvar + " " + os.path.join(output_dict["output_dir"], "updated_input/input.pvar")
@@ -184,7 +194,7 @@ if not None in [pgen,pvar,psam]:
                                                                                     if os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv") and os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv"):
                                                                                         ancestry_check = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv", sep = "\t")
                                                                                         sex_check = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv", sep = "\t")
-                                                                                        if ancestry_check["UPDATE/REMOVE/KEEP"].count() == len(ancestry_check) and sex_check["UPDATE/REMOVE/KEEP"].count() == len(sex_check):
+                                                                                        if ancestry_check["UPDATE/REMOVE/KEEP"].count() == len(ancestry_check) and pd.Series(ancestry_check["UPDATE/REMOVE/KEEP"]).isin(['UPDATE', 'REMOVE', 'KEEP']).all() and sex_check["UPDATE/REMOVE/KEEP"].count() == len(sex_check) and pd.Series(sex_check["UPDATE/REMOVE/KEEP"]).isin(['UPDATE', 'REMOVE', 'KEEP']).all():
                                                                                             if not os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_mafs.tsv"):
                                                                                                 ##### First, need to provide users summary of the ancestries and get interactive allele frequency selections ###
                                                                                                 ### if there are any individuals chosen to remove, remove them from the psam
@@ -230,10 +240,29 @@ if not None in [pgen,pvar,psam]:
                                                                                             impute_files.append(expand(output_dict["output_dir"] + "/vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi", ancestry = ancestry_subsets))
                                                                                             impute_files.append(output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf")
                                                                                             impute_files.append(output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf")
-
+                                                                                            impute_files.append(output_dict["output_dir"] + "/metrics/Number_SNPs.png")
+                                                                                            impute_files.append(output_dict["output_dir"] + "/metrics/ancestry_summary.png")
+                                                                                            impute_files.append(output_dict["output_dir"] + "/metrics/sex_summary.png")
 
                                                                                         else:
-                                                                                            logger.info("ERROR:\nThe UPDATE/REMOVE/KEEP column in the pca_sex_checks/ancestry_update_remove.tsv and/or the pca_sex_checks/check_sex_update_remove.tsv file are not completed.\nPlease fill in these selections for the pipeline to continue.\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.")
+
+                                                                                            missing_sex = set(sex_check['IID'].astype(str)[[not elem for elem in list(sex_check["UPDATE/REMOVE/KEEP"].isin(pd.Series(['UPDATE', 'REMOVE', 'KEEP'])))]])
+                                                                                            missing_sex_string = "\n".join(missing_sex)
+
+                                                                                            missing_ancestry = set(ancestry_check['IID'].astype(str)[[not elem for elem in list(ancestry_check["UPDATE/REMOVE/KEEP"].isin(pd.Series(['UPDATE', 'REMOVE', 'KEEP'])))]])
+                                                                                            missing_ancestry_string = "\n".join(missing_ancestry)
+
+                                                                                            if len(missing_sex) > 0 and len(missing_ancestry) > 0:
+                                                                                                logger.info("\nERROR: The UPDATE/REMOVE/KEEP column in the pca_sex_checks/ancestry_update_remove.tsv and the pca_sex_checks/check_sex_update_remove.tsv file are not completed.\n\nSpecifically, these individuals do not have appropriate inputs for the UPDATE/REMOVE/KEEP column in the 'check_sex_update_remove.tsv' file:\n" + missing_sex_string + "\nSpecifically, these individuals do not have appropriate inputs for the UPDATE/REMOVE/KEEP column in the 'ancestry_update_remove.tsv' file: " + missing_ancestry_string + "\n\nPlease fill in these selections for the pipeline to continue.\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.\n\n")
+                                                                                            
+                                                                                            elif len(missing_sex) > 0:
+                                                                                                logger.info("\nERROR: The UPDATE/REMOVE/KEEP column in the pca_sex_checks/check_sex_update_remove.tsv file is not completed.\n\nSpecifically, these individuals do not have appropriate inputs for the UPDATE/REMOVE/KEEP column in the 'check_sex_update_remove.tsv' file:\n" + missing_sex_string + "\nPlease fill in these selections for the pipeline to continue.\n\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.\n\n")
+                                                                                            
+                                                                                            elif len(missing_ancestry) > 0:
+                                                                                                logger.info("\nERROR: The UPDATE/REMOVE/KEEP column in the pca_sex_checks/check_sex_update_remove.tsv file is not completed.\n\nSpecifically, these individuals do not have appropriate inputs for the UPDATE/REMOVE/KEEP column in the 'ancestry_update_remove.tsv' file:\n" + missing_ancestry_string + "\nPlease fill in these selections for the pipeline to continue.\n\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.\n\n")
+                                                                                            
+                                                                                            else:
+                                                                                                logger.info("\nERROR: The UPDATE/REMOVE/KEEP column in the pca_sex_checks/ancestry_update_remove.tsv and/or the pca_sex_checks/check_sex_update_remove.tsv file are not completed.\n\nWe were unable to identify the exact individuals that contained the issue.\n\nPlease fill in these selections for the pipeline to continue.\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.")
                                                                                     else:
                                                                                         plinkQC_files.append(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv")
 
@@ -339,10 +368,17 @@ if not None in [pgen,pvar,psam]:
                 Exiting.") 
 
         else:
+            names =  ['#FID', 'IID', 'PAT', 'MAT', 'SEX', 'Provided_Ancestry','genotyping_platform', 'array_available', 'wgs_available','wes_available', 'age', 'age_range', 'Study', 'smoking_status', 'hormonal_contraception_use_currently', 'menopause',  'pregnancy_status']
+            missing_names = set(pd.Series(names)) - set(psam_df.columns)
+            missing_names_string = "\n".join(missing_names)
+            
             logger.info("The column names of your psam file are not correct.\n\
+            The columns that you are missing or whose spelling does not match the required input is/are:\n" + missing_names + "\n\
             They should be: '#FID', 'IID', 'PAT', 'MAT', 'SEX', 'Provided_Ancestry','genotyping_platform', 'array_available', 'wgs_available','wes_available', 'age', 'age_range', 'Study', 'smoking_status', 'hormonal_contraception_use_currently', 'menopause',  'pregnancy_status'.\n\
             If the names look the same, check that the file is tab separated, without any spaces or other weird characters.\n\n\
             Exiting.")
+
+
 
     else:
         logger.info("Looks like your chromsome encoding uses chr before the chromosome. For this pipeline, the chromosme encoding should not use chr. Please remove the 'chr' from your pvar file and try again. Exiting.")

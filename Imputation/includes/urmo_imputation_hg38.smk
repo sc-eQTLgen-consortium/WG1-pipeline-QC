@@ -32,7 +32,7 @@ rule crossmap:
         chain_file = "/opt/GRCh37_to_GRCh38.chain"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} awk 'BEING{{FS=OFS="\t"}}{{print $1,$2,$2+1,$3,$4,$5}}' {input.pvar} > {output.inbed}
+        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print $1,$2,$2+1,$3,$4,$5}}' {input.pvar} > {output.inbed}
         singularity exec --bind {params.bind} {params.sif} CrossMap.py bed {params.chain_file} {output.inbed} {output.outbed}
         singularity exec --bind {params.bind} {params.sif} awk '{{print $4}}' {output.outbed}.unmap > {output.excluded_ids}
         singularity exec --bind {params.bind} {params.sif} plink2 --pfile {params.in_plink} --exclude {output.excluded_ids} --make-bed --output-chr MT --out {params.out}
@@ -60,7 +60,7 @@ rule sort_bed:
         out = output_dict["output_dir"] + "/crossmapped_sorted/{ancestry}_crossmapped_sorted"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.infile} --make-bed --output-chr MT --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.infile} --make-bed --max-alleles 2 --output-chr MT --out {params.out}
         """
 
 
@@ -448,6 +448,28 @@ rule sort4demultiplexing:
             O={output.complete_cases_sorted}
         """
 
+
+rule count_snps:
+    input:
+        info_filled = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_info_filled.vcf.gz",
+        qc_filtered = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05.vcf.gz",
+        complete_cases_sorted = output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
+    output:
+        report(output_dict["output_dir"] + "/metrics/Number_SNPs.png", category = "SNP Numbers", caption = "/opt/WG1-pipeline-QC/Imputation/report_captions/counts_snps.rst")
+    resources:
+        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["count_snps_memory"],
+        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["count_snps_memory"]
+    threads: imputation_dict["count_snps_threads"]
+    params:
+        sif = input_dict["singularity_image"],
+        bind = input_dict["bind_paths"],
+        basedir = output_dict["output_dir"],
+        outdir = output_dict["output_dir"] + "/metrics/",
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/SNP_numbers.R"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.basedir} {params.outdir}
+        """
 
 
 

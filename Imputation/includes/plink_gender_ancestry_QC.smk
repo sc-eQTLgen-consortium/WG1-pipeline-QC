@@ -56,7 +56,7 @@ rule check_sex:
         sif = input_dict["singularity_image"]
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --make-bed --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --make-bed --max-alleles 2 --out {params.out}
         singularity exec --bind {params.bind} {params.sif} plink --threads {threads} --bfile {params.out} --check-sex --out {params.out}
         singularity exec --bind {params.bind} {params.sif} touch {output.nosex}
         singularity exec --bind {params.bind} {params.sif} sed 's/^ \+//g' {output.sexcheck} | singularity exec --bind {params.bind} {params.sif} sed 's/ \+/\t/g' > {output.sexcheck_tab}
@@ -255,6 +255,7 @@ rule pca_projection_assign:
     output:
         sexcheck = output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv",
         anc_check = output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv",
+        anc_fig = report(output_dict["output_dir"] + "/pca_sex_checks/Ancestry_PCAs.png", category = "Ancestry", caption = "/opt/WG1-pipeline-QC/Imputation/report_captions/ancestry_pca.rst")
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * 10,
         disk_per_thread_gb=lambda wildcards, attempt: attempt * 10
@@ -275,6 +276,33 @@ rule pca_projection_assign:
         singularity exec --bind {params.bind} {params.sif} echo {input.sexcheck} >> {params.variables}
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.variables}
         """
+
+
+rule summary_ancestry_sex:
+    input:
+        sexcheck = output_dict["output_dir"] + "/check_sex/check_sex.sexcheck.tsv",
+        sexcheck_tsv = output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv",
+        fam = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.psam",
+        anc_check = output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv"
+    output:
+        report(output_dict["output_dir"] + "/metrics/sex_summary.png", category = "Ancestry and Sex Summary", caption = "/opt/WG1-pipeline-QC/Imputation/report_captions/sex_summary.rst"),
+        report(output_dict["output_dir"] + "/metrics/ancestry_summary.png", category = "Ancestry and Sex Summary", caption = "/opt/WG1-pipeline-QC/Imputation/report_captions/ancestry_summary.rst")
+    resources:
+        mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["summary_ancestry_sex_memory"],
+        disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["summary_ancestry_sex_memory"]
+    threads: plink_gender_ancestry_QC_dict["summary_ancestry_sex_threads"]
+    params:
+        bind = input_dict["bind_paths"],
+        sif = input_dict["singularity_image"],
+        outdir = output_dict["output_dir"] + "/metrics/",
+        basedir = output_dict["output_dir"],
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/plink_gender_ancestry_QC.R"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.basedir} {params.outdir}
+        """
+
+
 
 rule separate_indivs:
     input:
@@ -351,7 +379,7 @@ rule subset_ancestry:
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} grep {wildcards.ancestry} {input.psam} > {output.keep}
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --keep {output.keep} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --keep {output.keep} --max-alleles 2 --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
         """
 
 
