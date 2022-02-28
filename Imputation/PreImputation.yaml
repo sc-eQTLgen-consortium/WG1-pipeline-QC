@@ -46,6 +46,9 @@ plink_gender_ancestry_QC:
   pca_project_memory: 20
   pca_project_threads: 1
 
+  summary_ancestry_sex_memory: 20
+  summary_ancestry_sex_threads: 2
+
 imputation:
   crossmap_memory: 20
   crossmap_threads: 1
