@@ -296,7 +296,7 @@ rule summary_ancestry_sex:
         sif = input_dict["singularity_image"],
         outdir = output_dict["output_dir"] + "/metrics/",
         basedir = output_dict["output_dir"],
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/plink_gender_ancestry_QC.R"
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/sex_ancestry_summaries.R"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.basedir} {params.outdir}

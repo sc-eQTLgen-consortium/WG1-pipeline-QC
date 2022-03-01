@@ -219,10 +219,14 @@ if not None in [pgen,pvar,psam]:
                                                                                                 for pop in uniq_ancestries:
                                                                                                     impute_prompt = input("You have " + str(len(psam_df_local[psam_df_local['Provided_Ancestry'].str.contains(pop)])) + " individuals from " + pop + " ancestry.\nWould you like to impute for this ancestral population? (yes/no)\n").lower()
                                                                                                 
-                                                                                                    if impute_prompt == 'yes':
+                                                                                                    if impute_prompt == 'yes' or impute_prompt == 'y':
                                                                                                         maf_prompt = float(input("\nWhat minor allele frequency filtering would you like to use for pre-imputation processing for the " + pop + " ancestry group.\nA value of 0.05 removes SNPs with < 5% minor alleles from the analysis.\nFor no filtering use 0.\n(0-1)\n"))
 
                                                                                                         maf_df.loc[i]=[pop,maf_prompt]
+
+                                                                                                    else:
+                                                                                                        logger.info("Your response indicated that you don't want to impute individuals from " + pop + " ancestry.\nMoving to next ancestrys (if applicable).")
+
                                                                                                     i=+1
 
                                                                                                 maf_df.to_csv(output_dict["output_dir"] + "/pca_sex_checks/ancestry_mafs.tsv", sep = "\t", na_rep = "NA")
