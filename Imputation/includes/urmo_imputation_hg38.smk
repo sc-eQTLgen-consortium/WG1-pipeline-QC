@@ -455,7 +455,7 @@ rule count_snps:
         qc_filtered = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05.vcf.gz",
         complete_cases_sorted = output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
     output:
-        report(output_dict["output_dir"] + "/metrics/Number_SNPs.png", category = "SNP Numbers", caption = "/opt/WG1-pipeline-QC/Imputation/report_captions/counts_snps.rst")
+        report(output_dict["output_dir"] + "/metrics/Number_SNPs.png", category = "SNP Numbers", caption = "../report_captions/counts_snps.rst")
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["count_snps_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["count_snps_memory"]

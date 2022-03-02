@@ -141,7 +141,7 @@ rule souporcell_correlate_genotypes:
     output:
         assignments = output_dict["output_dir"] + "/{pool}/CombinedResults/CombinedDropletAssignments_w_genotypeIDs.tsv",
         variables = temp(output_dict["output_dir"] + "/{pool}/souporcell/souporcel_genotypes_variables"),
-        correlation = report(output_dict["output_dir"] + "/{pool}/souporcell/genotype_correlations/pearson_correlation.png", category = "Souporcell Genotype Correlations", subcategory = "{pool}", caption = "/opt/WG1-pipeline-QC/Demultiplexing/report_captions/souporcell.rst")
+        correlation = report(output_dict["output_dir"] + "/{pool}/souporcell/genotype_correlations/pearson_correlation.png", category = "Souporcell Genotype Correlations", subcategory = "{pool}", caption = "../report_captions/souporcell.rst")
     resources:
         mem_per_thread_gb = souporcell_dict["souporcell_correlations_memory"],
         disk_per_thread_gb = souporcell_dict["souporcell_correlations_memory"]

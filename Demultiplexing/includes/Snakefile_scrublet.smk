@@ -61,7 +61,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
         output:
             results = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/scrublet_results.txt",
             log = log,
-            figure = report(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "/opt/WG1-pipeline-QC/Demultiplexing/report_captions/scrublet.rst", subcategory = "{pool}")
+            figure = report(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "../report_captions/scrublet.rst", subcategory = "{pool}")
         resources:
             mem_per_thread_gb = lambda wildcards, attempt: attempt * scrublet_dict["scrublet_memory"],
             disk_per_thread_gb = lambda wildcards, attempt: attempt * scrublet_dict["scrublet_memory"],
