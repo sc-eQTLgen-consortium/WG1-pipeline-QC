@@ -1,0 +1,1 @@
+Number of droplets assigned to each individual and as a doublet.

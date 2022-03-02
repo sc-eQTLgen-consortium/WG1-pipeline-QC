@@ -1,0 +1,1 @@
+The number of individuals of each ancestry based on SNPs and summary of decisions for mismatching ancestries.

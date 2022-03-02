@@ -1,0 +1,1 @@
+The number of SNPs after imputation for each ancestry, all together and after filtering.
