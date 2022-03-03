@@ -8,6 +8,19 @@ SNP Genotype Imputation
 
 If you have any questions or issues, feel free to open an issue_ or directly email Drew Neavin (d.neavin @ garvan.org.au)
 
+.. note::
+
+  With the implementation of newer versions of the pipeline, it is important to make sure your singularity image alignes with the version of the pipeline documentation that you are currently using.
+  To check the version of your singluation image plase run:
+
+  .. code-block:: bash
+
+      singularity inspect WG1-pipeline-QC_imputation.sif
+
+  which will tell you the image version you are currenlty using and, therefore, the relevant documentation for that image.
+ 
+
+
 You previously :ref:`prepared the files <Imputation_Input-docs>` and :ref:`installed the software <Imputation_Software-docs>` required for the pipeline.
 Now we're ready to run the SNP imputation pipeline.
 

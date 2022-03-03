@@ -16,6 +16,18 @@ Phew, ok, now that you have prepared all of the inputs, downloaded all the mater
 
 Ideally you would just run the pipeline and it would output all of the results. However, there are two softwares that require user input in order to ensure that the thresholds are adequate. If the thresholds are not well chosen by the software, you will have to rerun those steps before moving on. This has been built into the pipeline by ensuring that it will not move forward with merging results from multiple softwares until you have confirmed that the outputs look sufficient. We will provide examples of pools that are adequate to move forward as well as examples of pools that need further testing and thresholding before moving forward with the pipeline in the instructions below.
 
+.. note::
+
+  With the implementation of newer versions of the pipeline, it is important to make sure your singularity image alignes with the version of the pipeline documentation that you are currently using.
+  To check the version of your singluation image plase run:
+
+  .. code-block:: bash
+
+      singularity inspect WG1-pipeline-QC_wgpipeline.sif 
+
+  which will tell you the image version you are currenlty using and, therefore, the relevant documentation for that image.
+
+
 
 Preparing to Run the Pipeline
 ==============================

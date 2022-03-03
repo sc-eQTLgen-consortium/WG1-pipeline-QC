@@ -147,24 +147,24 @@ rule QC_plots:
         pools = output_dict["output_dir"] + "/QC_figures/meta_comparison.txt"
     output:
         variables = temp(output_dict["output_dir"] + "/QC_figures/R_variables.txt"),
-        report(output_dict["output_dir"] + "/QC_figures/nCount_RNA_violin_MAD_All.png", category = "QC", caption = "../report_captions/QC_plots_nCount_RNA.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/nCount_RNA_violin_MADper_Pool.png", category = "QC", caption = "../report_captions/QC_plots_nCount_RNA_MADall.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/nCount_RNA_violin_noMADlines.png", category = "QC", caption = "../report_captions/QC_plots_nCount.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/nFeature_RNA_violin_MAD_All.png", category = "QC", caption = "../report_captions/QC_plots_feature_MADall.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/nFeature_RNA_violin_MADper_Pool.png", category = "QC", caption = "../report_captions/QC_plots_feature_MADperPool.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/nFeature_RNA_violin_noMADlines.png", category = "QC", caption = "../report_captions/QC_plots_feature.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/nFeatures_vs_percentMT_QC_scatter_colorPool.png", category = "QC", caption = "../report_captions/QC_plots_features_mt_pool.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/nFeatures_vs_percentMT_QC_scatter_w_MADlines.png", category = "QC", caption = "../report_captions/QC_plots_features_mt_MAD.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/percent.mt_violin_MAD_All.png", category = "QC", caption = "../report_captions/QC_plots_mt_MADall.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/percent.mt_violin_MADper_Pool.png", category = "QC", caption = "../report_captions/QC_plots_mt_MADpool.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/percent.mt_violin_noMADlines.png", category = "QC", caption = "../report_captions/QC_plots_mt.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/percent.rb_violin_MAD_All.png", category = "QC", caption = "../report_captions/QC_plots_rb_MADall.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/percent.rb_violin_MADper_Pool.png", category = "QC", caption = "../report_captions/QC_plots_rb_MADperPool.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/percent.rb_violin_noMADlines.png", category = "QC", caption = "../report_captions/QC_plots_rb.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/UMI_vs_Genes_QC_scatter.png", category = "QC", caption = "../report_captions/QC_plots_UMI_features.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/UMI_vs_Genes_QC_scatter_w_MADlines.png", category = "QC", caption = "../report_captions/QC_plots_UMI_features_MADall.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/UMI_vs_percentMT_QC_scatter_colorPool.png", category = "QC", caption = "../report_captions/QC_plots_UMI_mt_pool.rst"),
-        report(output_dict["output_dir"] + "/QC_figures/UMI_vs_percentMT_QC_scatter_w_MADlines.png", category = "QC", caption = "../report_captions/QC_plots_UMI_mt_MDA_all.rst"),
+        fig1 = report(output_dict["output_dir"] + "/QC_figures/nCount_RNA_violin_MAD_All.png", category = "QC", caption = "../report_captions/QC_plots_nCount.rst"),
+        fig2 = report(output_dict["output_dir"] + "/QC_figures/nCount_RNA_violin_MADper_Pool.png", category = "QC", caption = "../report_captions/QC_plots_nCount_RNA_MADall.rst"),
+        fig3 = report(output_dict["output_dir"] + "/QC_figures/nCount_RNA_violin_noMADlines.png", category = "QC", caption = "../report_captions/QC_plots_nCount.rst"),
+        fig4 = report(output_dict["output_dir"] + "/QC_figures/nFeature_RNA_violin_MAD_All.png", category = "QC", caption = "../report_captions/QC_plots_feature_MADall.rst"),
+        fig5 = report(output_dict["output_dir"] + "/QC_figures/nFeature_RNA_violin_MADper_Pool.png", category = "QC", caption = "../report_captions/QC_plots_feature_MADperPool.rst"),
+        fig6 = report(output_dict["output_dir"] + "/QC_figures/nFeature_RNA_violin_noMADlines.png", category = "QC", caption = "../report_captions/QC_plots_feature.rst"),
+        fig7 = report(output_dict["output_dir"] + "/QC_figures/nFeatures_vs_percentMT_QC_scatter_colorPool.png", category = "QC", caption = "../report_captions/QC_plots_features_mt_pool.rst"),
+        fig8 = report(output_dict["output_dir"] + "/QC_figures/nFeatures_vs_percentMT_QC_scatter_w_MADlines.png", category = "QC", caption = "../report_captions/QC_plots_features_mt_MAD.rst"),
+        fig9 = report(output_dict["output_dir"] + "/QC_figures/percent.mt_violin_MAD_All.png", category = "QC", caption = "../report_captions/QC_plots_mt_MADall.rst"),
+        fig10 = report(output_dict["output_dir"] + "/QC_figures/percent.mt_violin_MADper_Pool.png", category = "QC", caption = "../report_captions/QC_plots_mt_MADpool.rst"),
+        fig11 = report(output_dict["output_dir"] + "/QC_figures/percent.mt_violin_noMADlines.png", category = "QC", caption = "../report_captions/QC_plots_mt.rst"),
+        fig12 = report(output_dict["output_dir"] + "/QC_figures/percent.rb_violin_MAD_All.png", category = "QC", caption = "../report_captions/QC_plots_rb_MADall.rst"),
+        fig13 = report(output_dict["output_dir"] + "/QC_figures/percent.rb_violin_MADper_Pool.png", category = "QC", caption = "../report_captions/QC_plots_rb_MADperPool.rst"),
+        fig14 = report(output_dict["output_dir"] + "/QC_figures/percent.rb_violin_noMADlines.png", category = "QC", caption = "../report_captions/QC_plots_rb.rst"),
+        fig15 = report(output_dict["output_dir"] + "/QC_figures/UMI_vs_Genes_QC_scatter.png", category = "QC", caption = "../report_captions/QC_plots_UMI_features.rst"),
+        fig16 = report(output_dict["output_dir"] + "/QC_figures/UMI_vs_Genes_QC_scatter_w_MADlines.png", category = "QC", caption = "../report_captions/QC_plots_UMI_features_MADall.rst"),
+        fig17 = report(output_dict["output_dir"] + "/QC_figures/UMI_vs_percentMT_QC_scatter_colorPool.png", category = "QC", caption = "../report_captions/QC_plots_UMI_mt_pool.rst"),
+        fig18 = report(output_dict["output_dir"] + "/QC_figures/UMI_vs_percentMT_QC_scatter_w_MADlines.png", category = "QC", caption = "../report_captions/QC_plots_UMI_mt_MDA_all.rst"),
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * CombineResults_dict["FinalQC_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * CombineResults_dict["FinalQC_memory"]
@@ -188,6 +188,6 @@ rule QC_plots:
         singularity exec --bind {params.bind} {params.sif} echo {params.rb_genes} >> {output.variables}
         singularity exec --bind {params.bind} {params.sif} echo {params.mt_genes} >> {output.variables}
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {output.variables}
-        [[ -s {output.fig} ]]
+        [[ -s {output.fig18} ]]
         echo $?
         """
