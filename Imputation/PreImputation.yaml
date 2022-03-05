@@ -46,6 +46,9 @@ plink_gender_ancestry_QC:
   pca_project_memory: 20
   pca_project_threads: 1
 
+  summary_ancestry_sex_memory: 20
+  summary_ancestry_sex_threads: 2
+
 imputation:
   crossmap_memory: 20
   crossmap_threads: 1
@@ -100,6 +103,9 @@ imputation:
   sort4demultiplexing_memory: 5
   sort4demultiplexing_threads: 5
   sort4demultiplexing_java_memory: 10
+
+  count_snps_memory: 20
+  count_snps_threads: 2
 
   genotype_donor_annotation_memory: 5
   genotype_donor_annotation_threads: 1

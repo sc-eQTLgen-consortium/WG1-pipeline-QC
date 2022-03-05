@@ -8,6 +8,21 @@ SNP Genotype Imputation
 
 If you have any questions or issues, feel free to open an issue_ or directly email Drew Neavin (d.neavin @ garvan.org.au)
 
+
+.. note::
+
+  With the implementation of newer versions of the pipeline, it is important to make sure your singularity image alignes with the version of the pipeline documentation that you are currently using.
+  To check the version of your singluation image plase run:
+
+  .. code-block:: bash
+
+      singularity inspect WG1-pipeline-QC_imputation.sif
+
+  which will tell you the image version you are currenlty using and, therefore, the relevant documentation for that image.
+ 
+
+
+
 You previously :ref:`prepared the files <Imputation_Input-docs>` and :ref:`installed the software <Imputation_Software-docs>` required for the pipeline.
 Now we're ready to run the SNP imputation pipeline.
 
@@ -208,7 +223,9 @@ Let's next move on to the discrepancies between the user-provided and SNP-predic
   +------+--------+------+----------+--------+----------------------+-------------------+-------------------+
 
 
-- There is also a figure that demonstrates where each of the individuals from the vcf file sit within the 1000G reference PCA space.The left panel has all the individuals from the 1000G reference colored by ancestry, the middle panel has the individuals from our dataset colored by the predicted ancestry and the right panel has the individuals from our dataset colored by whether the provided and predicted ancestries match:
+
+- There is also a figure that demonstrates where each of the individuals from the vcf file sit within the 1000G reference PCA space. The left panel has all the individuals from the 1000G reference colored by ancestry, the middle panel has the individuals from our dataset colored by the predicted ancestry and the right panel has the individuals from our dataset colored by whether the provided and predicted ancestries match:
+
 
   .. figure:: https://user-images.githubusercontent.com/44268007/105093939-6734d300-5af3-11eb-8a9f-d51d6a8f5f10.png
     :width: 800
@@ -341,10 +358,23 @@ Now that we have provided the manual information that is required, we can run th
     See the :ref:`Common Errors and How to Fix Them Section <Imputation_Errors-docs>` section for a way to fix this.
 
 
+#. Finally, let's create a report that includes all of our results and some pipeline metrics:
+
+
+   .. code-block:: bash
+
+    nohup \
+      snakemake \
+        --snakefile $IMPUTATION_SNAKEFILE \
+        --configfile $IMPUTATION_CONFIG \
+        --report imputation_report.html
+
+
 
 Results!
 --------
 After running those jobs, you should be done! 
+
 
 You should have the following results directories:
 
@@ -379,6 +409,38 @@ You should have the following results directories:
 - The ``genotype_donor_annotation.tsv`` has been formatted to be used by WG3 for eQTL detection
 - The files in ``vcf_4_demultiplex`` will be input for the next step - :ref:`Demultiplexing and Doublet Removal <Demultiplexing_Introduction-docs>`
 - The files in ``vcf_merged_by_ancestries`` and ``vcf_all_merged`` will likely be used (after further processing) for eQTL detection by WG3
+
+
+
+You will also have an html report that includes figures and pipeline metrics called ``imputation_report.html``.
+The report generated for this testa dataset is available :download:`here <../_static/imputation_report.html>`.
+
+This report will have three main figure subsets:
+
+#. Ancestry PCS figure (already shown for ancestry decisions) are in the ``Ancestry``. The left panel has all the individuals from the 1000G reference colored by ancestry, the middle panel has the individuals from our dataset colored by the predicted ancestry and the right panel has the individuals from our dataset colored by whether the provided and predicted ancestries match:
+
+   .. figure:: https://user-images.githubusercontent.com/44268007/105093939-6734d300-5af3-11eb-8a9f-d51d6a8f5f10.png
+    :width: 800
+
+#. A summary of the provided ancestries, the final ancestry classifications and the decisions that were taken for non-matching ancestry annotations are in the ``Ancestry and Sex Summary``.
+
+   .. figure:: ../_static/ancestry_summary.png
+    :width: 300
+
+
+#. A summary of the provided ancestries, the final sex classifications and the decisions that were taken for non-matching sex annotations are in the ``Ancestry and Sex Summary``.
+
+   .. figure:: ../_static/ancestry_summary.png
+    :width: 300
+
+
+#. A summary of the number of SNPs identified after imputation per ancestry, for combined ancestries and after filtering are in the ``Ancestry and Sex Summary``.
+
+   .. figure:: ../_static/ancestry_summary.png
+    :width: 300
+
+
+
 
 
 Next Steps

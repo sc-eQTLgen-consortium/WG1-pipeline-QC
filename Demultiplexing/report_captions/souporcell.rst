@@ -1,0 +1,1 @@
+Pearson correlation between the genotypes inferred from the clusters identified by souporcell and the known SNP genotypes for each individual.

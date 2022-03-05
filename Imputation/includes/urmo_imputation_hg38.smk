@@ -449,6 +449,28 @@ rule sort4demultiplexing:
         """
 
 
+rule count_snps:
+    input:
+        info_filled = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_info_filled.vcf.gz",
+        qc_filtered = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05.vcf.gz",
+        complete_cases_sorted = output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
+    output:
+        report(output_dict["output_dir"] + "/metrics/Number_SNPs.png", category = "SNP Numbers", caption = "../report_captions/counts_snps.rst")
+    resources:
+        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["count_snps_memory"],
+        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["count_snps_memory"]
+    threads: imputation_dict["count_snps_threads"]
+    params:
+        sif = input_dict["singularity_image"],
+        bind = input_dict["bind_paths"],
+        basedir = output_dict["output_dir"],
+        outdir = output_dict["output_dir"] + "/metrics/",
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/SNP_numbers.R"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.basedir} {params.outdir}
+        """
+
 
 
 rule genotype_donor_annotation:

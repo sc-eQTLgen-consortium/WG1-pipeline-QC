@@ -59,7 +59,8 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
             df = ancient(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv")
         output:
             doublets = output_dict["output_dir"] + "/{pool}/DoubletDetection/DoubletDetection_results.txt",
-            log =  log
+            figure = report(output_dict["output_dir"] + "/{pool}/DoubletDetection/convergence_test.pdf", category = "DoubletDetection", subcategory = "{pool}", caption = "../report_captions/DoubletDetection.rst"),
+            log = log
         resources:
             mem_per_thread_gb = lambda wildcards, attempt: attempt * DoubletDetection_dict["DoubletDetection_memory"],
             disk_per_thread_gb = lambda wildcards, attempt: attempt * DoubletDetection_dict["DoubletDetection_memory"]

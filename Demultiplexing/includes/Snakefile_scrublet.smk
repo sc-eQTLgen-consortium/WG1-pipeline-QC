@@ -60,7 +60,8 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
             df = ancient(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv")
         output:
             results = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/scrublet_results.txt",
-            log = log
+            log = log,
+            figure = report(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "../report_captions/scrublet.rst", subcategory = "{pool}")
         resources:
             mem_per_thread_gb = lambda wildcards, attempt: attempt * scrublet_dict["scrublet_memory"],
             disk_per_thread_gb = lambda wildcards, attempt: attempt * scrublet_dict["scrublet_memory"],

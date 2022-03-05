@@ -45,7 +45,10 @@ rule souporcell:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * souporcell_dict["souporcell_memory"]
     output:
         clusters = output_dict["output_dir"] + "/{pool}/souporcell/clusters.tsv",
-        genotypes = output_dict["output_dir"] + "/{pool}/souporcell/cluster_genotypes.vcf"
+        genotypes = output_dict["output_dir"] + "/{pool}/souporcell/cluster_genotypes.vcf",
+        troublet = output_dict["output_dir"] + "/{pool}/souporcell/troublet.done",
+        concensus = output_dict["output_dir"] + "/{pool}/souporcell/consensus.done",
+        clustering = output_dict["output_dir"] + "/{pool}/souporcell/clustering.done"
     params:
         out = output_dict["output_dir"] + "/{pool}/souporcell/",
         sif = input_dict["singularity_image"],
@@ -69,7 +72,6 @@ rule souporcell:
             --min_ref {params.min_ref} \
             --max_loci {params.max_loci} 2> {log}
         [[ -s {output.genotypes} ]]
-        [[ -s {output.clusters} ]]
         echo $?
         """
 
@@ -138,7 +140,8 @@ rule souporcell_correlate_genotypes:
         assignments = output_dict["output_dir"] + "/{pool}/CombinedResults/CombinedDropletAssignments.tsv"
     output:
         assignments = output_dict["output_dir"] + "/{pool}/CombinedResults/CombinedDropletAssignments_w_genotypeIDs.tsv",
-        variables = temp(output_dict["output_dir"] + "/{pool}/souporcell/souporcel_genotypes_variables")
+        variables = temp(output_dict["output_dir"] + "/{pool}/souporcell/souporcel_genotypes_variables"),
+        correlation = report(output_dict["output_dir"] + "/{pool}/souporcell/genotype_correlations/pearson_correlation.png", category = "Souporcell Genotype Correlations", subcategory = "{pool}", caption = "../report_captions/souporcell.rst")
     resources:
         mem_per_thread_gb = souporcell_dict["souporcell_correlations_memory"],
         disk_per_thread_gb = souporcell_dict["souporcell_correlations_memory"]
@@ -147,13 +150,15 @@ rule souporcell_correlate_genotypes:
         sif = input_dict["singularity_image"],
         bind = bind_path,
         out = output_dict["output_dir"],
-        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Assign_Indiv_by_Geno.R"
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Assign_Indiv_by_Geno.R",
+        cor_thresh = souporcell_dict["souporcell_genotype_correlation_threshold"]
     log: output_dict["output_dir"] + "/logs/souporcell_correlate_genotypes.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.out} > {output.variables}
         singularity exec --bind {params.bind} {params.sif} echo {wildcards.pool} >> {output.variables}
         singularity exec --bind {params.bind} {params.sif} echo {input.assignments} >> {output.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {params.cor_thresh} >> {output.variables}
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {output.variables} 2> {log}
         [[ -s {output.assignments} ]]
         echo $?

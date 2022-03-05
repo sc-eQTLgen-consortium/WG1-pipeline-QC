@@ -11,20 +11,17 @@ def parsePaths(config):
     config["outputs"]["output_dir"] = (config["outputs"]["output_dir"]).rstrip("/")
     return(config) 
 
-def getPGEN(plink_dir):
-	for dirpath, dirnames, filenames in os.walk(plink_dir):
-		for filename in [f for f in filenames if re.search(".pgen", f)]:
-			return(os.path.join(dirpath, filename))
 
-def getPVAR(plink_dir):
-	for dirpath, dirnames, filenames in os.walk(plink_dir):
-		for filename in [f for f in filenames if re.search(".pvar", f)]:
-			return(os.path.join(dirpath, filename))
+def getPGEN(plink_dir, basename):
+	return(plink_dir + "/" + basename + ".pgen")
 
-def getPSAM(plink_dir):
-	for dirpath, dirnames, filenames in os.walk(plink_dir):
-		for filename in [f for f in filenames if re.search(".psam", f)]:
-			return(os.path.join(dirpath, filename))
+
+def getPVAR(plink_dir, basename):
+	return(plink_dir + "/" + basename + ".pvar")
+
+def getPSAM(plink_dir, basename):
+	return(plink_dir + "/" + basename + ".psam")
+
 
 def getVCFdir(ref_dir):
 	for dirpath, dirnames, filenames in os.walk(ref_dir):
@@ -33,8 +30,8 @@ def getVCFdir(ref_dir):
 
 def getFASTA(ref_dir):
 	for dirpath, dirnames, filenames in os.walk(ref_dir):
-		for filename in [f for f in filenames if re.search("Homo_sapiens.GRCh38.dna.primary_assembly.fa", f)]:
-			return(os.path.join(dirpath, filename))
+		for filename in [f for f in filenames if re.search("Homo_sapiens.GRCh38.dna.primary_assembly.fa$", f)]:
+				return(os.path.join(dirpath, filename))
 
 def getMAP(ref_dir):
 	for dirpath, dirnames, filenames in os.walk(ref_dir):

@@ -255,6 +255,7 @@ rule pca_projection_assign:
     output:
         sexcheck = output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv",
         anc_check = output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv",
+        anc_fig = report(output_dict["output_dir"] + "/pca_sex_checks/Ancestry_PCAs.png", category = "Ancestry", caption = "../report_captions/ancestry_pca.rst")
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * 10,
         disk_per_thread_gb=lambda wildcards, attempt: attempt * 10
@@ -275,6 +276,33 @@ rule pca_projection_assign:
         singularity exec --bind {params.bind} {params.sif} echo {input.sexcheck} >> {params.variables}
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.variables}
         """
+
+
+rule summary_ancestry_sex:
+    input:
+        sexcheck = output_dict["output_dir"] + "/check_sex/check_sex.sexcheck.tsv",
+        sexcheck_tsv = output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv",
+        fam = output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.psam",
+        anc_check = output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv"
+    output:
+        report(output_dict["output_dir"] + "/metrics/sex_summary.png", category = "Ancestry and Sex Summary", caption = "../report_captions/sex_summary.rst"),
+        report(output_dict["output_dir"] + "/metrics/ancestry_summary.png", category = "Ancestry and Sex Summary", caption = "../report_captions/ancestry_summary.rst")
+    resources:
+        mem_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["summary_ancestry_sex_memory"],
+        disk_per_thread_gb=lambda wildcards, attempt: attempt * plink_gender_ancestry_QC_dict["summary_ancestry_sex_memory"]
+    threads: plink_gender_ancestry_QC_dict["summary_ancestry_sex_threads"]
+    params:
+        bind = input_dict["bind_paths"],
+        sif = input_dict["singularity_image"],
+        outdir = output_dict["output_dir"] + "/metrics/",
+        basedir = output_dict["output_dir"],
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/sex_ancestry_summaries.R"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.basedir} {params.outdir}
+        """
+
+
 
 rule separate_indivs:
     input:

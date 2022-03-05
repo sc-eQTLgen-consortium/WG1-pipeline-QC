@@ -41,89 +41,136 @@ scrnaseq_libs_df.to_csv(os.path.join(output_dict["output_dir"],'file_directories
 samples = pd.read_csv(input_dict["samplesheet_filepath"], sep = "\t")
 samples.columns = ["Pool", "N"]
 
+logger.info("read in sample info")
+
 fasta = prepareArguments.getFASTA(ref_dict["ref_dir"])
 
-
-# If the scrublet_check output is present => all the contents are there that are needed to move past 
-if os.path.exists(os.path.join(output_dict["output_dir"], "scrublet/scrublet_check.done")):
-    scrublet_decisions = pd.read_csv(os.path.join(output_dict["output_dir"], "manual_selections/scrublet_gene_pctl.txt"), sep = "\t")
+if not fasta is None:
+    logger.info("using this reference fasta: " + fasta)
 
 
-# Import individual rules
-include: "includes/Snakefile_popscle.smk"
-include: "includes/Snakefile_souporcell.smk"
-include: "includes/Snakefile_scrublet.smk"
-include: "includes/Snakefile_scds.smk"
-include: "includes/Snakefile_DoubletDetection.smk"
-include: "includes/Snakefile_CombineResults.smk"
+    # If the scrublet_check output is present => all the contents are there that are needed to move past 
+    if os.path.exists(os.path.join(output_dict["output_dir"], "scrublet/scrublet_check.done")):
+        scrublet_decisions = pd.read_csv(os.path.join(output_dict["output_dir"], "manual_selections/scrublet_gene_pctl.txt"), sep = "\t")
 
 
-# Generate list of files to expect
-## Demuxlet
-demuxlet_files = []
-demuxlet_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/demuxlet_results.txt",  pool=samples.Pool))
+    # Import individual rules
+    include: "includes/Snakefile_popscle.smk"
+    include: "includes/Snakefile_scrublet.smk"
+    include: "includes/Snakefile_souporcell.smk"
+    include: "includes/Snakefile_scds.smk"
+    include: "includes/Snakefile_DoubletDetection.smk"
+    include: "includes/Snakefile_CombineResults.smk"
 
-## Souporcell
-souporcell_files = []
-souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/souporcell_results.txt", pool=samples.Pool))
-souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz", pool=samples.Pool))
 
-## scds
-scds_files = []
-scds_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/scds_results.txt", pool=samples.Pool))
+    # Generate list of files to expect
+    ## Demuxlet
+    demuxlet_files = []
+    demuxlet_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/demuxlet_results.txt",  pool=samples.Pool))
 
-## scrublet 
-## the scrublet files that will be run are dependent on user inputs in the yaml file
-scrublet_files = []
-scrublet_files.append(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv")
-if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv"):
-    scrublet_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv", sep = "\t")
-    if scrublet_selection["scrublet_Percentile"].count() == len(scrublet_selection):
-        scrublet_selection["scrublet_Percentile"] = scrublet_selection["scrublet_Percentile"].astype(int)
-        scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/{pctl}_scrublet_results.txt", zip, pool=scrublet_selection.Pool, pctl = scrublet_selection.scrublet_Percentile))
-    elif scrublet_selection["scrublet_Percentile"].count() != len(scrublet_selection):
-        if scrublet_manual_dict["run_scrublet_manual"] == False:
-            scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/default_run_variables.txt", pool = samples.Pool, pctl = scrublet_dict["percentile"]))
-        elif scrublet_manual_dict["run_scrublet_manual"] == True:
-            scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables.txt",zip, pool = scrublet_manual_dict["scrublet_manual_threshold_pools"], pctl = scrublet_manual_dict["scrublet_manual_threshold_percentiles"]))
-            ### remove the files to force the rule to run if still needing to rerun (will only happen if manual selections aren't filled in all the way)
-            for f in expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables.txt",zip, pool = scrublet_manual_dict["scrublet_manual_threshold_pools"], pctl = scrublet_manual_dict["scrublet_manual_threshold_percentiles"]):
-                fname = f.rstrip() 
-                if os.path.isfile(fname): 
-                    os.remove(fname)
-## DoubletDetection
-DoubletDetection_files = []
-DoubletDetection_files.append(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv")
-if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
-    DoubletDetection_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv", sep = "\t")
-    if len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) == len(DoubletDetection_selection):
-        DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/DoubletDetection_results.txt", pool=DoubletDetection_selection.Pool))
-    elif len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) != len(DoubletDetection_selection):
-        if DoubletDetection_manual_dict["run_DoubletDetection_manual"] == False:
-            DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/default_run_variables.txt", pool = samples.Pool))
-        elif DoubletDetection_manual_dict["run_DoubletDetection_manual"] == True:
-            DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables.txt", pool = DoubletDetection_manual_dict["DoubletDetection_manual_pools"]))
-            ### remove the files to force the rule to run if still needing to rerun (will only happen if manual selections aren't filled in all the way)
-            for f in expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables.txt", pool = DoubletDetection_manual_dict["DoubletDetection_manual_pools"]):
-                fname = f.rstrip() 
-                if os.path.isfile(fname): 
-                    os.remove(fname)
+    ## Souporcell
+    souporcell_files = []
+    souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/souporcell_results.txt", pool=samples.Pool))
+    souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz", pool=samples.Pool))
+    souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz", pool=samples.Pool))
 
-## Combined files at the end
-combined_files = []
-if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv") and os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
-    scrublet_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv", sep = "\t")
-    DoubletDetection_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv", sep = "\t")
-    if scrublet_selection["scrublet_Percentile"].count() == len(scrublet_selection) and len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) == len(DoubletDetection_selection):
-        combined_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/Final_Assignments_demultiplexing_doublets.txt", pool = samples.Pool))
-        combined_files.append(output_dict["output_dir"] + "/QC_figures/UMI_vs_Genes_QC_scatter.png")
+    ## scds
+    scds_files = []
+    scds_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/scds_results.txt", pool=samples.Pool))
 
-# Main rule - input will be all files generated at the top
-rule all:
-    input:
-        demuxlet_files,
-        souporcell_files,
-        scds_files,
-        scrublet_files,
-        DoubletDetection_files,
-        combined_files
+    ## scrublet 
+    ## the scrublet files that will be run are dependent on user inputs in the yaml file
+    scrublet_files = []
+    scrublet_files.append(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv")
+    if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv"):
+        scrublet_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv", sep = "\t")
+        logger.info("Read in the scrublet manual selection file.")
+        if scrublet_selection["scrublet_Percentile"].count() == len(scrublet_selection):
+            logger.info("All the scrublet results have been selected. Will move to next steps.")
+            scrublet_selection["scrublet_Percentile"] = scrublet_selection["scrublet_Percentile"].astype(int)
+            scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/{pctl}_scrublet_results.txt", zip, pool=scrublet_selection.Pool, pctl = scrublet_selection.scrublet_Percentile))
+        elif scrublet_selection["scrublet_Percentile"].count() != len(scrublet_selection):
+            logger.info("The scrublets results did not all PASS. Waiting for them to be competed and thresholds selected.")
+            if scrublet_manual_dict["run_scrublet_manual"] == False:
+                logger.info("Running the default scrublet rules since 'run_scrublet_manual' is set to False.")
+                scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/default_run_variables.txt", pool = samples.Pool, pctl = scrublet_dict["percentile"]))
+            elif scrublet_manual_dict["run_scrublet_manual"] == True:
+                logger.info("Running scrublet rules with manual selections since 'run_scrublet_manual' is set to True.")
+                scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables.txt",zip, pool = scrublet_manual_dict["scrublet_manual_threshold_pools"], pctl = scrublet_manual_dict["scrublet_manual_threshold_percentiles"]))
+                logger.info("Deleting the scrublet results and rerunning since 'run_scrublet_manual' is set to True but results exist.")
+                ### remove the files to force the rule to run if still needing to rerun (will only happen if manual selections aren't filled in all the way)
+                for f in expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables.txt",zip, pool = scrublet_manual_dict["scrublet_manual_threshold_pools"], pctl = scrublet_manual_dict["scrublet_manual_threshold_percentiles"]):
+                    fname = f.rstrip() 
+                    if os.path.isfile(fname): 
+                        os.remove(fname)
+        else:
+            missing_scrublet = set(scrublet_selection['Pool'].astype(str)[[not elem for elem in list(scrublet_selection['scrublet_Percentile'].between(99, 101))]])
+            missing_scrublet_string = "\n".join(missing_scrublet)
+
+            if len(missing_scrublet) > 0:
+                logger.info("\nERROR: The scrublet_Percentile column in the manual_selections/scrublet/scrublet_percentile_manual_selection.tsv file is not completed.\n\nSpecifically, these individuals do not have appropriate inputs for the scrublet_Percentile column in the 'DoubletDetection_manual_selection.tsv' file:\n" + missing_scrublet_string + "\nPlease fill in these selections for the pipeline to continue.")
+            
+            else:
+                logger.info("\nERROR: The scrublet_Percentile column in the manual_selections/scrublet/scrublet_percentile_manual_selection.tsv file is not completed.\n\nWe were unable to identify the exact pools that contained the issue.\n\nPlease fill in these selections for the pipeline to continue.")
+
+
+    ## DoubletDetection
+    DoubletDetection_files = []
+    DoubletDetection_files.append(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv")
+    if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
+        DoubletDetection_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv", sep = "\t")
+        logger.info("Read in the DoubletDetection manual selection file.")
+        if len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) == len(DoubletDetection_selection):
+            logger.info("All the DoubletDetection results have PASSED. Will move to next steps.")
+            DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/DoubletDetection_results.txt", pool=DoubletDetection_selection.Pool))
+        elif len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) != len(DoubletDetection_selection):
+            logger.info("The DoubletDetection results did not all PASS. Waiting for them to be competed and PASS.")
+            if DoubletDetection_manual_dict["run_DoubletDetection_manual"] == False:
+                logger.info("Running the default DoubletDetection rules since 'run_DoubletDetection_manual' is set to False.")
+                DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/default_run_variables.txt", pool = samples.Pool))
+            elif DoubletDetection_manual_dict["run_DoubletDetection_manual"] == True:
+                logger.info("Running DoubletDetection for specified rules since 'run_DoubletDetection_manual' is set to True.")
+                DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables.txt", pool = DoubletDetection_manual_dict["DoubletDetection_manual_pools"]))
+                logger.info("Deleting the DoubletDetection results and rerunning since 'run_DoubletDetection_manual' is set to True but results exist.")
+                ### remove the files to force the rule to run if still needing to rerun (will only happen if manual selections aren't filled in all the way)
+                for f in expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables.txt", pool = DoubletDetection_manual_dict["DoubletDetection_manual_pools"]):
+                    fname = f.rstrip() 
+                    if os.path.isfile(fname): 
+                        os.remove(fname)
+        else:
+            missing_DoubletDetection = set(DoubletDetection_selection['Pool'].astype(str)[[not elem for elem in list(DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).isin(pd.Series(['PASS', 'FAIL'])))]])
+            missing_DoubletDetection_string = "\n".join(missing_DoubletDetection)
+
+            if len(missing_DoubletDetection) > 0:
+                logger.info("\nERROR: The DoubletDetection_PASS_FAIL column in the manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv file is not completed.\n\nSpecifically, these individuals do not have appropriate inputs for the DoubletDetection_PASS_FAIL column in the 'DoubletDetection_manual_selection.tsv' file: " + missing_DoubletDetection_string + "\nPlease fill in these selections for the pipeline to continue.")
+            
+            else:
+                logger.info("\nERROR: The DoubletDetection_PASS_FAIL column in the manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv file is not completed.\n\nWe were unable to identify the exact pools that contained the issue.\n\nPlease fill in these selections for the pipeline to continue.")
+
+
+    ## Combined files at the end
+    combined_files = []
+    if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv") and os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
+        logger.info("Found the 'scrublet_percentile_manual_selection.tsv' and DoubletDetection_manual_selection.tsv files. Reading in.")
+        scrublet_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv", sep = "\t")
+        DoubletDetection_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv", sep = "\t")
+        if scrublet_selection["scrublet_Percentile"].count() == len(scrublet_selection) and len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) == len(DoubletDetection_selection):
+            logger.info("All the DoubletDetection results have PASSED and thresholds selected for scrublet. Will move to next steps.")
+            combined_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/Final_Assignments_demultiplexing_doublets.txt", pool = samples.Pool))
+            combined_files.append(output_dict["output_dir"] + "/QC_figures/UMI_vs_Genes_QC_scatter.png")
+            combined_files.append(output_dict["output_dir"] + "/QC_figures/expected_observed_individuals_classifications.png")
+        else:
+            logger.info("The DoubletDetection and scrublet results were not complete. Once they are complete, the results can be combined and downstream analyses completed.")
+
+    # Main rule - input will be all files generated at the top
+    rule all:
+        input:
+            demuxlet_files,
+            souporcell_files,
+            scds_files,
+            scrublet_files,
+            DoubletDetection_files,
+            combined_files
+
+else:
+    logger.info("Could not find the necessary fasta file.\n\n Exiting.")

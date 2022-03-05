@@ -21,9 +21,10 @@ There are four major steps that this group is addressing with data preprocessing
 
 #. The second step is to :ref:`demultiplex and identify doublets<Demultiplexing_Introduction-docs>`. This will allow droplets containing single cells to be assigned to an individual and droplets that contain two cells to be removed.
 
-#. The third step is to :ref:`analyze the quality metrics<QC_Figures-docs>` of the data. These data and results should be fully discussed with members of WG1 too choose effective thresholds for each dataset
+#. The third step is to :ref:`analyze the quality metrics<QC_Filtering-docs>` of the data. These data and results should be fully discussed with members of WG1 too choose effective thresholds for each dataset
 
-#. The last step is the :ref:`final data preparation<QC_Filtering-docs>` for WG2 to conduct cell classification
+#. The last step is the :ref:`final data preparation<QC_Filtering-docs>` to fileter out doublets.
+
 
 If you have any questions or issues, feel free to open an issue_ or directly email Drew Neavin (d.neavin @ garvan.org.au)
 
