@@ -3,4 +3,7 @@
 
 Part of the sceQTL-Gen consortium pipeline. Step 1, where the QC is done.
 
-Please see the [Wiki](https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki) for information on running the QC pipeline.
+Please see the [documentation](https://wg1-pipeline-qc.readthedocs.io/en/latest/) for information on running the QC pipeline.
+
+
+
