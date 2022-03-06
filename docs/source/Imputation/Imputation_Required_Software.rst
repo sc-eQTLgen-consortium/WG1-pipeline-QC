@@ -38,8 +38,8 @@ Otherwise, feel reach out to us and we can find another solution.
 
    .. code-block:: bash
 
-    wget https://www.dropbox.com/s/c5i5zk1985aqjqa/WG1-pipeline-QC_imputation.sif
-    wget https://www.dropbox.com/s/uwa0o2nltzv8xlo/WG1-pipeline-QC_imputation.sif.md5
+    wget https://www.dropbox.com/s/ib78j88g5my15fs/WG1-pipeline-QC_imputation.sif
+    wget https://www.dropbox.com/s/he89x6xg915b4c3/WG1-pipeline-QC_imputation.sif.md5
 
    Again, please make sure that the image is uncorrupted by comparing the md5sum
 
@@ -48,6 +48,19 @@ Otherwise, feel reach out to us and we can find another solution.
 
     md5sum WG1-pipeline-QC_imputation.sif > downloaded_WG1-pipeline-QC_imputation.sif.md5
     diff -s WG1-pipeline-QC_imputation.sif.md5 downloaded_WG1-pipeline-QC_imputation.sif.md5
+
+
+   .. note::
+
+    With the implementation of newer versions of the pipeline, it is important to make sure your singularity image alignes with the version of the pipeline documentation that you are currently using.
+    To check the version of your singluation image plase run:
+
+    .. code-block:: bash
+
+        singularity inspect WG1-pipeline-QC_imputation.sif
+
+    which will tell you the image version you are currenlty using and, therefore, the relevant documentation for that image.
+
 
 2. Next, please set up the pipeline with the following command; you will need to provide an absolute directory path to allow singularity to find the correct directories - this must be a directory somewhere above where you current working directory or the current working directory itself:
 

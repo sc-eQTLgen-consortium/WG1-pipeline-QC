@@ -37,8 +37,8 @@ To install the singularity image with the pipeline:
 
    .. code-block:: bash
 
-    wget https://www.dropbox.com/s/up4z83vlex34w9u/WG1-pipeline-QC_wgpipeline.sif
-    wget https://www.dropbox.com/s/4fzxah1vjcqbmm8/WG1-pipeline-QC_wgpipeline.sif.md5
+    wget https://www.dropbox.com/s/t8txw3yttj14we2/WG1-pipeline-QC_wgpipeline.sif
+    wget https://www.dropbox.com/s/n2vugd6w7glyuft/WG1-pipeline-QC_wgpipeline.sif.md5
 
 
    After downloading the image, it is best to make sure the md5sum of the `WG1-pipeline-QC_wgpipeline.sif` file matches the md5sum in the `WG1-pipeline-QC_wgpipeline.sif.md5`:
@@ -54,6 +54,17 @@ To install the singularity image with the pipeline:
    .. code-block:: bash
 
       Files WG1-pipeline-QC_wgpipeline.sif.md55 and downloaded_WG1-pipeline-QC_wgpipeline.sif.md5 are identical
+
+   .. note::
+
+      With the implementation of newer versions of the pipeline, it is important to make sure your singularity image alignes with the version of the pipeline documentation that you are currently using.
+      To check the version of your singluation image plase run:
+
+      .. code-block:: bash
+
+         singularity inspect WG1-pipeline-QC_wgpipeline.sif 
+
+      which will tell you the image version you are currenlty using and, therefore, the relevant documentation for that image.
 
 
 #. Set up the pipeline with the following command; you will need to provide an absolute directory path to allow singularity to find the correct directories - this must be a directory somewhere above where you current working directory or the current working directory itself:

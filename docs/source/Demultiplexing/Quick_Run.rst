@@ -12,6 +12,19 @@ If you need further details, feel free to go to the more detailed :ref:`Running 
 If you have any questions or issues, feel free to open an issue_ or directly email Drew Neavin (d.neavin @ garvan.org.au)
 
 
+.. note::
+
+  With the implementation of newer versions of the pipeline, it is important to make sure your singularity image alignes with the version of the pipeline documentation that you are currently using.
+  To check the version of your singluation image plase run:
+
+  .. code-block:: bash
+
+      singularity inspect WG1-pipeline-QC_wgpipeline.sif 
+
+  which will tell you the image version you are currenlty using and, therefore, the relevant documentation for that image.
+
+
+
 Quick Run
 ----------
 

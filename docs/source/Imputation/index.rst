@@ -15,7 +15,7 @@ The imputed SNP genotypes will also be needed for demultiplexing and doublet rem
 
 This section of the documentation will provide instructions to run the Imputation pipeline with Snakemake_ from a provided Singularity_ image.
 This helps provide consistency across different groups and HPCs.
-The first step will be to organize the :ref:`required inputs <Imputation_Data-docs>` for the pipeline.
+The first step will be to organize the :ref:`required inputs <Imputation_Input-docs>` for the pipeline.
 
 
 If you have any questions or issues, feel free to open an issue_ or directly email Drew Neavin (d.neavin @ garvan.org.au)
