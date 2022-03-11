@@ -377,7 +377,7 @@ if not None in [pgen,pvar,psam]:
             missing_names_string = "\n".join(missing_names)
             
             logger.info("The column names of your psam file are not correct.\n\
-            The columns that you are missing or whose spelling does not match the required input is/are:\n" + missing_names + "\n\
+            The columns that you are missing or whose spelling does not match the required input is/are:\n" + missing_names_string + "\n\
             They should be: '#FID', 'IID', 'PAT', 'MAT', 'SEX', 'Provided_Ancestry','genotyping_platform', 'array_available', 'wgs_available','wes_available', 'age', 'age_range', 'Study', 'smoking_status', 'hormonal_contraception_use_currently', 'menopause',  'pregnancy_status'.\n\
             If the names look the same, check that the file is tab separated, without any spaces or other weird characters.\n\n\
             Exiting.")
