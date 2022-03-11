@@ -37,8 +37,8 @@ To install the singularity image with the pipeline:
 
    .. code-block:: bash
 
-    wget https://www.dropbox.com/s/ib78j88g5my15fs/WG1-pipeline-QC_imputation.sif
-    wget https://www.dropbox.com/s/he89x6xg915b4c3/WG1-pipeline-QC_imputation.sif.md5
+    wget https://www.dropbox.com/s/t8txw3yttj14we2/WG1-pipeline-QC_wgpipeline.sif
+    wget https://www.dropbox.com/s/n2vugd6w7glyuft/WG1-pipeline-QC_wgpipeline.sif.md5
 
 
    After downloading the image, it is best to make sure the md5sum of the `WG1-pipeline-QC_wgpipeline.sif` file matches the md5sum in the `WG1-pipeline-QC_wgpipeline.sif.md5`:
