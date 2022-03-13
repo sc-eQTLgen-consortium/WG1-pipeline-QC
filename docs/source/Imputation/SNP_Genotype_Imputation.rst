@@ -405,7 +405,7 @@ You should have the following results directories:
 
 
 You will also have an html report that includes figures and pipeline metrics called ``imputation_report.html``.
-The report generated for this testa dataset is available :download:`here <../_static/imputation_report.html>`.
+The report generated for this test dataset is available :download:`here <../_static/imputation_report.html>`.
 
 This report will have three main figure subsets:
 
@@ -432,6 +432,18 @@ This report will have three main figure subsets:
     :width: 300
 
 
+
+Uploading Data
+---------------
+
+Upon completing the SNP Imputation pipeline, please contact Marc Jan Bonder at bondermj @ gmail.com to get a link to upload the ``imputation_report.html`` and the ``genotype_donor_annotation.tsv``
+Be sure to include your dataset name as well as the PI name associated to the dataset.
+This link will also be used for data upload at the end of the demultiplexing and doublet removal pipeline, QC images and WG2 results.
+
+.. admonition:: Important
+  :class: caution
+  
+  Please note you can't change filenames after uploading!
 
 
 

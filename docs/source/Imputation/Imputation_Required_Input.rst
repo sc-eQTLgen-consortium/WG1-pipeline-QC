@@ -177,6 +177,12 @@ Key for column contents:
 - Any additional metadata can be added as additional columns
 
 
+.. admonition:: Important
+  :class: caution
+
+  The ``data.psam`` file will be used to generate a per-individual meta-data file for use in WG3 (eQTL detection) and will be uploaded to a shared own cloud.
+  As such, it is important that you carefully consider whether any individual IDs need to be anonymized.
+
 
 
 Next Steps
