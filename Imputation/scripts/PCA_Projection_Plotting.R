@@ -3,7 +3,8 @@ library(tidyverse)
 library(ggpubr)
 library(cluster)
 library(RColorBrewer)
-
+library(caret)
+library(data.table)
 
 args <- commandArgs(TRUE)
 arguments <- read.table(args, header = F)
@@ -21,6 +22,7 @@ sex_check <- read_delim(as.character(arguments[6,]), delim = "\t", col_types = c
 ##### Read in PCA Results #####
 
 ##### Remove # from colnames #####
+data_score <- data_score[!(is.na(data_score$PC1_AVG) | data_score$PC1_AVG == "NaN"),]
 colnames(data_score) <- gsub("#", "",colnames(data_score))
 colnames(onekg_score) <- gsub("#", "",colnames(onekg_score))
 colnames(onekg_anc) <- gsub("#", "",colnames(onekg_anc))
@@ -43,6 +45,7 @@ onekg_score_temp <- onekg_score[,c("IID", colnames(onekg_score)[grep("PC", colna
 colnames(onekg_score_temp) <- c("IID",paste0("PC",1:(ncol(onekg_score_temp)-1)))
 onekg_score_temp$FID <- NA
 onekg_score_temp <- onekg_score_temp[,c("FID","IID",paste0("PC",1:(ncol(onekg_score_temp)-2)))]
+onekg_score_temp <- left_join(onekg_score_temp, onekg_anc[,c("IID", "SuperPop")])
 print(head(as.data.frame(onekg_score_temp)))
 
 if (any(grepl("FID", colnames(data_score)))){
@@ -53,7 +56,16 @@ if (any(grepl("FID", colnames(data_score)))){
   colnames(data_score_temp) <- c("IID",paste0("PC",1:(ncol(data_score_temp)-1)))
   data_score_temp$FID <- NA
 }
+data_score_temp$SuperPop <- NA
 print(head(as.data.frame(data_score_temp)))
+
+
+model <- train(SuperPop ~ ., data = onekg_score_temp[,c("SuperPop", paste0("PC", 1:10))], method = "knn")
+predictions <- predict(model, newdata = data_score_temp, type = "prob")
+predictions$assignment <- colnames(predictions)[max.col(predictions,ties.method="first")]
+
+data_score_temp$combined_assignment <- predictions$assignment
+onekg_score_temp$combined_assignment <- onekg_score_temp$SuperPop
 
 
 scores <- rbind(onekg_score_temp, data_score_temp)
@@ -67,42 +79,25 @@ scores <- left_join(scores, data_anc[,c("IID", "Provided_Ancestry")])
 print(head(as.data.frame(scores)))
 
 
-##### Calculate Medoids and Assign Clusters #####
-pam_res <- pam(scores[,2:11], 6)
+scores$Changed <- ifelse(is.na(scores$Provided_Ancestry), "Matched", ifelse(scores$Provided_Ancestry == scores$combined_assignment, "Matched", paste0("Unmatched-",scores$Provided_Ancestry,"->",scores$combined_assignment)))
 
-
-##### Assign Ancestries to Individuals #####
-scores$Cluster <- factor(pam_res$clustering)
-print(head(as.data.frame(scores)))
-
-conversion_table <- table(scores$SuperPop, scores$Cluster)
-conversion_key <- data.frame(Cluster = colnames(conversion_table), Assignment = NA)
-
-for (clust in conversion_key$Cluster){
-  conversion_key$Assignment[which(conversion_key$Cluster == clust)] <- rownames(conversion_table)[which.max(conversion_table[,clust])]
-}
-print(conversion_key)
-
-
-scores <- left_join(scores, conversion_key)
-
-scores$combined_assignment <- ifelse(is.na(scores$SuperPop), scores$Assignment, scores$SuperPop)
-scores$combined_assignment <- ifelse(is.na(scores$SuperPop), scores$Assignment, scores$SuperPop)
-scores$Changed <- ifelse(is.na(scores$Provided_Ancestry), "Matched", ifelse(scores$Provided_Ancestry == scores$Assignment, "Matched", paste0("Unmatched-",scores$Provided_Ancestry,"->",scores$Assignment)))
 
 ##### Plot Results #####
 df4plots <- rbind(data.frame(scores[which(is.na(scores$Provided_Ancestry)),], Plot = "1000G Reference"), data.frame(scores[which(!is.na(scores$Provided_Ancestry)),], Plot = "Projected Data Assignments"), data.frame(scores[which(!is.na(scores$Provided_Ancestry)),], Plot = "Projected Data Assignments vs Original Assignments"))
-df4plots$Final_Assignment <- ifelse(df4plots$Plot == "Projected Data Assignments", df4plots$Assignment, ifelse(df4plots$Plot == "Projected Data Assignments vs Original Assignments", df4plots$Changed, df4plots$combined_assignment))
+df4plots$Final_Assignment <- ifelse(df4plots$Plot == "Projected Data Assignments vs Original Assignments", df4plots$Changed, df4plots$combined_assignment)
 df4plots <- arrange(df4plots, Final_Assignment)
-df4plots$Final_Assignment <- factor(df4plots$Final_Assignment, levels = c(unique(df4plots$Assignment), unique(df4plots$Changed)))
+df4plots$Final_Assignment <- factor(df4plots$Final_Assignment, levels = c(unique(df4plots$combined_assignment), unique(df4plots$Changed)))
+
+print("df4plots")
+print(head(df4plots))
 
 
 ##### Set up population colors #####
 matching_colors <- c("gray88",colorRampPalette(brewer.pal(11, 'RdYlBu'))(length(unique(scores$Changed))-1))
 names(matching_colors) <- sort(unique(scores$Changed))
 
-pop_colors <- brewer.pal(length(unique(scores$Assignment)), "Dark2")
-names(pop_colors) <- unique(scores$Assignment)
+pop_colors <- brewer.pal(length(unique(scores$combined_assignment)), "Dark2")
+names(pop_colors) <- unique(scores$combined_assignment)
 
 colors <- c(matching_colors, pop_colors)
 
@@ -116,6 +111,7 @@ plot_PCs_medoids <- ggplot(df4plots, aes(PC1, PC2, color = Final_Assignment)) +
 ggsave(plot_PCs_medoids, filename = paste0(outdir,"Ancestry_PCAs.png"), height = 5, width = 12)
 
 
+fwrite(df4plots[df4plots$Plot == "Projected Data Assignments",], paste0(outdir, "Ancestry_assignments.tsv"), sep = "\t")
 
 ##### Subset the Mismatching Ancestry and Sex data #####
 sex_mismatch <- sex_check[which(sex_check$STATUS == "PROBLEM"),]
@@ -129,7 +125,7 @@ colnames(sex_mismatch)[1] <- paste0("#",colnames(sex_mismatch)[1])
 write_delim(sex_mismatch, paste0(outdir, "/check_sex_update_remove.tsv"), na = "", delim = "\t")
 
 anc_mismatch <- df4plots[which(df4plots$Plot == "Projected Data Assignments vs Original Assignments" & df4plots$Final_Assignment != "Matched"),]
-anc_temp <- df4plots[,c("FID","IID", "Assignment")]
+anc_temp <- df4plots[,c("FID","IID", "Final_Assignment")]
 colnames(anc_temp) <- c("FID","IID", "PCA_Assignment")
 
 anc_mismatch <- left_join(anc_mismatch[,c("FID","IID")], data_anc)
@@ -145,6 +141,9 @@ colnames(anc_mismatch)[1] <- paste0("#",colnames(anc_mismatch)[1])
 
 anc_mismatch <- anc_mismatch[,c("#FID", "IID", "Provided_Ancestry", "PCA_Assignment", "UPDATE/REMOVE/KEEP")]
 
-print("writing acestryupdate_remove.tsv file")
+anc_mismatch <- anc_mismatch[!(grepl("Unmatched", anc_mismatch$PCA_Assignment)),]
+
+
+print("writing acestry_update_remove.tsv file")
 write_delim(anc_mismatch, paste0(outdir,"/ancestry_update_remove.tsv"), na = "", delim = "\t")
 

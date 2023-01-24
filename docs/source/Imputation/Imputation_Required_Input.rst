@@ -120,19 +120,19 @@ The psam must be tab separated with the following headers and contents should lo
 +------+--------+--------+-------+------+-------------------+--------------------------------------+-----------------+---------------+---------------+-----+-----------+--------+----------------+--------------------------------------+-----------+------------------+
 | #FID |  IID   |  PAT   |  MAT  |  SEX | Provided_Ancestry | genotyping_platform                  | array_available | wgs_available | wes_available | age | age_range | Study  | smoking_status | hormonal_contraception_use_currently | menopause | pregnancy_status |
 +======+========+========+=======+======+===================+======================================+=================+===============+===============+=====+===========+========+================+======================================+===========+==================+
-| 113  |   113  |   0    |     0 |   1  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 78  | 70        | OneK1K | NA             | NA                                   | NA        | NA               |
+| 113  |   113  |   0    |     0 |   1  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 78  | 70        | OneK1K | NONE           | NONE                                 | NONE      | NONE             |
 +------+--------+--------+-------+------+-------------------+--------------------------------------+-----------------+---------------+---------------+-----+-----------+--------+----------------+--------------------------------------+-----------+------------------+
-|349   |  350   |   0    |    0  |   1  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 81  | 80        | OneK1K | NA             | NA                                   | NA        | NA               |
+|349   |  350   |   0    |    0  |   1  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 81  | 80        | OneK1K | NONE           | NONE                                 | NONE      | NONE             |
 +------+--------+--------+-------+------+-------------------+--------------------------------------+-----------------+---------------+---------------+-----+-----------+--------+----------------+--------------------------------------+-----------+------------------+
-|352   |   353  |   0    |    0  |   2  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 89  | 80        | OneK1K | NA             | NA                                   | NA        | NA               |
+|352   |   353  |   0    |    0  |   2  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 89  | 80        | OneK1K | NONE           | NONE                                 | NONE      | NONE             |
 +------+--------+--------+-------+------+-------------------+--------------------------------------+-----------------+---------------+---------------+-----+-----------+--------+----------------+--------------------------------------+-----------+------------------+
-|39    |   39   |    0   |     0 |   2  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 56  | 50        | OneK1K | NA             | NA                                   | NA        | NA               |
+|39    |   39   |    0   |     0 |   2  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 56  | 50        | OneK1K | NONE           | NONE                                 | NONE      | NONE             |
 +------+--------+--------+-------+------+-------------------+--------------------------------------+-----------------+---------------+---------------+-----+-----------+--------+----------------+--------------------------------------+-----------+------------------+
-|40    |    40  |    0   |    0  |   2  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 53  | 50        | OneK1K | NA             | NA                                   | NA        | NA               |
+|40    |    40  |    0   |    0  |   2  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 53  | 50        | OneK1K | NONE           | NONE                                 | NONE      | NONE             |
 +------+--------+--------+-------+------+-------------------+--------------------------------------+-----------------+---------------+---------------+-----+-----------+--------+----------------+--------------------------------------+-----------+------------------+
-|41    |    41  |    0   |    0  |   1  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 63  | 60        | OneK1K | NA             | NA                                   | NA        | NA               |
+|41    |    41  |    0   |    0  |   1  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 63  | 60        | OneK1K | NONE           | NONE                                 | NONE      | NONE             |
 +------+--------+--------+-------+------+-------------------+--------------------------------------+-----------------+---------------+---------------+-----+-----------+--------+----------------+--------------------------------------+-----------+------------------+
-|42    |   42   |   0    |    0  |   2  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 76  | 70        | OneK1K | NA             | NA                                   | NA        | NA               |
+|42    |   42   |   0    |    0  |   2  |   EUR             | IlluminaInfiniumGlobalScreeningArray | Y               |  N            | N             | 76  | 70        | OneK1K | NONE           | NONE                                 | NONE      | NONE             |
 +------+--------+--------+-------+------+-------------------+--------------------------------------+-----------------+---------------+---------------+-----+-----------+--------+----------------+--------------------------------------+-----------+------------------+
 |...   | ...    | ...    | ...   | ...  | ...               | ...                                  | ...             | ...           | ...           | ... | ...       | ...    | ...            | ...                                  | ...       | ...              |
 +------+--------+--------+-------+------+-------------------+--------------------------------------+-----------------+---------------+---------------+-----+-----------+--------+----------------+--------------------------------------+-----------+------------------+
@@ -150,7 +150,7 @@ Key for column contents:
 
 - **SEX**: Sex code ('1' = male, '2' = female, '0' = unknown)
 
-- **Provided_Ancestry**: reported ancestry ('AFR' = African, 'AMR' = Ad Mixed American, 'EAS' = East Asian, 'EUR' = European, 'SAS' = South Asian). If you don't know, use 'NA'.
+- **Provided_Ancestry**: reported ancestry ('AFR' = African, 'AMR' = Ad Mixed American, 'EAS' = East Asian, 'EUR' = European, 'SAS' = South Asian). If you don't know, use 'NONE'.
 
 - **genotyping_platform**: array genotyping was done on
 
@@ -160,19 +160,19 @@ Key for column contents:
 
 - **wes_available**: 'Y' or 'N'; whether whole exome sequencing is available
 
-- **age**: age in years of integer, NA if unknown.
+- **age**: age in years of integer, 'NA' if unknown.
 
-- **age_range**: age in decades - lower bound, NA if unknown.
+- **age_range**: age in decades - lower bound, 'NA' if unknown.
 
 - **Study**: name of the study this donor was included in.
 
-- **smoking_status**: Whether the donor smokes or smoked in the past. Options are:'yes': smokes at time of sample collection, 'past': smoked in the past but not at time of sample collection, 'no': never smoked, 'NA': unknown smoking status.
+- **smoking_status**: Whether the donor smokes or smoked in the past. Options are:'yes': smokes at time of sample collection, 'past': smoked in the past but not at time of sample collection, 'no': never smoked, 'NONE': unknown smoking status.
 
-- **hormonal_contraception_use_currently**: whether the donor is currently using hormonal contraception. Options are: 'yes' (currently using hormonal contraception), 'no' (not  currently using hormonal contraception) or 'NA' (unknown status of contraception use). Note that male donors must be coded as 'NA'.
+- **hormonal_contraception_use_currently**: whether the donor is currently using hormonal contraception. Options are: 'yes' (currently using hormonal contraception), 'no' (not  currently using hormonal contraception) or 'NONE' (unknown status of contraception use). Note that male donors must be coded as 'NONE'.
 
-- **menopause**: Donor menopause status at the time of sample collection. Options are 'pre' (have not yet gone through menopause), 'menopause' (currently going through menopause), 'post' (completed menopause) or 'NA' (unknown menopause status or male). *Note:* that male donors must be coded as 'NA'.
+- **menopause**: Donor menopause status at the time of sample collection. Options are 'pre' (have not yet gone through menopause), 'menopause' (currently going through menopause), 'post' (completed menopause) or 'NONE' (unknown menopause status or male). *Note:* that male donors must be coded as 'NONE'.
 
-- **pregnancy_status**: Donor pregnancy status at the time of sample collection. Options are 'yes' (pregnant at time of sample collection), 'no' (not pregnant at time of sample collection) or 'NA' (unknown pregnancy status or male). *Note:* that male donors must be coded as 'NA'.
+- **pregnancy_status**: Donor pregnancy status at the time of sample collection. Options are 'yes' (pregnant at time of sample collection), 'no' (not pregnant at time of sample collection) or 'NONE' (unknown pregnancy status or male). *Note:* that male donors must be coded as 'NONE'.
 
 - Any additional metadata can be added as additional columns
 

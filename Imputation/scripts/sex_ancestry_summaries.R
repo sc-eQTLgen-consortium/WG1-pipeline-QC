@@ -16,12 +16,12 @@ outdir <- args[2]
 
 
 ##### Read in Results #####
-sex_check <- fread(paste0(dir,"/check_sex/check_sex.sexcheck.tsv"), sep = "\t")
+sex_check <- fread(paste0(dir,"/check_sex/check_sex.sexcheck.tsv"), sep = "\t", colClasses=list(character = c("FID", "IID", "STATUS"), double=c("PEDSEX","SNPSEX","F")))
 colnames(sex_check)[1] <- "#FID"
-sex_decisions <- fread(paste0(dir,"/pca_sex_checks/check_sex_update_remove.tsv"), sep = "\t")
+sex_decisions <- fread(paste0(dir,"/pca_sex_checks/check_sex_update_remove.tsv"), sep = "\t", colClasses=list(character = c("#FID", "IID", "STATUS", "UPDATE/REMOVE/KEEP"), double=c("PEDSEX","SNPSEX","F")))
 
-psam <- fread(paste0(dir,"/indiv_missingness/indiv_missingness.psam"))
-ancestry_decisions <- fread(paste0(dir,"/pca_sex_checks/ancestry_update_remove.tsv"))
+psam <- fread(paste0(dir,"/indiv_missingness/indiv_missingness.psam"), colClasses=list(character = c("#FID", "IID","Provided_Ancestry")))
+ancestry_decisions <- fread(paste0(dir,"/pca_sex_checks/ancestry_update_remove.tsv"), colClasses=list(character = c("#FID", "IID", "Provided_Ancestry", "PCA_Assignment", "UPDATE/REMOVE/KEEP")))
 
 
 

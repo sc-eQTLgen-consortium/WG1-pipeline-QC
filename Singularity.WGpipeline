@@ -47,6 +47,12 @@ From: drneavin/SingularityBaseImages:r363_python368
         make
 
     cd /opt
+    wget https://github.com/arq5x/bedtools2/releases/download/v2.29.1/bedtools-2.29.1.tar.gz
+        tar -zxvf bedtools-2.29.1.tar.gz
+        cd bedtools2
+        make
+
+    cd /opt
     CARGO_HOME=/opt/.cargo RUSTUP_HOME=/opt/.cargo bash -c 'curl https://sh.rustup.rs -sSf | sh -s -- -y'
         . /opt/.cargo/env
         which cargo
@@ -135,7 +141,7 @@ From: drneavin/SingularityBaseImages:r363_python368
     exec cp -a ${SCRIPT_DIR}/. "$PWD"
 
 %apphelp test_dataset
-    This function copies the yaml scripts to the user systems from the Singularity image.
+    This function copies the test dataset to the user systems from the Singularity image.
 %appenv test_dataset
     TAR=/opt/TestData4PipelineSmall.tar.gz
     export TAR
