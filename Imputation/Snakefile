@@ -70,7 +70,7 @@ if not None in [pgen,pvar,psam]:
                     if (psam_df['SEX'].isin(pd.Series([0, 1, 2])).all()):
 
                         ### Check that ancestry is 'AFR', 'AMR', 'EAS', 'EUR', 'SAS' or NA
-                        if (psam_df['Provided_Ancestry'].isin(pd.Series(['AFR', 'AMR', 'EAS', 'EUR', 'SAS'])).sum() + psam_df['Provided_Ancestry'].isnull().sum() == len(psam_df['Provided_Ancestry'])):
+                        if (psam_df['Provided_Ancestry'].isin(pd.Series(['AFR', 'AMR', 'EAS', 'EUR', 'SAS', 'NONE'])).sum() == len(psam_df['Provided_Ancestry'])):
                                 
                             ### Check that array_available is Y or N
                             if (psam_df['array_available'].isin(pd.Series(['Y', 'N'])).all()):
@@ -91,30 +91,30 @@ if not None in [pgen,pvar,psam]:
                                                 if not (psam_df['Study'].isna().any() or psam_df['Study'].isnull().any()):
 
                                                     ### Check that smoking_status is 'yes' 'no' 'past' or NA
-                                                    if (psam_df['smoking_status'].isin(pd.Series(['yes', 'no', 'past'])).sum() + psam_df['smoking_status'].isnull().sum() == len(psam_df['smoking_status'])):
+                                                    if (psam_df['smoking_status'].isin(pd.Series(['yes', 'no', 'past', 'NONE'])).sum() == len(psam_df['smoking_status'])):
 
                                                         ### Check that hormonal_contraception_use_currently is 'yes' 'no' or NA
-                                                        if (psam_df['hormonal_contraception_use_currently'].isin(pd.Series(['yes', 'no'])).sum() + psam_df['hormonal_contraception_use_currently'].isnull().sum() == len(psam_df['hormonal_contraception_use_currently'])):
+                                                        if (psam_df['hormonal_contraception_use_currently'].isin(pd.Series(['yes', 'no', 'NONE'])).sum() == len(psam_df['hormonal_contraception_use_currently'])):
 
 
                                                             ### Check that hormonal_contraception_use_currently is NA for all males
-                                                            if (psam_df.loc[psam_df['SEX'] == 1].hormonal_contraception_use_currently.isna().all()):
+                                                            if (psam_df.loc[psam_df['SEX'] == 1].hormonal_contraception_use_currently.isin(['NONE']).all()):
 
 
                                                                 ### Check that menopause is 'pre', 'menopause', 'post' or NA
-                                                                if (psam_df['menopause'].isin(pd.Series(['pre', 'menopause', 'post'])).sum() + psam_df['menopause'].isnull().sum() == len(psam_df['menopause'])):
+                                                                if (psam_df['menopause'].isin(pd.Series(['pre', 'menopause', 'post', 'NONE'])).sum() == len(psam_df['menopause'])):
 
 
                                                                     ### Check that menopause is NA for all males
-                                                                    if (psam_df.loc[psam_df['SEX'] == 1].menopause.isna().all()):
+                                                                    if (psam_df.loc[psam_df['SEX'] == 1].menopause.isin(['NONE']).all()):
 
 
                                                                         ### Check that pregnancy_status is 'yes' 'no' or NA
-                                                                        if (psam_df['pregnancy_status'].isin(pd.Series(['yes', 'no'])).sum() + psam_df['pregnancy_status'].isnull().sum() == len(psam_df['pregnancy_status'])):
+                                                                        if (psam_df['pregnancy_status'].isin(pd.Series(['yes', 'no', 'NONE'])).sum() == len(psam_df['pregnancy_status'])):
 
 
                                                                             ### Check that pregnancy_status is NA for all males
-                                                                            if (psam_df.loc[psam_df['SEX'] == 1].pregnancy_status.isna().all()):
+                                                                            if (psam_df.loc[psam_df['SEX'] == 1].pregnancy_status.isin(['NONE']).all()):
 
 
                                                                                 ### Check for underscores in the FID and IID columns - if there are, update and make new files
@@ -197,7 +197,6 @@ if not None in [pgen,pvar,psam]:
                                                                                         if ancestry_check["UPDATE/REMOVE/KEEP"].count() == len(ancestry_check) and pd.Series(ancestry_check["UPDATE/REMOVE/KEEP"]).isin(['UPDATE', 'REMOVE', 'KEEP']).all() and sex_check["UPDATE/REMOVE/KEEP"].count() == len(sex_check) and pd.Series(sex_check["UPDATE/REMOVE/KEEP"]).isin(['UPDATE', 'REMOVE', 'KEEP']).all():
                                                                                             if not os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_mafs.tsv"):
                                                                                                 ##### First, need to provide users summary of the ancestries and get interactive allele frequency selections ###
-                                                                                                ### if there are any individuals chosen to remove, remove them from the psam
                                                                                                 psam_df_local = psam_df
 
                                                                                                 ### if htere are any individuals chosen to update the ancestry, update them
@@ -210,6 +209,15 @@ if not None in [pgen,pvar,psam]:
                                                                                                     psam_df_local.update(updates)
 
                                                                                                 psam_df_local.to_csv(output_dict["output_dir"] + "/pca_sex_checks/updated_psam.psam", sep = "\t", na_rep = "NA", index = False)
+
+                                                                                                ### if there are any individuals chosen to remove, remove them from the psam
+                                                                                                ## Note that the individuals identified to remove are actually removed from the psam using a plink command so the following is just to make sure the numbers are correct when asking about individuals to impute
+                                                                                                if (ancestry_check["UPDATE/REMOVE/KEEP"] == "REMOVE").any():
+                                                                                                    ids2remove = ancestry_check['IID'][ancestry_check["UPDATE/REMOVE/KEEP"] == "REMOVE"].values
+                                                                                                    psam_df_local = psam_df_local.drop(ids2remove)
+                                                                                                if (sex_check["UPDATE/REMOVE/KEEP"] == "REMOVE").any():
+                                                                                                    ids2remove = sex_check['IID'][sex_check["UPDATE/REMOVE/KEEP"] == "REMOVE"].values
+                                                                                                    psam_df_local = psam_df_local.drop(ids2remove)
 
                                                                                                 ### identify the ancestries in total and provide user input for maf selection
                                                                                                 uniq_ancestries = psam_df_local['Provided_Ancestry'].unique()
@@ -290,40 +298,40 @@ if not None in [pgen,pvar,psam]:
 
                                                                             else:
                                                                                 logger.info("There is a conflict between you SEX and your pregnancy_status columns.\n\
-                                                                                All males (coded by 1 in SEX) must be NA for pregnancy_status.\n\
+                                                                                All males (coded by 1 in SEX) must be 'NONE' for pregnancy_status.\n\
                                                                                 Please fix this before running the pipeline.\n\
                                                                                 Exiting.")
                                                                         
                                                                         else:
-                                                                            logger.info("Your pregnancy_status column does not have just 'yes', 'no', or NA.\n\
-                                                                            Please make sure all values in this column are 'yes', 'no' or NA.\n\
+                                                                            logger.info("Your pregnancy_status column does not have just 'yes', 'no', or 'NONE'.\n\
+                                                                            Please make sure all values in this column are 'yes', 'no' or 'NONE'.\n\
                                                                             Exiting.")
 
                                                                     else:
                                                                         logger.info("There is a conflict between you SEX and your menopause columns.\n\
-                                                                        All males (coded by 1 in SEX) must be NA for menopause.\n\
+                                                                        All males (coded by 1 in SEX) must be 'NONE' for menopause.\n\
                                                                         Please fix this before running the pipeline.\n\
                                                                         Exiting.")
 
                                                                 else:
-                                                                    logger.info("Your menopause column does not have just 'pre', 'menopause', 'post', or NA.\n\
-                                                                    Please make sure all values in this column are 'pre', 'menopause', 'post' or NA.\n\
+                                                                    logger.info("Your menopause column does not have just 'pre', 'menopause', 'post', or 'NONE'.\n\
+                                                                    Please make sure all values in this column are 'pre', 'menopause', 'post' or 'NONE'.\n\
                                                                     Exiting.")
 
                                                             else:
                                                                logger.info("There is a conflict between you SEX and your hormonal_contraception_use_currently columns.\n\
-                                                                All males (coded by 1 in SEX) must be NA for hormonal_contraception_use_currently.\n\
+                                                                All males (coded by 1 in SEX) must be 'NONE' for hormonal_contraception_use_currently.\n\
                                                                 Please fix this before running the pipeline.\n\
                                                                 Exiting.")
 
                                                         else:
-                                                            logger.info("Your hormonal_contraception_use_currently column does not have just 'yes', 'no', or NA.\n\
-                                                            Please make sure all values in this column are 'yes', 'no', or NA.\n\
+                                                            logger.info("Your hormonal_contraception_use_currently column does not have just 'yes', 'no', or 'NONE'.\n\
+                                                            Please make sure all values in this column are 'yes', 'no', or 'NONE'.\n\
                                                             Exiting.")
 
                                                     else:
-                                                        logger.info("Your smoking_status column does not have just 'yes', 'no', 'past' or NA.\n\
-                                                        Please make sure all values in this column are 'yes', 'no', 'past' or NA.\n\
+                                                        logger.info("Your smoking_status column does not have just 'yes', 'no', 'past' or 'NONE'.\n\
+                                                        Please make sure all values in this column are 'yes', 'no', 'past' or 'NONE'.\n\
                                                         Exiting.")
 
                                                 else:
@@ -355,8 +363,8 @@ if not None in [pgen,pvar,psam]:
                                 Exiting.")
 
                         else:
-                            logger.info("Your Provided_Ancestry column does not contain just 'AFR', 'AMR', 'EAS', 'EUR', 'SAS' or NA.\n\
-                            Please make sure all values in this column are 'AFR', 'AMR', 'EAS', 'EUR', 'SAS' or NA.\n\
+                            logger.info("Your Provided_Ancestry column does not contain just 'AFR', 'AMR', 'EAS', 'EUR', 'SAS' or 'NONE'.\n\
+                            Please make sure all values in this column are 'AFR', 'AMR', 'EAS', 'EUR', 'SAS' or 'NONE'.\n\
                             Exiting.")
 
                     else:
