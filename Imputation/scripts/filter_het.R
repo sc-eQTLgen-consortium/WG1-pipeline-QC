@@ -33,7 +33,7 @@ if (nrow(het) >= 3){
 
 	het$HET_RATE <- (het$"N_SITES" - het$"O(HOM)") / het$"N_SITES"
 	het_fail <- subset(het, (het$HET_RATE < mean(het$HET_RATE) - 3*sd(het$HET_RATE)) | (het$HET_RATE > mean(het$HET_RATE) +3 * sd(het$HET_RATE)));
-	het_pass <- subset(het, (het$HET_RATE < mean(het$HET_RATE) - 3*sd(het$HET_RATE)) | (het$HET_RATE < mean(het$HET_RATE) +3 * sd(het$HET_RATE)));
+	het_pass <- subset(het, (het$HET_RATE > mean(het$HET_RATE) - 3*sd(het$HET_RATE)) & (het$HET_RATE < mean(het$HET_RATE) +3 * sd(het$HET_RATE)));
 	het_fail$HET_DST <- (het_fail$HET_RATE-mean(het$HET_RATE))/sd(het$HET_RATE)
 	het_pass$HET_DST <- (het_pass$HET_RATE-mean(het$HET_RATE))/sd(het$HET_RATE)
 

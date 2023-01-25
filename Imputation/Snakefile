@@ -55,6 +55,7 @@ if not None in [pgen,pvar,psam]:
 
         ### Add in checks for psam file ###
         psam_df = pd.read_csv(psam, sep = "\t")
+        psam_df['Study'] = psam_df['Study'].apply(str)
 
 
         ## Check if column names are correct
@@ -197,7 +198,7 @@ if not None in [pgen,pvar,psam]:
                                                                                         if ancestry_check["UPDATE/REMOVE/KEEP"].count() == len(ancestry_check) and pd.Series(ancestry_check["UPDATE/REMOVE/KEEP"]).isin(['UPDATE', 'REMOVE', 'KEEP']).all() and sex_check["UPDATE/REMOVE/KEEP"].count() == len(sex_check) and pd.Series(sex_check["UPDATE/REMOVE/KEEP"]).isin(['UPDATE', 'REMOVE', 'KEEP']).all():
                                                                                             if not os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_mafs.tsv"):
                                                                                                 ##### First, need to provide users summary of the ancestries and get interactive allele frequency selections ###
-                                                                                                psam_df_local = psam_df
+                                                                                                psam_df_local = pd.read_csv(output_dict["output_dir"] + "/indiv_missingness/indiv_missingness.psam", sep = "\t")
 
                                                                                                 ### if htere are any individuals chosen to update the ancestry, update them
                                                                                                 if (ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE").any():

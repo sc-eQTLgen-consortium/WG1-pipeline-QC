@@ -66,6 +66,9 @@ From: drneavin/SingularityBaseImages:r363_python368
     make install
     cmake --version
 
+    R --slave -e 'install.packages("caret", repos = "http://cran.us.r-project.org")'
+
+
     /opt/conda/envs/py36/bin/pip install pandas
     /opt/conda/envs/py36/bin/pip install docopt
     /opt/conda/envs/py36/bin/pip install pyfaidx
@@ -134,14 +137,14 @@ From: drneavin/SingularityBaseImages:r363_python368
     cd /opt
         mkdir plink
         cd plink
-            wget https://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20210606.zip
-            unzip plink_linux_x86_64_20210606.zip
+            wget https://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20230116.zip
+            unzip plink_linux_x86_64_20230116.zip
 
     cd /opt
         mkdir plink2
         cd plink2
-            wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20220223.zip
-            unzip plink2_linux_x86_64_20220223.zip
+            wget https://s3.amazonaws.com/plink2-assets/alpha3/plink2_linux_x86_64_20221024.zip
+            unzip plink2_linux_x86_64_20221024.zip
 
 
     cd /opt
@@ -151,7 +154,7 @@ From: drneavin/SingularityBaseImages:r363_python368
 
     cd /opt
 
-        git clone --single-branch --branch v1.0.0 https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
+        git clone --single-branch --branch v1.0.2 https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
 
 
 	cd /opt
@@ -183,5 +186,5 @@ From: drneavin/SingularityBaseImages:r363_python368
 
 %labels
 	Author = Drew Neavin
-	Image_version = 1.0.0
+	Image_version = 1.0.2
 
