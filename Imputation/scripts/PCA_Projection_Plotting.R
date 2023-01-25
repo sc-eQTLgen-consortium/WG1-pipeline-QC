@@ -1,9 +1,9 @@
 ##### Read in Libraries #####
+library(caret)
 library(tidyverse)
 library(ggpubr)
 library(cluster)
 library(RColorBrewer)
-library(caret)
 library(data.table)
 
 args <- commandArgs(TRUE)
