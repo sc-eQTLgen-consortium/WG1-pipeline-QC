@@ -10,6 +10,7 @@ From: drneavin/SingularityBaseImages:r363_python368
     #!/bin/bash
     eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
     export PATH=/opt/conda/bin/:$PATH
+    yes | apt-get update --allow-releaseinfo-change
     apt update
     yes | apt upgrade
 
@@ -28,6 +29,14 @@ From: drneavin/SingularityBaseImages:r363_python368
 
     cd /opt
         wget https://www.dropbox.com/s/m8u61jn4i1mcktp/TestData4PipelineSmall.tar.gz
+
+    cd
+        wget https://github.com/Kitware/CMake/releases/download/v3.25.2/cmake-3.25.2.tar.gz
+        tar xvf cmake-3.25.2.tar.gz
+        cd cmake-3.25.2
+        ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF
+        make
+        make install
 
     cd /opt
     git clone https://github.com/JonathanShor/DoubletDetection.git
@@ -54,9 +63,10 @@ From: drneavin/SingularityBaseImages:r363_python368
         yes | apt-get install git
 
     cd /opt
-        git https://github.com/sc-eQTLgen-consortium/souporcell.git
-            cd souporcell/troublet
-            git checkout -t RoyOelen/add-fastq-gzipping
+        git clone https://github.com/sc-eQTLgen-consortium/souporcell.git
+            cd souporcell
+            git switch RoyOelen/add-fastq-gzipping
+            cd troublet
             cargo build --release
             cd /opt/souporcell/souporcell
             cargo build --release
