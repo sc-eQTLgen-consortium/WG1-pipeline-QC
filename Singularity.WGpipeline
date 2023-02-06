@@ -65,7 +65,7 @@ From: drneavin/SingularityBaseImages:r363_python368
     cd /opt
         git clone https://github.com/sc-eQTLgen-consortium/souporcell.git
             cd souporcell
-            git switch RoyOelen/add-fastq-gzipping
+            git checkout RoyOelen/add-fastq-gzipping
             cd troublet
             cargo build --release
             cd /opt/souporcell/souporcell
