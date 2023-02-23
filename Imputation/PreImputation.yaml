@@ -56,6 +56,9 @@ imputation:
   sort_bed_memory: 5
   sort_bed_threads: 1
 
+  split_by_chr1_memory: 5
+  split_by_chr1_threads: 1
+
   harmonize_hg38_memory: 10
   harmonize_hg38_threads: 5
   harmonize_hg38_java_memory: 25 ### Memory passed to java for GenotypeHarmonizer.jar in GB. 25GB is typically sufficient but if you are getting java memory issues with this rule, increase the java memory (and make sure you have enough memory allocated to the job to cover it)
@@ -81,8 +84,8 @@ imputation:
   calculate_missingness_memory: 5
   calculate_missingness_threads: 1
 
-  split_by_chr_memory: 5
-  split_by_chr_threads: 1
+  split_by_chr2_memory: 5
+  split_by_chr2_threads: 1
 
   eagle_prephasing_memory: 20
   eagle_prephasing_threads: 8
