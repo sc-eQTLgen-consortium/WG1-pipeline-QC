@@ -123,7 +123,7 @@ def get_scrnaseq_dirs(config):
     # Match pools to scrna seq directories to make a list of each scRNA-seq dir
     scrna_seq_dirlist = os.listdir(scrnaseq_dir)
     try:
-        scrnaseq_filelist = [os.path.join(scrnaseq_dir, matchFolders(pool, dir_list = scrna_seq_dirlist, scrnaseq_dir = scrnaseq_dir)) for pool in pools]
+        scrnaseq_filelist = [os.path.join(scrnaseq_dir, matchFolders(str(pool), dir_list = scrna_seq_dirlist, scrnaseq_dir = scrnaseq_dir)) for pool in pools]
     except TypeError:
         print("Could not find a scRNA-seq directory for all of the pools in your pool list. Please check that they are spelled correctly and you do not have any additional pool names that are not in {}  ".format(individual_list_dir))
     scrnaseq_filedict = dict(zip(pools, scrnaseq_filelist))
