@@ -20,7 +20,12 @@ From: drneavin/SingularityBaseImages:r363_python368
 	yes | apt-get install -y python3-tk
     apt-get install -y openjdk-11-jdk
     java -version
-
+    wget https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.deb
+    y | apt install ./jdk-17_linux-x64_bin.deb
+    cat <<EOF | tee /etc/profile.d/jdk.sh
+    export JAVA_HOME=/usr/lib/jvm/jdk-17/
+    export PATH=\$PATH:\$JAVA_HOME/bin
+    EOF
 
     cd /opt
         git clone https://github.com/broadinstitute/picard.git
