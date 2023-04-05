@@ -12,22 +12,23 @@ args <- commandArgs(TRUE)
 arguments <- read.table(args, header = F)
 dir <- arguments[1,]
 pool <- arguments[2,]
+genotype_id <- toString(read.table(paste0(arguments[3,], "/", pool, ".txt"), header = F)[1,])
 
 ##### Read in Files #####
-results <- read_delim(paste0(dir,"/",pool,"/CombinedResults/CombinedDropletAssignments_w_genotypeIDs.tsv"), delim = "\t")
+results <- read_delim(paste0(dir,"/",pool,"/CombinedResults/CombinedDropletAssignments.tsv"), delim = "\t")
 
-# Demuxlet may have not run for some cells, so fill the entries
-results[is.na(results$demuxlet_nSNP), "demuxlet_nSNP"] <- 0
-results[is.na(results$demuxlet_DropletType), "demuxlet_DropletType"] <- "unassigned"
-results[is.na(results$demuxlet_Assignment), "demuxlet_Assignment"] <- "unassigned"
-results[is.na(results$demuxlet_SingletLLK), "demuxlet_SingletLLK"] <- 0
-results[is.na(results$demuxlet_DoulbetLLK), "demuxlet_DoulbetLLK"] <- 1
-results[is.na(results$demuxlet_DiffLLK), "demuxlet_DiffLLK"] <- 0
+# # Demuxlet may have not run for some cells, so fill the entries
+# results[is.na(results$demuxlet_nSNP), "demuxlet_nSNP"] <- 0
+# results[is.na(results$demuxlet_DropletType), "demuxlet_DropletType"] <- "unassigned"
+# results[is.na(results$demuxlet_Assignment), "demuxlet_Assignment"] <- "unassigned"
+# results[is.na(results$demuxlet_SingletLLK), "demuxlet_SingletLLK"] <- 0
+# results[is.na(results$demuxlet_DoulbetLLK), "demuxlet_DoulbetLLK"] <- 1
+# results[is.na(results$demuxlet_DiffLLK), "demuxlet_DiffLLK"] <- 0
 
 message("Creating List of Softwares")
 ##### make a list of all softwares #####
-softwares <- c("demuxlet","souporcell","DoubletDetection","scds","scrublet")
-demultiplexing_combn <- t(combn(softwares, 5, simplify = TRUE)) %>% apply(. , 1 , paste , collapse = "_" )
+softwares <- c("DoubletDetection","scds","scrublet")
+demultiplexing_combn <- t(combn(softwares, 3, simplify = TRUE)) %>% apply(. , 1 , paste , collapse = "_" )
 
 ##### Make a dataframe to provide assignments for intersection of doublets #####
 intersection_doublet_demultiplex <- results[,c("Barcode")]
@@ -36,7 +37,7 @@ intersection_doublet_demultiplex <- results[,c("Barcode")]
 message("Creating Intersection and Union Assignments for each combination")
 ### Get a df of the droplet type ###
 temp_DropletType <- results[,paste0(softwares,"_DropletType")]
-temp_Assignment <- results[,paste0(c("demuxlet","souporcell"),"_Assignment")]
+# temp_Assignment <- results[,paste0(c("demuxlet","souporcell"),"_Assignment")]
 
 # Create column called "DropletType_temp"
 # In this column, if number of singlet assignments per cell are all singlets, then label as singlet
@@ -47,8 +48,7 @@ intersection_doublet_demultiplex <- intersection_doublet_demultiplex %>% mutate(
 # If all assignments agree, then set it to the first one
 # Okay, DropletType is either doublet or unassigned
 
-intersection_doublet_demultiplex[,"Assignment"] <- ifelse((intersection_doublet_demultiplex[,"DropletType_temp"] == "singlet" & apply(temp_Assignment, 1, function(y) all(y == y[1]))),
-  pull(temp_Assignment,1), ifelse(intersection_doublet_demultiplex[,"DropletType_temp"] == "doublet", "doublet","unassigned"))
+intersection_doublet_demultiplex[,"Assignment"] <- ifelse(intersection_doublet_demultiplex[,"DropletType_temp"] == "singlet", pool, ifelse(intersection_doublet_demultiplex[,"DropletType_temp"] == "doublet", "doublet","unassigned"))
   
 for (row in 1:nrow(intersection_doublet_demultiplex[,"Assignment"])){
     if (intersection_doublet_demultiplex[row,"Assignment"] == "unassigned"){

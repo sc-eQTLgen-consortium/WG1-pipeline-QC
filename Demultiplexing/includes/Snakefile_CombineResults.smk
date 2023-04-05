@@ -11,9 +11,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
 
 rule join_results:
     input:
-        demuxlet = output_dict["output_dir"] + "/{pool}/CombinedResults/demuxlet_results.txt",
-        souporcell = output_dict["output_dir"] + "/{pool}/CombinedResults/souporcell_results.txt",
-        scrublet = lambda wildcards: expand(output_dict["output_dir"] + "/{pool}/CombinedResults/{pctl}_scrublet_results.txt", zip, pool = wildcards.pool, pctl = scrublet_selection.scrublet_Percentile[scrublet_selection.Pool == wildcards.pool]),
+        scrublet = output_dict["output_dir"] + "/{pool}/CombinedResults/95_scrublet_results.txt",
         scds = output_dict["output_dir"] + "/{pool}/CombinedResults/scds_results.txt",
         DoubletDetection = output_dict["output_dir"] + "/{pool}/CombinedResults/DoubletDetection_results.txt"
     output:
@@ -24,14 +22,16 @@ rule join_results:
     threads: 1
     params:
         sif = input_dict["singularity_image"],
-        bind = bind_path
+        bind = bind_path,
+        script = "/groups/umcg-biogen/tmp01/output/2022-09-01-scMetaBrainConsortium/2022-10-07-WorkGroup1QC/2022-10-10-DemultiplexingAndDoubletRemoval/scripts/join_results.py"
     log: output_dict["output_dir"] + "/logs/join_results.{pool}.log"
     shell:
         """
-        join -a1 -a2 -1 1 -2 1 -t "\t" -e"NA" -o "0,1.2,1.3,1.4,1.5,1.6,1.7,2.2,2.3,2.4,2.5" {input.demuxlet} {input.souporcell} | awk 'NR<2{{print $0;next}}{{print $0| "sort -k1"}}' | \
-            join -a1 -a2 -1 1 -2 1 -t "\t" -e"NA" -o "0,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,1.10,1.11,2.2,2.3" - {input.scrublet} | awk 'NR<2{{print $0;next}}{{print $0| "sort -k1"}}' | \
-            join -a1 -a2 -1 1 -2 1 -t "\t" -e"NA" -o "0,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,1.10,1.11,1.12,1.13,2.2,2.3" - {input.scds} | awk 'NR<2{{print $0;next}}{{print $0| "sort -k1"}}' | \
-            join -a1 -a2 -1 1 -2 1 -t "\t" -e"NA" -o "0,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,1.10,1.11,1.12,1.13,1.14,1.15,2.2" - {input.DoubletDetection} > {output}
+        singularity exec --bind {params.bind} {params.sif} python {params.script} \
+            --scrublet {input.scrublet} \
+            --scds {input.scds} \
+            --doubletdetection {input.DoubletDetection} \
+            --output {output}
         """
 
 
@@ -41,7 +41,7 @@ rule join_results:
 #####################################################################
 rule final_assignments:
     input:
-        assignments = output_dict["output_dir"] + "/{pool}/CombinedResults/CombinedDropletAssignments_w_genotypeIDs.tsv"
+        assignments = output_dict["output_dir"] + "/{pool}/CombinedResults/CombinedDropletAssignments.tsv"
     output:
         figure = report(output_dict["output_dir"] + "/{pool}/CombinedResults/DropletType_Assignment_BarPlot.png", category = "Number Individuals Summary", caption =  "../report_captions/final_assignments.rst"),
         table = output_dict["output_dir"] + "/{pool}/CombinedResults/Final_Assignments_demultiplexing_doublets.txt",
@@ -52,14 +52,16 @@ rule final_assignments:
     threads: CombineResults_dict["FinalAssignments_threads"]
     params:
         sif = input_dict["singularity_image"],
+        individual_list_dir = input_dict["individual_list_dir"],
         bind = bind_path,
         out = output_dict["output_dir"],
-        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/FinalBarcodeAssignments.R"
+        script = "/groups/umcg-biogen/tmp01/output/2022-09-01-scMetaBrainConsortium/2022-10-07-WorkGroup1QC/2022-10-10-DemultiplexingAndDoubletRemoval/scripts/FinalBarcodeAssignments.R"
     log: output_dict["output_dir"] + "/logs/final_assignments.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.out} > {output.variables}
         singularity exec --bind {params.bind} {params.sif} echo {wildcards.pool} >> {output.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {params.individual_list_dir} >> {output.variables}
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {output.variables}
         [[ -s {output.figure} ]]
         echo $?
@@ -172,7 +174,7 @@ rule QC_plots:
     params:
         sif = input_dict["singularity_image"],
         bind = bind_path,
-        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Singlet_QC_Figures.R",
+        script = "/groups/umcg-biogen/tmp01/output/2022-09-01-scMetaBrainConsortium/2022-10-07-WorkGroup1QC/2022-10-10-DemultiplexingAndDoubletRemoval/scripts/Singlet_QC_Figures.R",
         main_dir = output_dict["output_dir"],
         dirs10x = output_dict["output_dir"] + '/file_directories.txt',
         out = output_dict["output_dir"] + "/QC_figures/",

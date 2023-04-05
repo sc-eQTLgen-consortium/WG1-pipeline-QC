@@ -9,7 +9,7 @@ library(ggnewscale)
 
 ##### Set up arguemtns #####
 args <- commandArgs(TRUE)
-arguments <- read.table(args, header = F)
+arguments <- read.table("/groups/umcg-biogen/tmp01/output/2022-09-01-scMetaBrainConsortium/2022-10-07-WorkGroup1QC/2023-02-02-AMP_AD/Step2-DemultiplexingAndDoubletRemoval/QC_figures/R_variables.txt", header = F)
 dir <- as.character(arguments[1,])
 pools_file <- as.character(arguments[2,])
 pool_directoreies <- as.character(arguments[3,])
@@ -18,7 +18,7 @@ RB_genes_file <- as.character(arguments[5,])
 MT_genes_file <- as.character(arguments[6,])
 
 pools <- read_delim(as.character(pools_file[1]), delim = "\t", col_names = c("Pool"))
-pools_list <- pools$Pool
+pools_list <- sapply(pools$Pool, toString)
 
 ##### Read in the mt and rb gene lists #####
 RB_genes <- read_delim(RB_genes_file, delim = "\t")
@@ -39,7 +39,7 @@ if (file.exists(paste0(dir_locations$Matrix_Directories[1],"/genes.tsv"))){
 
 ##### Read in and format the software assignments #####
 assignments_list <- lapply(pools_list, function(x){
-    read_delim(paste0(as.character(dir),"/",x,"/CombinedResults/CombinedDropletAssignments_w_genotypeIDs.tsv"), delim = "\t")
+    read_delim(paste0(as.character(dir),"/",x,"/CombinedResults/CombinedDropletAssignments.tsv"), delim = "\t")
 })
 names(assignments_list) <- pools_list
 

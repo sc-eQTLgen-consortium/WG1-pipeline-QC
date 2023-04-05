@@ -55,9 +55,9 @@ if not fasta is None:
 
 
     # Import individual rules
-    include: "includes/Snakefile_popscle.smk"
+    # include: "includes/Snakefile_popscle.smk"
     include: "includes/Snakefile_scrublet.smk"
-    include: "includes/Snakefile_souporcell.smk"
+    # include: "includes/Snakefile_souporcell.smk"
     include: "includes/Snakefile_scds.smk"
     include: "includes/Snakefile_DoubletDetection.smk"
     include: "includes/Snakefile_CombineResults.smk"
@@ -65,14 +65,14 @@ if not fasta is None:
 
     # Generate list of files to expect
     ## Demuxlet
-    demuxlet_files = []
-    demuxlet_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/demuxlet_results.txt",  pool=samples.Pool))
+    # demuxlet_files = []
+    # demuxlet_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/demuxlet_results.txt",  pool=samples.Pool))
 
-    ## Souporcell
-    souporcell_files = []
-    souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/souporcell_results.txt", pool=samples.Pool))
-    souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz", pool=samples.Pool))
-    souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz", pool=samples.Pool))
+#     ## Souporcell
+#     souporcell_files = []
+#     souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/souporcell_results.txt", pool=samples.Pool))
+#     souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz", pool=samples.Pool))
+#     souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz", pool=samples.Pool))
 
     ## scds
     scds_files = []
@@ -165,8 +165,8 @@ if not fasta is None:
     # Main rule - input will be all files generated at the top
     rule all:
         input:
-            demuxlet_files,
-            souporcell_files,
+            # demuxlet_files,
+            # souporcell_files,
             scds_files,
             scrublet_files,
             DoubletDetection_files,
