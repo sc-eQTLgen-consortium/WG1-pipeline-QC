@@ -6,6 +6,7 @@ from glob import glob
 # Get list of pools to process
 samples = pd.read_csv(input_dict["samplesheet_filepath"], sep = "\t")
 samples.columns = ["Pool", "N"]
+samples["Pool"] = samples["Pool"].astype(str)
 
 ####################################
 ############ SOUPORCELL ############

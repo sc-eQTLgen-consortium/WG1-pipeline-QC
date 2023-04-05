@@ -18,7 +18,7 @@ RB_genes_file <- as.character(arguments[5,])
 MT_genes_file <- as.character(arguments[6,])
 
 pools <- read_delim(as.character(pools_file[1]), delim = "\t", col_names = c("Pool"))
-pools_list <- pools$Pool
+pools_list <- sapply(pools$Pool, toString)
 
 ##### Read in the mt and rb gene lists #####
 RB_genes <- read_delim(RB_genes_file, delim = "\t")

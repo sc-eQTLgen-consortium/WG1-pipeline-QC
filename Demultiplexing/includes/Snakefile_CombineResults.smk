@@ -8,6 +8,7 @@ from glob import glob
 #################################
 if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv"):
     scrublet_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv", sep = "\t")
+    scrublet_selection["Pool"] = scrublet_selection["Pool"].astype(str)
 
 rule join_results:
     input:
