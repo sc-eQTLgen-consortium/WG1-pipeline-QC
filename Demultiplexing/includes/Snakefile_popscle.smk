@@ -6,22 +6,24 @@ from glob import glob
 ###################################
 ############# POPSCLE #############
 ###################################
-###### popscle Preprocessing ######
+
+###### popscle bam filter ######
 rule popscle_bam_filter:
     input:
         barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool],
         vcf = input_dict["snp_genotypes_filepath"],
         bam = lambda wildcards: scrnaseq_libs_df["Bam_Files"][wildcards.pool],
     output:
-        output_dict["output_dir"] + "/{pool}/popscle/bam_filter"
+        output_dict["output_dir"] + "/{pool}/popscle/bam_filter/{pool}_snpfiltered_alignment.bam"
     resources:
         bam_filter_threads=popscle_dict["bam_filter_threads"],
         mem_per_thread_gb=lambda wildcards, attempt: attempt * popscle_dict["bam_filter_memory"],
         disk_per_thread_gb=0
     threads: popscle_dict["bam_filter_threads"]
     params:
+        tag_group = popscle_dict["tag_group"],
         sif = input_dict["singularity_image"],
-        bind = bind_path
+        bind = bind_path,
         out = output_dict["output_dir"] + "/{pool}/popscle/bam_filter/{pool}_snpfiltered_alignment.bam"
     log: output_dict["output_dir"] + "/logs/popscle_bam_filter.{pool}.log"
     shell:
@@ -29,18 +31,20 @@ rule popscle_bam_filter:
         singularity exec --bind {params.bind} {params.sif} bedtools merge -i {input.vcf} \
             | singularity exec --bind {params.bind} {params.sif} samtools view \
                 -L - \
-                -D CB:<(zcat {input.barcodes}) \
+                -D {params.tag_group}:<(zcat {input.barcodes}) \
                 -o {params.out} \
                 --write-index \
                 -@ {resources.bam_filter_threads} \
                 {input.bam}
         """
 
+###### popscle Preprocessing ######
 rule popscle_pileup:
     input:
         vcf = input_dict["snp_genotypes_filepath"],
         barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool],
         bam = output_dict["output_dir"] + "/{pool}/popscle/bam_filter/{pool}_snpfiltered_alignment.bam",
+#        bam = expand(output_dict["output_dir"] + "/popscle/bam_filter/{pool}_snpfiltered_alignment.bam", pool=samples.Pool),
         individuals = lambda wildcards: scrnaseq_libs_df["Individuals_Files"][wildcards.pool]
     output:
         output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup.var.gz"
