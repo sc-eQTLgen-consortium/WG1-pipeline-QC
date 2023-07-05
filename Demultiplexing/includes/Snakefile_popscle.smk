@@ -29,7 +29,7 @@ rule popscle_bam_filter:
     log: output_dict["output_dir"] + "/logs/popscle_bam_filter.{pool}.log"
     shell:
         """
-        mkdir -p {params.out_dir} & \
+        mkdir -p {params.out_dir} && \
         singularity exec --bind {params.bind} {params.sif} bedtools merge -i {input.vcf} \
             | singularity exec --bind {params.bind} {params.sif} samtools view \
                 -L - \
