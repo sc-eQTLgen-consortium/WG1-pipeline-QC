@@ -24,10 +24,12 @@ rule popscle_bam_filter:
         tag_group = popscle_dict["tag_group"],
         sif = input_dict["singularity_image"],
         bind = bind_path,
+        out_dir = output_dict["output_dir"] + "/{pool}/popscle/bam_filter/",
         out = output_dict["output_dir"] + "/{pool}/popscle/bam_filter/{pool}_snpfiltered_alignment.bam"
     log: output_dict["output_dir"] + "/logs/popscle_bam_filter.{pool}.log"
     shell:
         """
+        mkdir -p {params.out_dir} & \
         singularity exec --bind {params.bind} {params.sif} bedtools merge -i {input.vcf} \
             | singularity exec --bind {params.bind} {params.sif} samtools view \
                 -L - \
