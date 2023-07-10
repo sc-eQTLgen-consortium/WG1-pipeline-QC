@@ -45,7 +45,7 @@ rule popscle_pileup:
     input:
         vcf = input_dict["snp_genotypes_filepath"],
         barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool],
-        bam = output_dict["output_dir"] + "/{pool}/popscle/bam_filter/{pool}_snpfiltered_alignment.bam",
+        bam = lambda wildcards: output_dict["output_dir"] + "/{wildcards.pool}/popscle/bam_filter/{wildcards.pool}_snpfiltered_alignment.bam",
 #        bam = expand(output_dict["output_dir"] + "/popscle/bam_filter/{pool}_snpfiltered_alignment.bam", pool=samples.Pool),
         individuals = lambda wildcards: scrnaseq_libs_df["Individuals_Files"][wildcards.pool]
     output:
