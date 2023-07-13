@@ -3,13 +3,14 @@ From: drneavin/SingularityBaseImages:r363_python368
 %environment
     export PATH=/opt/DoubletDetection/:/opt/popscle/bin/:/opt:/usr/games:/opt/bedtools2/bin:/opt/conda/envs/py36/bin:/opt/souporcell:/opt/souporcell/troublet/target/release:/opt/conda/bin:/opt/minimap2-2.7:/root/.cargo/bin:/opt/vartrix-v1.1.3-x86_64-linux/:/opt/freebayes/scripts:/opt/freebayes:/opt/vcflib/bin:/opt/vcflib/scripts:$PATH
     export PYTHONPATH=/opt/conda/envs/py36/lib/python3.6/site-packages/
-    export LC_ALL=C 
+    export LC_ALL=C
     alias python=python3
 
-%post 
+%post
     #!/bin/bash
     eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
     export PATH=/opt/conda/bin/:$PATH
+    yes | apt-get update --allow-releaseinfo-change
     apt update
     yes | apt upgrade
 
@@ -19,19 +20,30 @@ From: drneavin/SingularityBaseImages:r363_python368
 	yes | apt-get install -y python3-tk
     apt-get install -y openjdk-11-jdk
     java -version
-
+    wget https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.deb
+    apt -y install ./jdk-17_linux-x64_bin.deb
 
     cd /opt
         git clone https://github.com/broadinstitute/picard.git
         cd picard/
+        git checkout tags/2.27.5
         ./gradlew shadowJar
 
     cd /opt
         wget https://www.dropbox.com/s/m8u61jn4i1mcktp/TestData4PipelineSmall.tar.gz
 
+    cd
+        wget https://github.com/Kitware/CMake/releases/download/v3.25.2/cmake-3.25.2.tar.gz
+        tar xvf cmake-3.25.2.tar.gz
+        cd cmake-3.25.2
+        ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF
+        make
+        make install
+
     cd /opt
     git clone https://github.com/JonathanShor/DoubletDetection.git
     cd DoubletDetection
+    git checkout tags/v3.0
     /opt/conda/envs/py36/bin/pip install .
 
     cd /opt
@@ -54,8 +66,10 @@ From: drneavin/SingularityBaseImages:r363_python368
         yes | apt-get install git
 
     cd /opt
-        git clone https://github.com/wheaton5/souporcell.git
-            cd souporcell/troublet
+        git clone https://github.com/sc-eQTLgen-consortium/souporcell.git
+            cd souporcell
+            git checkout RoyOelen/add-fastq-gzipping
+            cd troublet
             cargo build --release
             cd /opt/souporcell/souporcell
             cargo build --release
@@ -144,7 +158,6 @@ From: drneavin/SingularityBaseImages:r363_python368
 
 
 
-%labels 
+%labels
     Authors Drew Neavin and Anne Senabouth
 	Image_version = 1.0.0
-
