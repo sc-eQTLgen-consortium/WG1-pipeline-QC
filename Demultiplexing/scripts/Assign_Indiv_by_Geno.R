@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-# Adapted from drneavin https://github.com/drneavin/Demultiplexing_Doublet_Detecting_Docs/blob/main/scripts/Assign_Indiv_by_Geno.R
 .libPaths("/usr/local/lib/R/site-library")
 suppressMessages(suppressWarnings(library(argparse)))
 
@@ -9,10 +8,9 @@ parser <- ArgumentParser()
 
 # specify our desired options
 # by default ArgumentParser will add an help option
-parser$add_argument("-b", "--basedir", required = TRUE, help="")
-parser$add_argument("-p", "--pool", required = TRUE, type = "character", help="")
-parser$add_argument("-r", "--result_file", required = TRUE, type = "character", help="")
-parser$add_argument("-c", "--correlation_limit", required = FALSE, default = 0.7, type = "double", help="The minimum correlation between a cluster and provided SNP genotypes to consider that cluster assigned to that individual.")
+parser$add_argument("-r", "--reference_vcf", required = TRUE, type = "character", help="The reference vcf (snp genotyped).")
+parser$add_argument("-c", "--cluster_vcf", required = TRUE, type = "character", help = "The vcf of the snps for each cluster.")
+parser$add_argument("-o", "--out", required = TRUE, type = "character", help = "The output directory where results will be saved.")
 
 # get command line options, if help option encountered print help and exit,
 # otherwise if options not found on command line then set defaults,
@@ -51,7 +49,9 @@ calculate_DS <- function(GP_df){
 
 pearson_correlation <- function(df, ref_df, clust_df){
     for (col in colnames(df)){
+		print(col)
         for (row in rownames(df)){
+			print(row)
             df[row,col] <- cor(as.numeric(pull(ref_df, col)), as.numeric(pull(clust_df, row)), method = "pearson", use = "complete.obs")
         }
     }
@@ -60,29 +60,149 @@ pearson_correlation <- function(df, ref_df, clust_df){
 
 
 ########## Read in vcf files for each of three non-reference genotype softwares ##########
-ref_geno <- read.vcfR(paste0(args$basedir, "/", args$pool, "/souporcell/Individual_genotypes_subset.vcf.gz"))
-cluster_geno <- read.vcfR(paste0(args$basedir, "/", args$pool, "/souporcell/cluster_genotypes.vcf"))
+ref_geno <- read.vcfR(args$reference_vcf)
+cluster_geno <- read.vcfR(args$cluster_vcf)
+
 
 
 ########## Convert to tidy data frame ##########
-ref_geno_tidy <- as_tibble(extract.gt(element = "DS",ref_geno, IDtoRowNames =F))
-ref_geno_tidy$ID <- paste0(ref_geno@fix[,'CHROM'],":", ref_geno@fix[,'POS'],"_", ref_geno@fix[,'REF'], "_",ref_geno@fix[,'ALT'])
-ref_geno_tidy <- ref_geno_tidy[!(ref_geno_tidy$ID %in% ref_geno_tidy$ID[duplicated(ref_geno_tidy$ID)]),]
+####### Identify which genotype FORMAT to use #######
+##### Cluster VCF #####
+### Check for each of the different genotype formats ##
+## DS ##
+format_clust=NA
+cluster_geno_tidy <- as_tibble(extract.gt(element = "DS",cluster_geno, IDtoRowNames = F))
+if (!all(colSums(is.na(cluster_geno_tidy)) == nrow(cluster_geno_tidy))){
+	message("Found DS genotype format in cluster vcf. Will use that metric for cluster correlation.")
+	format_clust = "DS"
+}
 
-cluster_geno_tidy <- as_tibble(extract.gt(element = "GT",cluster_geno, IDtoRowNames =F))
-cluster_geno_tidy <- as_tibble(lapply(cluster_geno_tidy, function(x) {gsub("0/0",0, x)}) %>%
-                                lapply(., function(x) {gsub("0/1",1, x)}) %>%
-                                lapply(., function(x) {gsub("1/0",1, x)}) %>%
-                                lapply(., function(x) {gsub("1/1",2, x)}))
-cluster_geno_tidy$ID <- paste0(cluster_geno@fix[,'CHROM'],":", cluster_geno@fix[,'POS'],"_", cluster_geno@fix[,'REF'], "_",cluster_geno@fix[,'ALT'])
+## GT ##
+if (is.na(format_clust)){
+	cluster_geno_tidy <- as_tibble(extract.gt(element = "GT",cluster_geno, IDtoRowNames = F))
+	if (!all(colSums(is.na(cluster_geno_tidy)) == nrow(cluster_geno_tidy))){
+		message("Found GT genotype format in cluster vcf. Will use that metric for cluster correlation.")
+		format_clust = "GT"
+
+		if (any(grepl("\\|",cluster_geno_tidy[,1]))){
+			separator = "\\|"
+			message("Detected | separator for GT genotype format in cluster vcf")
+		} else if (any(grepl("/",cluster_geno_tidy[,1]))) {
+			separator = "\\/"
+			message("Detected / separator for GT genotype format in cluster vcf")
+		} else {
+			format_clust = NA
+			message("Can't identify a separator for the GT field in cluster vcf, moving on to using GP.")
+		}
+		if (!is.na(format_clust)){
+			cluster_geno_tidy <- as_tibble(lapply(cluster_geno_tidy, function(x) {gsub(paste0("0",separator,"0"),0, x)}) %>%
+									lapply(., function(x) {gsub(paste0("0",separator,"1"),1, x)}) %>%
+									lapply(., function(x) {gsub(paste0("1",separator,"0"),1, x)}) %>%
+									lapply(., function(x) {gsub(paste0("1",separator,"1"),2, x)}))
+		}
+	}
+}
+
+## GP ##
+if (is.na(format_clust)){
+	cluster_geno_tidy <- as_tibble(extract.gt(element = "GP",cluster_geno, IDtoRowNames =F))
+	if (!all(colSums(is.na(cluster_geno_tidy)) == nrow(cluster_geno_tidy))){
+		format_clust = "GP"
+		cluster_geno_tidy <- calculate_DS(cluster_geno_tidy)
+		message("Found GP genotype format in cluster vcf. Will use that metric for cluster correlation.")
+
+	} else {
+		print("Could not identify the expected genotype format fields (DS, GT or GP) in your cluster vcf. Please check the vcf file and make sure that one of the expected genotype format fields is included or run manually with your genotype format field of choice. Quitting")
+		q()
+	}
+}
+
+
+
+
+
+### Reference VCF ###
+### Check for each of the different genotype formats ##
+## DS ##
+format_ref = NA
+ref_geno_tidy <- as_tibble(extract.gt(element = "DS",ref_geno, IDtoRowNames = F))
+if (!all(colSums(is.na(ref_geno_tidy)) == nrow(ref_geno_tidy))){
+	message("Found DS genotype format in reference vcf. Will use that metric for cluster correlation.")
+	format_ref = "DS"
+}
+
+## GT ##
+if (is.na(format_ref)){
+	ref_geno_tidy <- as_tibble(extract.gt(element = "GT",ref_geno, IDtoRowNames = F))
+	if (!all(colSums(is.na(ref_geno_tidy)) == nrow(ref_geno_tidy))){
+		message("Found GT genotype format in reference vcf. Will use that metric for cluster correlation.")
+		format_ref = "GT"
+
+		if (any(grepl("\\|",ref_geno_tidy[,1]))){
+			separator = "|"
+			message("Detected | separator for GT genotype format in reference vcf")
+		} else if (any(grepl("/",ref_geno_tidy[,1]))) {
+			separator = "/"
+			message("Detected / separator for GT genotype format in reference vcf")
+		} else {
+			format_ref = NA
+			message("Can't identify a separator for the GT field in reference vcf, moving on to using GP.")
+		}
+
+		ref_geno_tidy <- as_tibble(lapply(ref_geno_tidy, function(x) {gsub(paste0("0",separator,"0"),0, x)}) %>%
+		                        lapply(., function(x) {gsub(paste0("0",separator,"1"),1, x)}) %>%
+		                        lapply(., function(x) {gsub(paste0("1",separator,"0"),1, x)}) %>%
+		                        lapply(., function(x) {gsub(paste0("1",separator,"1"),2, x)}))
+
+	}
+}
+
+## GP ##
+if (is.na(format_ref)){
+	ref_geno_tidy <- as_tibble(extract.gt(element = "GP",ref_geno, IDtoRowNames = F))
+	if (!all(colSums(is.na(ref_geno_tidy)) == nrow(ref_geno_tidy))){
+		format_clust = "GP"
+		ref_geno_tidy <- calculate_DS(ref_geno_tidy)
+		message("Found GP genotype format in cluster vcf. Will use that metric for cluster correlation.")
+
+	} else {
+		print("Could not identify the expected genotype format fields (DS, GT or GP) in your cluster vcf. Please check the vcf file and make sure that one of the expected genotype format fields is included or run manually with your genotype format field of choice. Quitting")
+		q()
+	}
+}
+
+
+
+### Get SNP IDs that will match between reference and cluster ###
+## Account for possibility that the ref or alt might be missing
+if ((all(is.na(cluster_geno@fix[,'REF'])) & all(is.na(cluster_geno@fix[,'ALT']))) | (all(is.na(ref_geno@fix[,'REF'])) & all(is.na(ref_geno@fix[,'ALT'])))){
+	message("The REF and ALT categories are not provided for the reference and/or the cluster vcf. Will use just the chromosome and position to match SNPs.")
+	cluster_geno_tidy$ID <- paste0(cluster_geno@fix[,'CHROM'],":", cluster_geno@fix[,'POS'])
+	ref_geno_tidy$ID <- paste0(ref_geno@fix[,'CHROM'],":", ref_geno@fix[,'POS'])
+} else if (all(is.na(cluster_geno@fix[,'REF'])) | all(is.na(ref_geno@fix[,'REF']))){
+	message("The REF categories are not provided for the reference and/or the cluster vcf. Will use the chromosome, position and ALT to match SNPs.")
+	cluster_geno_tidy$ID <- paste0(cluster_geno@fix[,'CHROM'],":", cluster_geno@fix[,'POS'],"_", cluster_geno@fix[,'REF'])
+	ref_geno_tidy$ID <- paste0(ref_geno@fix[,'CHROM'],":", ref_geno@fix[,'POS'],"_", ref_geno@fix[,'REF'])
+} else if (all(is.na(cluster_geno@fix[,'ALT'])) | all(is.na(ref_geno@fix[,'ALT']))){
+	message("The ALT categories are not provided for the reference and/or the cluster vcf. Will use the chromosome, position and REF to match SNPs.")
+	cluster_geno_tidy$ID <- paste0(cluster_geno@fix[,'CHROM'],":", cluster_geno@fix[,'POS'],"_", cluster_geno@fix[,'ALT'])
+	ref_geno_tidy$ID <- paste0(ref_geno@fix[,'CHROM'],":", ref_geno@fix[,'POS'],"_", ref_geno@fix[,'ALT'])
+} else {
+	message("Found REF and ALT in both cluster and reference genotype vcfs. Will use chromosome, position, REF and ALT to match SNPs.")
+		cluster_geno_tidy$ID <- paste0(cluster_geno@fix[,'CHROM'],":", cluster_geno@fix[,'POS'],"_", cluster_geno@fix[,'REF'],"_", cluster_geno@fix[,'ALT'])
+	ref_geno_tidy$ID <- paste0(ref_geno@fix[,'CHROM'],":", ref_geno@fix[,'POS'],"_", ref_geno@fix[,'REF'],"_", ref_geno@fix[,'ALT'])
+}
+
+
+### Update the vcf dfs to remove SNPs with no genotyopes
 cluster_geno_tidy <- cluster_geno_tidy[colSums(!is.na(cluster_geno_tidy)) > 0]
-# cluster_geno_tidy <- cluster_geno_tidy[complete.cases(cluster_geno_tidy),]
-cluster_geno_tidy <- cluster_geno_tidy[!(cluster_geno_tidy$ID %in% cluster_geno_tidy$ID[duplicated(cluster_geno_tidy$ID)]),]
+ref_geno_tidy <- ref_geno_tidy[colSums(!is.na(ref_geno_tidy)) > 0]
+
 
 
 ########## Get a unique list of SNPs that is in both the reference and cluster genotypes ##########
 locations  <- inner_join(ref_geno_tidy[,"ID"],cluster_geno_tidy[,"ID"])
-locations <- locations[!(locations$ID %in% locations[duplicated(locations),"ID"]),]
+locations <- locations[!(locations$ID %in% locations[duplicated(locations),]$ID),]
 
 ########## Keep just the SNPs that overlap ##########
 ref_geno_tidy <- left_join(locations, ref_geno_tidy)
@@ -94,17 +214,19 @@ pearson_correlations <- as.data.frame(matrix(nrow = (ncol(cluster_geno_tidy) -1)
 colnames(pearson_correlations) <- colnames(ref_geno_tidy)[2:(ncol(ref_geno_tidy))]
 rownames(pearson_correlations) <- colnames(cluster_geno_tidy)[2:(ncol(cluster_geno_tidy))]
 pearson_correlations <- pearson_correlation(pearson_correlations, ref_geno_tidy, cluster_geno_tidy)
+cluster <- data.frame("Cluster" = rownames(pearson_correlations))
+pearson_correlations_out <- cbind(cluster, pearson_correlations)
 
 ########## Save the correlation dataframes ##########
-write_delim(pearson_correlations, path = paste0(args$basedir, "/", args$pool, "/souporcell/genotype_correlations/pearson_correlations.tsv"), delim = "\t" )
+write_delim(pearson_correlations_out, file = paste0(args$out, "/ref_clust_pearson_correlations.tsv"), delim = "\t" )
 
 
 ########## Create correlation figures ##########
 col_fun = colorRampPalette(c("white", "red"))(101)
-pPearsonCorrelations <- Heatmap(as.matrix(pearson_correlations), cluster_rows = T, col = col_fun, column_title = args$pool)
+pPearsonCorrelations <- Heatmap(as.matrix(pearson_correlations), cluster_rows = T, col = col_fun)
 
 ########## Save the correlation figures ##########
-png(filename = paste0(args$basedir, "/", args$pool, "/souporcell/genotype_correlations/pearson_correlation.png"), width = 500)
+png(filename = paste0(args$out, "/ref_clust_pearson_correlation.png"), width = 500)
 print(pPearsonCorrelations)
 dev.off()
 
@@ -113,7 +235,7 @@ key <- as.data.frame(matrix(nrow = ncol(pearson_correlations), ncol = 3))
 colnames(key) <- c("Genotype_ID","Cluster_ID","Correlation")
 key$Genotype_ID <- colnames(pearson_correlations)
 for (id in key$Genotype_ID){
-    if (max(pearson_correlations[,id]) == max(pearson_correlations[rownames(pearson_correlations)[which.max(pearson_correlations[,id])],]) & max(pearson_correlations[,id]) > args$correlation_limit){
+    if (max(pearson_correlations[,id]) == max(pearson_correlations[rownames(pearson_correlations)[which.max(pearson_correlations[,id])],])){
         key$Cluster_ID[which(key$Genotype_ID == id)] <- rownames(pearson_correlations)[which.max(pearson_correlations[,id])]
         key$Correlation[which(key$Genotype_ID == id)] <- max(pearson_correlations[,id])
     } else {
@@ -122,22 +244,6 @@ for (id in key$Genotype_ID){
     }
 }
 
-write_delim(key, path =paste0(args$basedir, "/", args$pool, "/souporcell/genotype_correlations/Genotype_ID_key.txt"), delim = "\t")
+write_delim(key, file=paste0(args$out, "/Genotype_ID_key.txt"), delim = "\t")
 
 
-##### Read in Files #####
-print(as.character(args$result_file))
-result <- read_delim(file = as.character(args$result_file), delim = "\t")
-
-##### Left_join the common assignments to the dataframe #####
-col_order <- colnames(result)
-result <- left_join(result,key, by = c("souporcell_Assignment" = "Cluster_ID"))
-result$Genotype_ID <- ifelse(result$souporcell_DropletType == "doublet", "doublet", result$Genotype_ID)
-result$Genotype_ID <- ifelse(is.na(result$Genotype_ID), "unassigned", result$Genotype_ID)
-result$souporcell_Assignment <- NULL
-colnames(result) <- gsub("Genotype_ID", "souporcell_Assignment", colnames(result))
-result$Correlation <- NULL
-result <- result[,col_order]
-
-
-write_delim(result, path =paste0(args$basedir, "/", args$pool, "/CombinedResults/CombinedDropletAssignments_w_genotypeIDs.tsv"), delim = "\t")

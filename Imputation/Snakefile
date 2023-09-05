@@ -119,7 +119,7 @@ if not None in [pgen,pvar,psam]:
 
                                                                                 ### Check for underscores in the FID and IID columns - if there are, update and make new files
                                                                                 if (psam_df['#FID'].astype(str).str.contains("_").any() or psam_df['IID'].astype(str).str.contains("_").any()):
-                                                                                    if not os.path.exists(os.path.join(output_dict["output_dir"], "updated_input/input.psam")) or not os.path.exists(os.path.join(output_dict["output_dir"], "updated_input/input.pvar")) or not os.path.exists(os.path.join(output_dict["output_dir"], "updated_input/input.pgen")):
+                                                                                    if not os.path.exists(os.path.join(output_dict["output_dir"], "updated_input", "input.psam")) or not os.path.exists(os.path.join(output_dict["output_dir"], "updated_input/input.pvar")) or not os.path.exists(os.path.join(output_dict["output_dir"], "updated_input/input.pgen")):
                                                                                         ### Provide messaging on the coluymns with underscores
                                                                                         if (psam_df['#FID'].str.contains("_").any()):
                                                                                             logger.info("Your family ids in the psam (FID column) contain '_'.\
@@ -140,16 +140,16 @@ if not None in [pgen,pvar,psam]:
 
                                                                                         psam_df.to_csv(os.path.join(output_dict["output_dir"], "updated_input/input.psam"), na_rep = "NA", sep = "\t", index = False)
 
-                                                                                        copy_pgen = "cp " + pgen + " " + os.path.join(output_dict["output_dir"], "updated_input/input.pgen")
-                                                                                        copy_pvar = "cp " + pvar + " " + os.path.join(output_dict["output_dir"], "updated_input/input.pvar")
+                                                                                        copy_pgen = "cp " + pgen + " " + os.path.join(output_dict["output_dir"], "updated_input", "input.pgen")
+                                                                                        copy_pvar = "cp " + pvar + " " + os.path.join(output_dict["output_dir"], "updated_input", "input.pvar")
                                                                                         process_pgen = subprocess.Popen(copy_pgen.split(), stdout=subprocess.PIPE)
                                                                                         process_pvar = subprocess.Popen(copy_pvar.split(), stdout=subprocess.PIPE)
                                                                                         output, error = process_pgen.communicate()
                                                                                         output, error = process_pvar.communicate()
 
-                                                                                    psam = os.path.join(output_dict["output_dir"], "updated_input/input.psam")
-                                                                                    pgen = os.path.join(output_dict["output_dir"], "updated_input/input.pgen")
-                                                                                    pvar =  os.path.join(output_dict["output_dir"], "updated_input/input.pvar")
+                                                                                    psam = os.path.join(output_dict["output_dir"], "updated_input", "input.psam")
+                                                                                    pgen = os.path.join(output_dict["output_dir"], "updated_input", "input.pgen")
+                                                                                    pvar =  os.path.join(output_dict["output_dir"], "updated_input", "input.pvar")
 
                                                                                 logger.info("Using these files from the plink directory " + input_dict["plink_dir"] + " as input:")
                                                                                 logger.info("The pgen file: " + pgen)

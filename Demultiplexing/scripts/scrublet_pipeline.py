@@ -57,21 +57,19 @@ doublet_scores, predicted_doublets = scrub.scrub_doublets(min_counts=args.min_co
 
 ### If running for the first time, the threshold will not manaually set so should continue but if manually set for a following run, need to assign it here
 
-appendix = ""
-if args.scrublet_doublet_threshold is not None:
-  appendix = "_manual_threshold"
 
+if args.scrublet_doublet_threshold is not None:
   print(args.scrublet_doublet_threshold)
   scrub.call_doublets(threshold=args.scrublet_doublet_threshold)
 
 ### Plotting and saving
 scrub.plot_histogram()
-plt.savefig(os.path.join(args.out, 'doublet_score_histogram{}.png'.format(appendix)))
+plt.savefig(os.path.join(args.out, 'doublet_score_histogram.png'))
 print('Running UMAP...')
 scrub.set_embedding('UMAP', scr.get_umap(scrub.manifold_obs_, 10, min_dist=0.3))
 print('Done.')
 scrub.plot_embedding('UMAP', order_points=True)
-plt.savefig(os.path.join(args.out, 'UMAP{}.png'.format(appendix)))
+plt.savefig(os.path.join(args.out, 'UMAP.png'))
 
 results = pd.Series(scrub.predicted_doublets_, name="scrublet_DropletType")
 scores = pd.Series(scrub.doublet_scores_obs_, name="scrublet_Scores")

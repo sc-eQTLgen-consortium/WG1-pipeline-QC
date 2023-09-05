@@ -79,9 +79,9 @@ dataframe.to_csv(os.path.join(args.out, 'DoubletDetection_doublets_singlets.tsv'
 
 
 ### Figures ###
-doubletdetection.plot.convergence(clf, save=os.path.join(args.out,'convergence_test.pdf'), show=False, p_thresh=args.p_thresh, voter_thresh=args.voter_thresh)
+doubletdetection.plot.convergence(clf, save=os.path.join(args.out, 'convergence_test.pdf'), show=False, p_thresh=args.p_thresh, voter_thresh=args.voter_thresh)
 
-f3 = doubletdetection.plot.threshold(clf, save=os.path.join(args.out,'threshold_test.pdf'), show=False, p_step=6)
+f3 = doubletdetection.plot.threshold(clf, save=os.path.join(args.out, 'threshold_test.pdf'), show=False, p_step=6)
 
 
 ### Make summary of singlets and doublets and write to file ###

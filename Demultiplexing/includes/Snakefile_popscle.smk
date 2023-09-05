@@ -1,7 +1,6 @@
-###################################
-############# POPSCLE #############
-###################################
-###### popscle Preprocessing ######
+########################################
+############ POPSCLE PILEUP ############
+########################################
 rule popscle_pileup:
     input:
         bam = lambda wildcards: scrnaseq_libs_df["Bam_Files"][wildcards.pool],
@@ -11,8 +10,8 @@ rule popscle_pileup:
     output:
         output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup.var.gz"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * popscle_dict["pileup_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * popscle_dict["pileup_memory"]
+        mem_per_thread_gb = lambda attempt: attempt * popscle_dict["pileup_memory"],
+        disk_per_thread_gb = lambda attempt: attempt * popscle_dict["pileup_memory"]
     threads: popscle_dict["pileup_threads"]
     params:
         bind = input_dict["bind_path"],
@@ -47,7 +46,9 @@ rule popscle_pileup:
             --out {params.out}
         """
 
-##### Popscle Demuxlet Demultiplexing #####
+##########################################
+############ POPSCLE DEMUXLET ############
+##########################################
 rule popscle_demuxlet:
     input:
         pileup = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup.var.gz",
@@ -57,8 +58,8 @@ rule popscle_demuxlet:
     output:
         output_dict["output_dir"] + "/{pool}/popscle/demuxlet/demuxletOUT.best"
     resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * popscle_dict["demuxlet_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * popscle_dict["demuxlet_threads"]
+        mem_per_thread_gb = lambda attempt: attempt * popscle_dict["demuxlet_memory"],
+        disk_per_thread_gb = lambda attempt: attempt * popscle_dict["demuxlet_threads"]
     threads: popscle_dict["demuxlet_threads"]
     params:
         bind = input_dict["bind_path"],
@@ -104,38 +105,4 @@ rule popscle_demuxlet:
             --out {params.out}
         [[ -s {output} ]]
         echo $?
-        """
-
-###################################################
-############ REFORMAT DEMUXLET RESULTS ############
-###################################################
-rule demuxlet_results_temp:
-    input:
-        demuxlet = output_dict["output_dir"] + "/{pool}/popscle/demuxlet/demuxletOUT.best"
-    output:
-        output_dict["output_dir"] + "/{pool}/CombinedResults/demuxlet_results.txt"
-    resources:
-        mem_per_thread_gb=1,
-        disk_per_thread_gb=1
-    threads: 1
-    params:
-        bind = input_dict["bind_path"],
-        sif = input_dict["singularity_image"]
-    log: output_dict["output_dir"] + "/logs/demuxlet_results_temp.{pool}.log"
-    shell:
-        """
-            singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{OFS=FS="\\t"}}{{print $2,$3,$5,$13,$14,$19,$20}}' {input.demuxlet} | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/SNG/singlet/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/DBL/doublet/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/AMB/unassigned/g" | \
-            singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}} $3=="doublet" {{$4="doublet"}}1' | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/NUM.SNPS/nSNP/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/DROPLET.TYPE/DropletType/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/singlet.BEST.GUESS/Assignment/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/singlet.BEST.LLK/SingletLLK/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/doublet.BEST.LLK/DoulbetLLK/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/DIFF.LLK.singlet.doublet/DiffLLK/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "1s/\t/\tdemuxlet_/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/BARCODE/Barcode/g" | \
-            singularity exec --bind {params.bind} {params.sif} awk 'NR<2{{print $0;next}}{{print $0 | "sort -k1"}}'  > {output}
         """

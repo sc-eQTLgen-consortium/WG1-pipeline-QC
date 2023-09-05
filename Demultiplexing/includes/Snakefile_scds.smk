@@ -5,10 +5,11 @@ rule scds:
     input:
         counts = lambda wildcards: scrnaseq_libs_df["Matrix_Directories"][wildcards.pool],
     output: 
-        doublets = output_dict["output_dir"] + "/{pool}/scds/scds_doublets_singlets.txt"
+        doublets = output_dict["output_dir"] + "/{pool}/scds/scds_doublets_singlets.tsv",
+        summary = output_dict["output_dir"] + "/{pool}/scds/scds_doublet_summary.tsv"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * scds_dict["scds_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * scds_dict["scds_memory"]
+        mem_per_thread_gb = lambda attempt: attempt * scds_dict["scds_memory"],
+        disk_per_thread_gb = lambda attempt: attempt * scds_dict["scds_memory"]
     threads: scds_dict["scds_threads"]
     params:
         bind = input_dict["bind_path"],

@@ -9,7 +9,7 @@ rule DoubletDetection:
     output:
         doublets = output_dict["output_dir"] + "/{pool}/DoubletDetection/DoubletDetection_doublets_singlets.tsv",
         figure = report(output_dict["output_dir"] + "/{pool}/DoubletDetection/convergence_test.pdf", category = "DoubletDetection", subcategory = "{pool}", caption = "../report_captions/DoubletDetection.rst"),
-        log = output_dict["output_dir"] + "/{pool}/DoubletDetection/" + doubletdetection_params_dict["logfile"]
+        summary = output_dict["output_dir"] + "/{pool}/DoubletDetection/DoubletDetection_summary.tsv",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * doubletdetection_dict["doubletdetection_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * doubletdetection_dict["doubletdetection_memory"]
@@ -18,13 +18,14 @@ rule DoubletDetection:
         bind = input_dict["bind_path"],
         sif = input_dict["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/DoubletDetection.py",
-        n_iterations = scrublet_params_dict["n_iterations"][{pool}],
-        phenograph = scrublet_params_dict["phenograph"][{pool}],
-        standard_scaling = scrublet_params_dict["standard_scaling"][{pool}],
-        p_thresh = scrublet_params_dict["p_thresh"][{pool}],
-        voter_thresh = scrublet_params_dict["voter_thresh"][{pool}],
+        n_iterations = lambda wildcards: doubletdetection_params_dict["n_iterations"][wildcards.pool],
+        phenograph = lambda wildcards: doubletdetection_params_dict["phenograph"][wildcards.pool],
+        standard_scaling = lambda wildcards: doubletdetection_params_dict["standard_scaling"][wildcards.pool],
+        p_thresh = lambda wildcards: doubletdetection_params_dict["p_thresh"][wildcards.pool],
+        voter_thresh = lambda wildcards: doubletdetection_params_dict["voter_thresh"][wildcards.pool],
         step = doubletdetection_params_dict["step"],
         out = output_dict["output_dir"] + "/{pool}/DoubletDetection/"
+    log: output_dict["output_dir"] + "/logs/DoubletDetection_{step}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \
@@ -37,12 +38,11 @@ rule DoubletDetection:
             --voter_thresh {params.voter_thresh} \
             --out {params.out}
 
-		singularity exec --bind {params.bind} {params.sif} echo "The pool:" {wildcards.pool} >> {output.log}
-		singularity exec --bind {params.bind} {params.sif} echo "This was a" {params.step} "run" >> {output.log}
-		singularity exec --bind {params.bind} {params.sif} echo "The number of iterations used to determine doublets:" {params.n_iterations} >> {output.log}
-		singularity exec --bind {params.bind} {params.sif} echo "The phenograph was was used:" {params.phenograph} >> {output.log}
-		singularity exec --bind {params.bind} {params.sif} echo "The standard scaling was used:" {params.standard_scaling} >> {output.log}
-		singularity exec --bind {params.bind} {params.sif} echo "The p threshold was used:" {params.p_thresh} >> {output.log}
-		singularity exec --bind {params.bind} {params.sif} echo "The voter threshold is:" {params.voter_thresh} >> {output.log}
-        fi
+		singularity exec --bind {params.bind} {params.sif} echo "The pool:" {wildcards.pool} >> {log}
+		singularity exec --bind {params.bind} {params.sif} echo "This was a" {params.step} "run" >> {log}
+		singularity exec --bind {params.bind} {params.sif} echo "The number of iterations used to determine doublets:" {params.n_iterations} >> {log}
+		singularity exec --bind {params.bind} {params.sif} echo "The phenograph was was used:" {params.phenograph} >> {log}
+		singularity exec --bind {params.bind} {params.sif} echo "The standard scaling was used:" {params.standard_scaling} >> {log}
+		singularity exec --bind {params.bind} {params.sif} echo "The p threshold was used:" {params.p_thresh} >> {log}
+		singularity exec --bind {params.bind} {params.sif} echo "The voter threshold is:" {params.voter_thresh} >> {log}
         """
