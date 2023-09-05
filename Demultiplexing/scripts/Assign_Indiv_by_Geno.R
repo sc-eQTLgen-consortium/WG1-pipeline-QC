@@ -1,19 +1,34 @@
 #!/usr/bin/env Rscript
+# Adapted from drneavin https://github.com/drneavin/Demultiplexing_Doublet_Detecting_Docs/blob/main/scripts/Assign_Indiv_by_Geno.R
 .libPaths("/usr/local/lib/R/site-library")
-library(tidyr)
-library(tidyverse)
-library(dplyr)
-library(vcfR)
-library(lsa)
-library(ComplexHeatmap)
+suppressMessages(suppressWarnings(library(argparse)))
 
-args <- commandArgs(TRUE)
-arguments <- read.table(args, header = F)
-dir <- arguments[1,]
-pool <- arguments[2,]
-result_file <- arguments[3,]
-correlation_limit <- as.numeric(as.character(arguments[4,]))
-dir.create(paste0(dir,"/",pool,"/souporcell/genotype_correlations/"))
+
+# create parser object
+parser <- ArgumentParser()
+
+# specify our desired options
+# by default ArgumentParser will add an help option
+parser$add_argument("-b", "--basedir", required = TRUE, help="")
+parser$add_argument("-p", "--pool", required = TRUE, type = "character", help="")
+parser$add_argument("-r", "--result_file", required = TRUE, type = "character", help="")
+parser$add_argument("-c", "--correlation_limit", required = FALSE, default = 0.7, type = "double", help="The minimum correlation between a cluster and provided SNP genotypes to consider that cluster assigned to that individual.")
+
+# get command line options, if help option encountered print help and exit,
+# otherwise if options not found on command line then set defaults,
+args <- parser$parse_args()
+
+
+suppressMessages(suppressWarnings(library(tidyr)))
+suppressMessages(suppressWarnings(library(tidyverse)))
+suppressMessages(suppressWarnings(library(dplyr)))
+suppressMessages(suppressWarnings(library(vcfR)))
+suppressMessages(suppressWarnings(library(lsa)))
+suppressMessages(suppressWarnings(library(ComplexHeatmap)))
+
+## make sure the directory exists ###
+dir.create(paste0(args$basedir, "/", args$pool, "/souporcell/genotype_correlations/"))
+
 
 ########## Set up functions ##########
 calculate_DS <- function(GP_df){
@@ -45,8 +60,8 @@ pearson_correlation <- function(df, ref_df, clust_df){
 
 
 ########## Read in vcf files for each of three non-reference genotype softwares ##########
-ref_geno <- read.vcfR(paste0(dir,"/",pool,"/souporcell/Individual_genotypes_subset.vcf.gz"))
-cluster_geno <- read.vcfR(paste0(dir,"/",pool,"/souporcell/cluster_genotypes.vcf"))
+ref_geno <- read.vcfR(paste0(args$basedir, "/", args$pool, "/souporcell/Individual_genotypes_subset.vcf.gz"))
+cluster_geno <- read.vcfR(paste0(args$basedir, "/", args$pool, "/souporcell/cluster_genotypes.vcf"))
 
 
 ########## Convert to tidy data frame ##########
@@ -81,15 +96,15 @@ rownames(pearson_correlations) <- colnames(cluster_geno_tidy)[2:(ncol(cluster_ge
 pearson_correlations <- pearson_correlation(pearson_correlations, ref_geno_tidy, cluster_geno_tidy)
 
 ########## Save the correlation dataframes ##########
-write_delim(pearson_correlations, path = paste0(dir,"/",pool,"/souporcell/genotype_correlations/pearson_correlations.tsv"), delim = "\t" )
+write_delim(pearson_correlations, path = paste0(args$basedir, "/", args$pool, "/souporcell/genotype_correlations/pearson_correlations.tsv"), delim = "\t" )
 
 
 ########## Create correlation figures ##########
 col_fun = colorRampPalette(c("white", "red"))(101)
-pPearsonCorrelations <- Heatmap(as.matrix(pearson_correlations), cluster_rows = T, col = col_fun, column_title = pool)
+pPearsonCorrelations <- Heatmap(as.matrix(pearson_correlations), cluster_rows = T, col = col_fun, column_title = args$pool)
 
 ########## Save the correlation figures ##########
-png(filename = paste0(dir,"/",pool,"/souporcell/genotype_correlations/pearson_correlation.png"), width = 500)
+png(filename = paste0(args$basedir, "/", args$pool, "/souporcell/genotype_correlations/pearson_correlation.png"), width = 500)
 print(pPearsonCorrelations)
 dev.off()
 
@@ -98,7 +113,7 @@ key <- as.data.frame(matrix(nrow = ncol(pearson_correlations), ncol = 3))
 colnames(key) <- c("Genotype_ID","Cluster_ID","Correlation")
 key$Genotype_ID <- colnames(pearson_correlations)
 for (id in key$Genotype_ID){
-    if (max(pearson_correlations[,id]) == max(pearson_correlations[rownames(pearson_correlations)[which.max(pearson_correlations[,id])],]) & max(pearson_correlations[,id]) > correlation_limit){
+    if (max(pearson_correlations[,id]) == max(pearson_correlations[rownames(pearson_correlations)[which.max(pearson_correlations[,id])],]) & max(pearson_correlations[,id]) > args$correlation_limit){
         key$Cluster_ID[which(key$Genotype_ID == id)] <- rownames(pearson_correlations)[which.max(pearson_correlations[,id])]
         key$Correlation[which(key$Genotype_ID == id)] <- max(pearson_correlations[,id])
     } else {
@@ -107,12 +122,12 @@ for (id in key$Genotype_ID){
     }
 }
 
-write_delim(key, path =paste0(dir,"/",pool,"/souporcell/genotype_correlations/Genotype_ID_key.txt"), delim = "\t")
+write_delim(key, path =paste0(args$basedir, "/", args$pool, "/souporcell/genotype_correlations/Genotype_ID_key.txt"), delim = "\t")
 
 
 ##### Read in Files #####
-print(as.character(result_file))
-result <- read_delim(file = as.character(result_file), delim = "\t")
+print(as.character(args$result_file))
+result <- read_delim(file = as.character(args$result_file), delim = "\t")
 
 ##### Left_join the common assignments to the dataframe #####
 col_order <- colnames(result)
@@ -125,4 +140,4 @@ result$Correlation <- NULL
 result <- result[,col_order]
 
 
-write_delim(result, path =paste0(dir,"/",pool,"/CombinedResults/CombinedDropletAssignments_w_genotypeIDs.tsv"), delim = "\t")
+write_delim(result, path =paste0(args$basedir, "/", args$pool, "/CombinedResults/CombinedDropletAssignments_w_genotypeIDs.tsv"), delim = "\t")

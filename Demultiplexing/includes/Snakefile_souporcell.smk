@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-import os
 import pandas as pd
-from glob import glob
 
 # Get list of pools to process
 samples = pd.read_csv(input_dict["samplesheet_filepath"], sep = "\t")
@@ -21,8 +19,8 @@ rule souporcell_unzip_barcodes:
     output:
         output_dict["output_dir"] + "/{pool}/souporcell/barcodes.tsv"
     params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path
+        bind = input_dict["bind_path"],
+        sif = input_dict["singularity_image"]
     log: output_dict["output_dir"] + "/logs/souporcell_unzip_barcodes.{pool}.log"
     shell:
         """
@@ -39,7 +37,7 @@ rule souporcell:
         bam = lambda wildcards: scrnaseq_libs_df["Bam_Files"][wildcards.pool],
         barcodes = output_dict["output_dir"] + "/{pool}/souporcell/barcodes.tsv",
         fasta = fasta,
-        snps = input_dict["snp_genotypes_filepath"]
+        common_variants = input_dict["snp_genotypes_filepath"]
     threads: souporcell_dict["souporcell_threads"]
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * souporcell_dict["souporcell_memory"],
@@ -53,8 +51,8 @@ rule souporcell:
     params:
         out = output_dict["output_dir"] + "/{pool}/souporcell/",
         sif = input_dict["singularity_image"],
-        bind = bind_path,
-        N = lambda wildcards: samples.N[samples.Pool == wildcards.pool].iloc[0],
+        bind = input_dict["bind_path"],
+        clusters = lambda wildcards: samples.N[samples.Pool == wildcards.pool].iloc[0],
         min_alt = souporcell_extra_dict["min_alt"],
         min_ref = souporcell_extra_dict["min_ref"],
         max_loci = souporcell_extra_dict["max_loci"] 
@@ -62,13 +60,13 @@ rule souporcell:
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} souporcell_pipeline.py \
-            -i {input.bam} \
-            -b {input.barcodes} \
-            -f {input.fasta} \
-            -t {threads} \
-            -o {params.out} \
-            -k {params.N} \
-            --common_variants {input.snps} \
+            --bam {input.bam} \
+            --barcodes {input.barcodes} \
+            --fasta {input.fasta} \
+            --threads {threads} \
+            --out_dir {params.out} \
+            --clusters {params.clusters} \
+            --common_variants {input.common_variants} \
             --min_alt {params.min_alt} \
             --min_ref {params.min_ref} \
             --max_loci {params.max_loci} 2> {log}
@@ -89,20 +87,21 @@ rule souporcell_results_temp:
         disk_per_thread_gb=1
     threads: 1
     params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path
+        bind = input_dict["bind_path"],
+        sif = input_dict["singularity_image"]
     log: output_dict["output_dir"] + "/logs/souporcell_results_temp.{pool}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{OFS=FS="\\t"}}{{print $1,$2,$3,$4,$5}}' {input.souporcell} | \
-            singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}} $2=="doublet" {{$3="doublet"}}1' | \
-            singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}} $2=="unassigned" {{$4="unassigned"}}1' | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/status/DropletType/g" | sed "s/assignment/Assignment/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/log_prob_singleton/LogProbSinglet/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/log_prob_doublet/LogProbDoublet/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/barcode/Barcode/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "1s/\t/\tsouporcell_/g" | \
-            singularity exec --bind {params.bind} {params.sif} awk 'NR<2{{print $0;next}}{{print $0| "sort -k1"}}' > {output} 2> {log}
+        singularity exec --bind {params.bind} {params.sif} \
+            awk 'BEGIN{{OFS=FS="\\t"}}{{print $1,$2,$3,$4,$5}}' {input.souporcell} | \
+            awk 'BEGIN{{FS=OFS="\t"}} $2=="doublet" {{$3="doublet"}}1' | \
+            awk 'BEGIN{{FS=OFS="\t"}} $2=="unassigned" {{$4="unassigned"}}1' | \
+            sed "s/status/DropletType/g" | sed "s/assignment/Assignment/g" | \
+            sed "s/log_prob_singleton/LogProbSinglet/g" | \
+            sed "s/log_prob_doublet/LogProbDoublet/g" | \
+            sed "s/barcode/Barcode/g" | \
+            sed "1s/\t/\tsouporcell_/g" | \
+            awk 'NR<2{{print $0;next}}{{print $0| "sort -k1"}}' > {output} 2> {log}
         """
 
 #####################################
@@ -120,8 +119,8 @@ rule souporcell_pool_vcf:
         disk_per_thread_gb=5
     threads: 1
     params:
+        bind = input_dict["bind_path"],
         sif = input_dict["singularity_image"],
-        bind = bind_path,
         individuals = lambda wildcards: scrnaseq_libs_df["Individuals_Files"][wildcards.pool]
     log: output_dict["output_dir"] + "/logs/souporcell_pool_vcf.{pool}.log"
     shell:
@@ -138,29 +137,29 @@ rule souporcell_pool_vcf:
 rule souporcell_correlate_genotypes:
     input:
         genotypes = output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz",
-        assignments = output_dict["output_dir"] + "/{pool}/CombinedResults/CombinedDropletAssignments.tsv"
+        results_file = output_dict["output_dir"] + "/{pool}/CombinedResults/CombinedDropletAssignments.tsv"
     output:
         assignments = output_dict["output_dir"] + "/{pool}/CombinedResults/CombinedDropletAssignments_w_genotypeIDs.tsv",
-        variables = temp(output_dict["output_dir"] + "/{pool}/souporcell/souporcel_genotypes_variables"),
         correlation = report(output_dict["output_dir"] + "/{pool}/souporcell/genotype_correlations/pearson_correlation.png", category = "Souporcell Genotype Correlations", subcategory = "{pool}", caption = "../report_captions/souporcell.rst")
     resources:
         mem_per_thread_gb = souporcell_dict["souporcell_correlations_memory"],
         disk_per_thread_gb = souporcell_dict["souporcell_correlations_memory"]
     threads: souporcell_dict["souporcell_correlations_threads"]
     params:
+        bind = input_dict["bind_path"],
         sif = input_dict["singularity_image"],
-        bind = bind_path,
-        out = output_dict["output_dir"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Assign_Indiv_by_Geno.R",
+        basedir = output_dict["output_dir"],
         cor_thresh = souporcell_dict["souporcell_genotype_correlation_threshold"]
     log: output_dict["output_dir"] + "/logs/souporcell_correlate_genotypes.{pool}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} echo {params.out} > {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {wildcards.pool} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {input.assignments} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {params.cor_thresh} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {output.variables} 2> {log}
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
+            --basedir {params.out} \
+            --pool {wildcards.pool} \
+            --result_file {input.results_file} \
+            --correlation_limit {params.cor_thresh} \
+            2> {log}
         [[ -s {output.assignments} ]]
         echo $?
         """

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import os
 import pandas as pd
-from glob import glob
 
 #################################
 ######## COMBINE RESULTS ########
@@ -24,12 +23,13 @@ rule join_results:
         disk_per_thread_gb=5
     threads: 1
     params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path
+        bind = input_dict["bind_path"],
+        sif = input_dict["singularity_image"]
     log: output_dict["output_dir"] + "/logs/join_results.{pool}.log"
     shell:
         """
-        join -a1 -a2 -1 1 -2 1 -t "\t" -e"NA" -o "0,1.2,1.3,1.4,1.5,1.6,1.7,2.2,2.3,2.4,2.5" {input.demuxlet} {input.souporcell} | awk 'NR<2{{print $0;next}}{{print $0| "sort -k1"}}' | \
+        singularity exec --bind {params.bind} {params.sif} \
+            join -a1 -a2 -1 1 -2 1 -t "\t" -e"NA" -o "0,1.2,1.3,1.4,1.5,1.6,1.7,2.2,2.3,2.4,2.5" {input.demuxlet} {input.souporcell} | awk 'NR<2{{print $0;next}}{{print $0| "sort -k1"}}' | \
             join -a1 -a2 -1 1 -2 1 -t "\t" -e"NA" -o "0,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,1.10,1.11,2.2,2.3" - {input.scrublet} | awk 'NR<2{{print $0;next}}{{print $0| "sort -k1"}}' | \
             join -a1 -a2 -1 1 -2 1 -t "\t" -e"NA" -o "0,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,1.10,1.11,1.12,1.13,2.2,2.3" - {input.scds} | awk 'NR<2{{print $0;next}}{{print $0| "sort -k1"}}' | \
             join -a1 -a2 -1 1 -2 1 -t "\t" -e"NA" -o "0,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,1.10,1.11,1.12,1.13,1.14,1.15,2.2" - {input.DoubletDetection} > {output}
@@ -48,20 +48,20 @@ rule final_assignments:
         table = output_dict["output_dir"] + "/{pool}/CombinedResults/Final_Assignments_demultiplexing_doublets.txt",
         variables = output_dict["output_dir"] + "/{pool}/CombinedResults/variables.txt"
     resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * CombineResults_dict["FinalAssignments_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * CombineResults_dict["FinalAssignments_memory"]
-    threads: CombineResults_dict["FinalAssignments_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * combine_results_dict["final_assignments_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * combine_results_dict["final_assignments_memory"]
+    threads: combine_results_dict["FinalAssignments_threads"]
     params:
+        bind = input_dict["bind_path"],
         sif = input_dict["singularity_image"],
-        bind = bind_path,
-        out = output_dict["output_dir"],
-        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/FinalBarcodeAssignments.R"
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/FinalBarcodeAssignments.R",
+        out = output_dict["output_dir"] + "/{pool}/",
     log: output_dict["output_dir"] + "/logs/final_assignments.{pool}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} echo {params.out} > {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {wildcards.pool} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {output.variables}
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
+            --out {params.out} \
+            --pool {wildcards.pool}
         [[ -s {output.figure} ]]
         echo $?
         """
@@ -79,8 +79,8 @@ rule echo_final_assignments:
         disk_per_thread_gb=1
     threads: 1
     params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path
+        bind = input_dict["bind_path"],
+        sif = input_dict["singularity_image"]
     log: output_dict["output_dir"] + "/logs/echo_final_assignments.log"
     shell:
         """
@@ -99,8 +99,8 @@ rule final_assignments_check:
         disk_per_thread_gb=1
     threads: 1
     params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path
+        bind = input_dict["bind_path"],
+        sif = input_dict["singularity_image"]
     log: output_dict["output_dir"] + "/logs/final_assignments_check.log"
     shell:
         """
@@ -126,19 +126,22 @@ rule expected_observed_numbers:
     output:
         report(output_dict["output_dir"] + "/QC_figures/expected_observed_individuals_classifications.png", category = "Number Individuals Summary", caption = "../report_captions/expected_observed_numbers.rst")
     resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * CombineResults_dict["expected_observed_numbers_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * CombineResults_dict["expected_observed_numbers_memory"]
-    threads: CombineResults_dict["expected_observed_numbers_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * combine_results_dict["expected_observed_numbers_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * combine_results_dict["expected_observed_numbers_memory"]
+    threads: combine_results_dict["expected_observed_numbers_threads"]
     params:
+        bind = input_dict["bind_path"],
         sif = input_dict["singularity_image"],
-        bind = bind_path,
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/expected_observed_individuals_doublets.R",
-        out = output_dict["output_dir"] + "/QC_figures/",
-        basedir = output_dict["output_dir"]
+        basedir = output_dict["output_dir"],
+        out = output_dict["output_dir"] + "/QC_figures/"
     log: output_dict["output_dir"] + "/logs/expected_observed_numbers.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {input.sample_sheet} {params.out} {params.basedir}
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
+            --basedir {params.basedir} \
+            --sample_sheet {input.sample_sheet} \
+            --out {params.out}
         """
 
 
@@ -147,7 +150,6 @@ rule QC_plots:
         assignment_list = output_dict["output_dir"] + "/QC_figures/final_assignments_comparison.txt",
         pools = output_dict["output_dir"] + "/QC_figures/meta_comparison.txt"
     output:
-        variables = temp(output_dict["output_dir"] + "/QC_figures/R_variables.txt"),
         fig1 = report(output_dict["output_dir"] + "/QC_figures/nCount_RNA_violin_MAD_All.png", category = "QC", caption = "../report_captions/QC_plots_nCount.rst"),
         fig2 = report(output_dict["output_dir"] + "/QC_figures/nCount_RNA_violin_MADper_Pool.png", category = "QC", caption = "../report_captions/QC_plots_nCount_RNA_MADall.rst"),
         fig3 = report(output_dict["output_dir"] + "/QC_figures/nCount_RNA_violin_noMADlines.png", category = "QC", caption = "../report_captions/QC_plots_nCount.rst"),
@@ -167,28 +169,28 @@ rule QC_plots:
         fig17 = report(output_dict["output_dir"] + "/QC_figures/UMI_vs_percentMT_QC_scatter_colorPool.png", category = "QC", caption = "../report_captions/QC_plots_UMI_mt_pool.rst"),
         fig18 = report(output_dict["output_dir"] + "/QC_figures/UMI_vs_percentMT_QC_scatter_w_MADlines.png", category = "QC", caption = "../report_captions/QC_plots_UMI_mt_MDA_all.rst"),
     resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * CombineResults_dict["FinalQC_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * CombineResults_dict["FinalQC_memory"]
-    threads: CombineResults_dict["FinalQC_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * combine_results_dict["final_qc_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * combine_results_dict["final_qc_memory"]
+    threads: combine_results_dict["final_qc_threads"]
     params:
+        bind = input_dict["bind_path"],
         sif = input_dict["singularity_image"],
-        bind = bind_path,
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Singlet_QC_Figures.R",
-        main_dir = output_dict["output_dir"],
-        dirs10x = output_dict["output_dir"] + '/file_directories.txt',
+        basedir = output_dict["output_dir"],
+        pool_indirs = output_dict["output_dir"] + '/file_directories.txt',
         out = output_dict["output_dir"] + "/QC_figures/",
         rb_genes = "/opt/WG1-pipeline-QC/Demultiplexing/Ribosomal_genes.txt",
         mt_genes = "/opt/WG1-pipeline-QC/Demultiplexing/Mitochondrial_genes.txt"
     log: output_dict["output_dir"] + "/logs/QC_plots.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} echo {params.main_dir} > {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {input.pools} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {params.dirs10x} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {params.out} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {params.rb_genes} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {params.mt_genes} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {output.variables}
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
+            --basedir {params.basedir} \
+            --pools {input.pools} \
+            --pool_indirs {params.pool_indirs} \
+            --out {params.out} \
+            --rb_genes_file {params.rb_genes} \
+            --mt_genes_file {params.mt_genes}
         [[ -s {output.fig18} ]]
         echo $?
         """

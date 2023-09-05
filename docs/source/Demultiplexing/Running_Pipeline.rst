@@ -308,7 +308,7 @@ Sometimes ``DoulbetDetection`` does not reach convergence after 50 iterations su
 .. figure:: https://user-images.githubusercontent.com/44268007/95423527-f545dd00-098c-11eb-8a48-1ca6bb507151.png
   :width: 500
     
-- In this situation, you will have to manually rerun DoulbetDetection by changing "run_DoubletDetection_manual" to ``True`` in the "DoubletDetection_manual" section of the configuration file and altering the other parameters in this section. 
+- In this situation, you will have to manually rerun DoulbetDetection by changing "run_doubletdetection_manual" to ``True`` in the "DoubletDetection_manual" section of the configuration file and altering the other parameters in this section.
 
 - Most often, ``DoubletDetection`` will reach convergence with more iterations. In this case, when we set ``n_iterations`` in the configuration yaml file to 150, we see that we do indeed reach convergence
 
@@ -325,7 +325,7 @@ Sometimes ``DoulbetDetection`` does not reach convergence after 50 iterations su
 .. admonition:: Note
   :class: hint
 
-  Please note that you have to indicate the pools that need to be rerun in this section as well - a list of pools that need to be rerun should be designated in the ``DoubletDetection_manual_pools`` parameter of the configuration yaml file. 
+  Please note that you have to indicate the pools that need to be rerun in this section as well - a list of pools that need to be rerun should be designated in the ``DoubletDetection_manual_pools`` parameter of the configuration yaml file.
 
 - After you have changed the parameters for a manual rerun, you can run the job with the same Snakemake_ commands as before. Be aware that the files in the DoubletDetection directory will be overwritten by running this manual step so move them to another directory if you want to keep them for your reference.
 

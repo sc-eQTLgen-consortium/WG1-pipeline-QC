@@ -7,15 +7,18 @@ refs:
 
 inputs:
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
-  bind_path: /path/to/bind/to/mount ## List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2} 
+  bind_path: /path/to/bind/to/mount ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}
   samplesheet_filepath: /path/to/sample/metadata/file.tsv ### tab separated file that has a header. Each line has a pool name used for the scRNA-seq directories and the number of individuals in each pool 
-  scRNAseq_dir: /path/to/scRNAseq/parent/directory ### the parent directory that has directories for each pool and the scRNA-seq output below it
+  sc_rnaseq_dir: /path/to/scRNAseq/parent/directory ### the parent directory that has directories for each pool and the scRNA-seq output below it
   snp_genotypes_filepath: /path/to/individual_genotypes.vcf ### the path to the genotype file that has just SNPs that are within exons and with a minor allele frequency > 0.05 (5%) in this sample
   individual_list_dir: /path/to/individual_list/directory ### Directory that has a different file for each pool. Each file contains a list of the individuals IDs that are in the pool separated by line (match the genotype individual IDs)
 
 outputs: 
   output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
 
+settings:
+    is_multiplexed: False
+    sc_data_type: "single-cell"
   
 ##############################################################################################################
 ##### The following arguments are common parameters that may need to be changed depending on the dataset #####
@@ -39,21 +42,29 @@ souporcell:
 scrublet:
   scrublet_threads: 1 ### The number threads that will be used for the scrublet step
   scrublet_memory: 5 ### The number amount of memory that will be used for scrublet doublet detection (in GB)
-  percentile: [80,85,90,95] ### The percentile cutoff for the most variable genes. Scrublet will be run with each of these percentile limits for each pool and saved into a different directory as pool/scrublet_{percentile}/
+  percentile: [80, 85, 90, 95] ### The percentile cutoff for the most variable genes. Scrublet will be run with each of these percentile limits for each pool and saved into a different directory as pool/scrublet_{percentile}/
 
 scds:
   scds_threads: 1 ### The number threads that will be used for the scds step
   scds_memory: 10 ### The amount of memeory (GB) per thread for the scds step
 
-DoubletDetection:
-  DoubletDetection_threads: 2 ### The number threads that will be used for the DoubletDetection step
-  DoubletDetection_memory: 10 ### The amount of memory (GB) used per thread for the DoubletDetection step
+doubletdetection:
+  doubletdetection_threads: 2 ### The number threads that will be used for the DoubletDetection step
+  doubletdetection_memory: 10 ### The amount of memory (GB) used per thread for the DoubletDetection step
 
-CombineResults:
-  FinalAssignments_threads: 2 ### Threads used for the R script that will read in all the software results from all pools and make a final call on the assignment for each barcode
-  FinalAssignments_memory: 20 ### Amount of memory used in GB used for the R script that will read in all the software results from all pools and make a final call on the assignment for each barcode
-  FinalQC_threads: 2 ### Threads used for the R script that will make seurat objects and make QC figures for selecting ideal QC thresholds
-  FinalQC_memory: 20 ### Memory (in GB) used for the R script that will make seurat objects and make QC figures for selecting ideal QC thresholds
+scdblfinder:
+  scdblfinder_threads: 1 ### The number threads that will be used for the scDblFinder step
+  scfblfinder_memory: 10 ### The amount of memeory (GB) per thread for the scDblFinder step
+
+doubletfinder:
+  doubletfinder_threads: 1 ### The number threads that will be used for the DoubletFinder step
+  doubletfinder_memory: 10 ### The amount of memeory (GB) per thread for the DoubletFinder step
+
+combine_results:
+  final_assignments_threads: 2 ### Threads used for the R script that will read in all the software results from all pools and make a final call on the assignment for each barcode
+  final_assignments_memory: 20 ### Amount of memory used in GB used for the R script that will read in all the software results from all pools and make a final call on the assignment for each barcode
+  final_qc_threads: 2 ### Threads used for the R script that will make seurat objects and make QC figures for selecting ideal QC thresholds
+  final_qc_memory: 20 ### Memory (in GB) used for the R script that will make seurat objects and make QC figures for selecting ideal QC thresholds
   expected_observed_numbers_threads: 2 ### Threads used for the R script that will generate figures comparing expected vs observed thresholds
   expected_observed_numbers_memory: 20 ### Memory (in GB) used for the R script that will generate figures comparing expected vs observed thresholds
 
@@ -68,14 +79,14 @@ scrublet_manual:
   scrublet_manual_threshold_percentiles: None ### List of the percentile of variable genes to use for the manual threshold setting for scrublet. Note that the location in this vector is directly relational to the scrublet_manual_threshold_pools vector. ex [85,95]
   scrublet_manual_threshold_thresholds: None ### List of the manually set thresholds for scrublet. Note that the location in this vector is directly relational to the scrublet_manual_threshold_pools vector. ex [0.2,0.24]
 
-DoubletDetection_manual:
-  run_DoubletDetection_manual: False ### logical whether or not to run scrublet with manual thresholding. This is only used if the number of doublets didn't reach a convergence. This will only rerun the pools indicated below
-  n_iterations: 50 ### default: 50; Number of iterations to use to determine doublets (increase if not reaching convergence)
-  phenograph: False ### default: False; See the DoubletDetection docs - if this is True, standard scaling should be False and p_thresh=1e-7, voter_thresh=0.8
-  standard_scaling: True ### default: True; See the DoubletDetection docs - if this is True, phenograph should be False and p_thresh=1e-7, voter_thresh=0.8
-  p_thresh: 1e-16 ### default: 1e-16; See the DoubletDetection docs 
-  voter_thresh: 0.5 ### default: 0.5; See the DoubletDetection docs 
-  DoubletDetection_manual_pools: None ### List of the pools that need manual threshold setting for scrublet. ex [Pool1,Pool7]
+doubletdetection_manual:
+  run_doubletdetection_manual: False ### logical whether or not to run scrublet with manual thresholding. This is only used if the number of doublets didn't reach a convergence. This will only rerun the pools indicated below
+  doubletdetection_manual_pools: None ### List of the pools that need manual threshold setting for scrublet. ex [Pool1,Pool7]
+  doubletdetection_manual_n_iterations: None ### List of the number of fit operations from which to collect p-values to use for the manual threshold setting for DoubletDetection. Note that the location in this vector is directly relational to the doubletdetection_manual_pools vector. ex [50, 60]
+  doubletdetection_manual_phenograph: None ### List of booleans whether to disable PhenoGraph clustering in exchange for louvain clustering for the manual threshold setting for DoubletDetection. Note that the location in this vector is directly relational to the doubletdetection_manual_pools vector. ex [True, False]
+  doubletdetection_manual_standard_scaling: None ### List of booleans whether to enable standard scaling of normalized count matrix prior to PCA for the manual threshold setting for DoubletDetection. Note that the location in this vector is directly relational to the doubletdetection_manual_pools vector. ex [True, False]
+  doubletdetection_manual_p_thresh: None ### List of hypergeometric test p-value threshold that determines per iteration doublet calls for the manual threshold setting for DoubletDetection. Note that the location in this vector is directly relational to the doubletdetection_manual_pools vector. ex [1e-16, 1e-16]
+  doubletdetection_manual_voter_thresh: None ### List of fractions of iterations a cell must be called a doublet for the manual threshold setting for DoubletDetection. Note that the location in this vector is directly relational to the doubletdetection_manual_pools vector. ex [0.5, 0.5]
 
 
 
@@ -84,10 +95,10 @@ DoubletDetection_manual:
 ##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####
 ############################################################################################################################################
 popscle_extra:
-  cap_BQ: 40 ### Maximum base quality (higher BQ will be capped)
-  min_BQ: 13 ### Minimum base quality to consider (lower BQ will be skipped)
-  min_MQ: 20 ### Minimum mapping quality to consider (lower MQ will be ignored)
-  min_TD: 0 ### Minimum distance to the tail (lower will be ignored)
+  cap_bq: 40 ### Maximum base quality (higher BQ will be capped)
+  min_bq: 13 ### Minimum base quality to consider (lower BQ will be skipped)
+  min_mq: 20 ### Minimum mapping quality to consider (lower MQ will be ignored)
+  min_td: 0 ### Minimum distance to the tail (lower will be ignored)
   excl_flag: 3844 ### SAM/BAM FLAGs to be excluded
   min_total: 0 ### Minimum number of total reads for a droplet/cell to be considered
   min_snp: 0 ### Minimum number of SNPs with coverage for a droplet/cell to be considered
@@ -109,9 +120,13 @@ scrublet_extra:
   min_cells: 3 ### Used for gene filtering prior to PCA. Genes expressed at fewer than min_counts in fewer than are excluded.")
   n_prin_comps: 30 ### Number of principal components used to embed the transcriptomes priorto k-nearest-neighbor graph construction
 
-DoubletDetection_extra:
+doubletdetection_extra:
   n_iterations: 50 ### Number of fit operations from which to collect p-values.
   phenograph: False ### Set to False to disable PhenoGraph clustering in exchange for louvain clustering implemented in scanpy
   standard_scaling: True ### Set to True to enable standard scaling of normalized count matrix prior to PCA. Recommended when not using Phenograph. 
   p_thresh: 1e-16 ### hypergeometric test p-value threshold that determines per iteration doublet calls
   voter_thresh: 0.5 ### fraction of iterations a cell must be called a doublet
+
+doubletfinder_extra:
+  find_clusters_resolution: 0.1 ### FindClusters() resolution paramter; use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities. Seurat default is set to 0.8.
+  n_generated_artificial_doublets: 0.25 ### The number of generated artificial doublets, expressed as a proportion of the merged real-artificial data. Default is set to 0.25, based on observation that DoubletFinder performance is largely pN-invariant (see McGinnis, Murrow and Gartner 2019, Cell Systems).
