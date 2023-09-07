@@ -10,7 +10,7 @@ inputs:
   bind_path: /path/to/bind/to/mount ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}
   samplesheet_filepath: /path/to/sample/metadata/file.tsv ### tab separated file that has a header. Each line has a pool name used for the scRNA-seq directories and the number of individuals in each pool 
   sc_rnaseq_dir: /path/to/scRNAseq/parent/directory ### the parent directory that has directories for each pool and the scRNA-seq output below it
-  common_variants: /path/to/individual_genotypes.vcf ### the path to the genotype file that has just SNPs that are within exons and with a minor allele frequency > 0.05 (5%) in this sample
+  vcf: /path/to/individual_genotypes.vcf ### the path to the genotype file that has just SNPs that are within exons and with a minor allele frequency > 0.05 (5%) in this sample
   individual_list_dir: /path/to/individual_list/directory ### Directory that has a different file for each pool. Each file contains a list of the individuals IDs that are in the pool separated by line (match the genotype individual IDs)
 
 outputs: 
@@ -24,13 +24,15 @@ settings:
 ##### The following arguments are common parameters that may need to be changed depending on the dataset #####
 ##############################################################################################################
 popscle:
-  pileup_memory: 10 ### This is the number of gigs that will be used for memory and disk space per thread for the pileup step.
-  pileup_threads: 10 ### The number threads that will be used for the pileup step
-  demuxlet_memory: 25 ### This is the number of gigs that will be used for memory and disk space per thread for the demuxlet step
-  demuxlet_threads: 4 ### The number threads that will be used for the demuxlet step
-  genotype_field: "GP" ### This is the field that will be used to determing the genotype, could be GP or GT or another option
-  tag_group: "CB" ### The tag for the readgroup or barcode. For 10x scRNA-seq this is the correct cell barcode tag, for others, you may have to alter accordingly
-  tag_UMI: "UB" ### The tag for the UMIs. For 10x, UB should be correct
+  popscle_bam_filter_memory: 10 ### This is the number of gigs that will be used for memory when subsetting the bam file.
+  popscle_bam_filter_threads : 4 ### This is the number of threads that will be used for memory when subsetting the bam file.
+  popscle_pileup_memory: 10 ### This is the number of gigs that will be used for memory and disk space per thread for the pileup step.
+  popscle_pileup_threads: 10 ### The number threads that will be used for the pileup step
+  popscle_demuxlet_memory: 25 ### This is the number of gigs that will be used for memory and disk space per thread for the demuxlet step
+  popscle_demuxlet_threads: 4 ### The number threads that will be used for the demuxlet step
+  popscle_genotype_field: "GP" ### This is the field that will be used to determing the genotype, could be GP or GT or another option
+  popscle_tag_group: "CB" ### The tag for the readgroup or barcode. For 10x scRNA-seq this is the correct cell barcode tag, for others, you may have to alter accordingly
+  popscle_tag_UMI: "UB" ### The tag for the UMIs. For 10x, UB should be correct
 
 souporcell:
   souporcell_threads: 8 ### The number threads that will be used for the souporcell step

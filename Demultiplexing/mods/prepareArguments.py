@@ -2,6 +2,7 @@
 import os
 import pandas as pd
 
+
 def get_scrnaseq_dirs(config, samples_df):
     # Extract variables from configuration file.
     input_dict = config["inputs"]
@@ -22,17 +23,11 @@ def get_scrnaseq_dirs(config, samples_df):
         # Check if the pool directory exists.
         scrnaseq_pool_dir = os.path.join(scrnaseq_dir, pool)
         if not os.path.exists(scrnaseq_pool_dir):
-            print("Could not find a scRNA-seq directory for pool '{}' in your pool list. Please check that are spelled correctly and you do not have any additional pool names that are not in {}.".format(pool, individual_list_dir))
+            print("Could not find a scRNA-seq directory for pool '{}' in your pool list. Please check that are spelled correctly and you do not have any additional pool names that are not in '{}'.".format(pool, scrnaseq_dir))
             exit()
 
         # Get the barcode file.
-        matrix_dir = os.path.join(scrnaseq_dir, pool, "outs", "filtered_feature_bc_matrix")
         barcode_file = os.path.join(scrnaseq_dir, pool, "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz")
-        for filename in ["barcodes.tsv.gz", "features.tsv.gz", "matrix.mtx.gz"]:
-            file_path = os.path.join(scrnaseq_dir, pool, "outs", "filtered_feature_bc_matrix", filename)
-            if not os.path.exists(file_path):
-                print("Could not find a {} file for pool '{}' in your pool list. Please check that 'outs/filtered_feature_bc_matrix/{}' exist in your pool.".format(filename.split(".")[0], pool, filename))
-                exit()
 
         # Get the bam file.
         bam_file = os.path.join(scrnaseq_dir, pool, "outs", "possorted_genome_bam.bam")
@@ -52,9 +47,9 @@ def get_scrnaseq_dirs(config, samples_df):
             print("Could not find a individual list file for pool '{}' in your pool list. Please check that '{}.txt' exist in your individual_list_dir.".format(pool, pool))
             exit()
 
-        scrnaseq_libs_paths.append([scrnaseq_pool_dir, matrix_dir, barcode_file, bam_file, count_h5_file, individual_file])
+        scrnaseq_libs_paths.append([scrnaseq_pool_dir, barcode_file, bam_file, count_h5_file, individual_file])
 
     scrnaseq_libs_df = pd.DataFrame(scrnaseq_libs_paths,
                                     index=samples_df["Pool"],
-                                    columns=["scRNAseqDirectory", "MatrixDirectory", "BarcodeFile", "BamFile", "CountH5File", "IndividualFile"])
-    return samples_df, scrnaseq_libs_df
+                                    columns=["scRNAseqDirectory", "BarcodeFile", "BamFile", "CountH5File", "IndividualFile"])
+    return scrnaseq_libs_df

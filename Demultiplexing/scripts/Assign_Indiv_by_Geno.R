@@ -8,9 +8,9 @@ parser <- ArgumentParser()
 
 # specify our desired options
 # by default ArgumentParser will add an help option
-parser$add_argument("-r", "--reference_vcf", required = TRUE, type = "character", help="The reference vcf (snp genotyped).")
-parser$add_argument("-c", "--cluster_vcf", required = TRUE, type = "character", help = "The vcf of the snps for each cluster.")
-parser$add_argument("-o", "--out", required = TRUE, type = "character", help = "The output directory where results will be saved.")
+parser$add_argument("-r", "--reference_vcf", required=TRUE, type="character", help="The reference vcf (snp genotyped).")
+parser$add_argument("-c", "--cluster_vcf", required=TRUE, type="character", help="The vcf of the snps for each cluster.")
+parser$add_argument("-o", "--out", required=TRUE, type="character", help="The output directory where results will be saved.")
 
 # get command line options, if help option encountered print help and exit,
 # otherwise if options not found on command line then set defaults,
@@ -38,7 +38,7 @@ calculate_DS <- function(GP_df){
     colnames(df) <- paste0("c", colnames(df))
     colnames_orig <- colnames(df)
     for (i in 1:length(colnames_orig)){
-        df <- separate(df, sep = ",", col = colnames_orig[i], into = columns[(1+(3*(i-1))):(3+(3*(i-1)))])
+        df <- separate(df, sep=",", col=colnames_orig[i], into=columns[(1+(3*(i-1))):(3+(3*(i-1)))])
     }
     df <- mutate_all(df, function(x) as.numeric(as.character(x)))
     for (i in 1: ncol(GP_df)){
@@ -52,7 +52,7 @@ pearson_correlation <- function(df, ref_df, clust_df){
 		print(col)
         for (row in rownames(df)){
 			print(row)
-            df[row,col] <- cor(as.numeric(pull(ref_df, col)), as.numeric(pull(clust_df, row)), method = "pearson", use = "complete.obs")
+            df[row,col] <- cor(as.numeric(pull(ref_df, col)), as.numeric(pull(clust_df, row)), method="pearson", use="complete.obs")
         }
     }
     return(df)
@@ -70,28 +70,28 @@ cluster_geno <- read.vcfR(args$cluster_vcf)
 ##### Cluster VCF #####
 ### Check for each of the different genotype formats ##
 ## DS ##
-format_clust=NA
-cluster_geno_tidy <- as_tibble(extract.gt(element = "DS",cluster_geno, IDtoRowNames = F))
+format_clust <- NA
+cluster_geno_tidy <- as_tibble(extract.gt(element="DS",cluster_geno, IDtoRowNames=F))
 if (!all(colSums(is.na(cluster_geno_tidy)) == nrow(cluster_geno_tidy))){
 	message("Found DS genotype format in cluster vcf. Will use that metric for cluster correlation.")
-	format_clust = "DS"
+	format_clust <- "DS"
 }
 
 ## GT ##
 if (is.na(format_clust)){
-	cluster_geno_tidy <- as_tibble(extract.gt(element = "GT",cluster_geno, IDtoRowNames = F))
+	cluster_geno_tidy <- as_tibble(extract.gt(element="GT",cluster_geno, IDtoRowNames=F))
 	if (!all(colSums(is.na(cluster_geno_tidy)) == nrow(cluster_geno_tidy))){
 		message("Found GT genotype format in cluster vcf. Will use that metric for cluster correlation.")
-		format_clust = "GT"
+		format_clust <- "GT"
 
 		if (any(grepl("\\|",cluster_geno_tidy[,1]))){
-			separator = "\\|"
+			separator <- "\\|"
 			message("Detected | separator for GT genotype format in cluster vcf")
 		} else if (any(grepl("/",cluster_geno_tidy[,1]))) {
-			separator = "\\/"
+			separator <- "\\/"
 			message("Detected / separator for GT genotype format in cluster vcf")
 		} else {
-			format_clust = NA
+			format_clust <- NA
 			message("Can't identify a separator for the GT field in cluster vcf, moving on to using GP.")
 		}
 		if (!is.na(format_clust)){
@@ -105,9 +105,9 @@ if (is.na(format_clust)){
 
 ## GP ##
 if (is.na(format_clust)){
-	cluster_geno_tidy <- as_tibble(extract.gt(element = "GP",cluster_geno, IDtoRowNames =F))
+	cluster_geno_tidy <- as_tibble(extract.gt(element="GP",cluster_geno, IDtoRowNames =F))
 	if (!all(colSums(is.na(cluster_geno_tidy)) == nrow(cluster_geno_tidy))){
-		format_clust = "GP"
+		format_clust <- "GP"
 		cluster_geno_tidy <- calculate_DS(cluster_geno_tidy)
 		message("Found GP genotype format in cluster vcf. Will use that metric for cluster correlation.")
 
@@ -124,28 +124,28 @@ if (is.na(format_clust)){
 ### Reference VCF ###
 ### Check for each of the different genotype formats ##
 ## DS ##
-format_ref = NA
-ref_geno_tidy <- as_tibble(extract.gt(element = "DS",ref_geno, IDtoRowNames = F))
+format_ref <- NA
+ref_geno_tidy <- as_tibble(extract.gt(element="DS",ref_geno, IDtoRowNames=F))
 if (!all(colSums(is.na(ref_geno_tidy)) == nrow(ref_geno_tidy))){
 	message("Found DS genotype format in reference vcf. Will use that metric for cluster correlation.")
-	format_ref = "DS"
+	format_ref <- "DS"
 }
 
 ## GT ##
 if (is.na(format_ref)){
-	ref_geno_tidy <- as_tibble(extract.gt(element = "GT",ref_geno, IDtoRowNames = F))
+	ref_geno_tidy <- as_tibble(extract.gt(element="GT",ref_geno, IDtoRowNames=F))
 	if (!all(colSums(is.na(ref_geno_tidy)) == nrow(ref_geno_tidy))){
 		message("Found GT genotype format in reference vcf. Will use that metric for cluster correlation.")
-		format_ref = "GT"
+		format_ref <- "GT"
 
 		if (any(grepl("\\|",ref_geno_tidy[,1]))){
-			separator = "|"
+			separator <- "|"
 			message("Detected | separator for GT genotype format in reference vcf")
 		} else if (any(grepl("/",ref_geno_tidy[,1]))) {
-			separator = "/"
+			separator <- "/"
 			message("Detected / separator for GT genotype format in reference vcf")
 		} else {
-			format_ref = NA
+			format_ref <- NA
 			message("Can't identify a separator for the GT field in reference vcf, moving on to using GP.")
 		}
 
@@ -159,9 +159,9 @@ if (is.na(format_ref)){
 
 ## GP ##
 if (is.na(format_ref)){
-	ref_geno_tidy <- as_tibble(extract.gt(element = "GP",ref_geno, IDtoRowNames = F))
+	ref_geno_tidy <- as_tibble(extract.gt(element="GP",ref_geno, IDtoRowNames=F))
 	if (!all(colSums(is.na(ref_geno_tidy)) == nrow(ref_geno_tidy))){
-		format_clust = "GP"
+		format_clust <- "GP"
 		ref_geno_tidy <- calculate_DS(ref_geno_tidy)
 		message("Found GP genotype format in cluster vcf. Will use that metric for cluster correlation.")
 
@@ -210,28 +210,28 @@ cluster_geno_tidy <- left_join(locations, cluster_geno_tidy)
 
 ########## Correlate all the cluster genotypes with the individuals genotyped ##########
 ##### Make a dataframe that has the clusters as the row names and the individuals as the column names #####
-pearson_correlations <- as.data.frame(matrix(nrow = (ncol(cluster_geno_tidy) -1), ncol = (ncol(ref_geno_tidy) -1)))
+pearson_correlations <- as.data.frame(matrix(nrow=(ncol(cluster_geno_tidy) -1), ncol=(ncol(ref_geno_tidy) -1)))
 colnames(pearson_correlations) <- colnames(ref_geno_tidy)[2:(ncol(ref_geno_tidy))]
 rownames(pearson_correlations) <- colnames(cluster_geno_tidy)[2:(ncol(cluster_geno_tidy))]
 pearson_correlations <- pearson_correlation(pearson_correlations, ref_geno_tidy, cluster_geno_tidy)
-cluster <- data.frame("Cluster" = rownames(pearson_correlations))
+cluster <- data.frame("Cluster"=rownames(pearson_correlations))
 pearson_correlations_out <- cbind(cluster, pearson_correlations)
 
 ########## Save the correlation dataframes ##########
-write_delim(pearson_correlations_out, file = paste0(args$out, "/ref_clust_pearson_correlations.tsv"), delim = "\t" )
+write_delim(pearson_correlations_out, file=paste0(args$out, "/ref_clust_pearson_correlations.tsv"), delim="\t" )
 
 
 ########## Create correlation figures ##########
-col_fun = colorRampPalette(c("white", "red"))(101)
-pPearsonCorrelations <- Heatmap(as.matrix(pearson_correlations), cluster_rows = T, col = col_fun)
+col_fun <- colorRampPalette(c("white", "red"))(101)
+pPearsonCorrelations <- Heatmap(as.matrix(pearson_correlations), cluster_rows=TRUE, col=col_fun)
 
 ########## Save the correlation figures ##########
-png(filename = paste0(args$out, "/ref_clust_pearson_correlation.png"), width = 500)
+png(filename=paste0(args$out, "/ref_clust_pearson_correlation.png"), width=500)
 print(pPearsonCorrelations)
 dev.off()
 
 ########## Assign individual to cluster based on highest correlating individual ##########
-key <- as.data.frame(matrix(nrow = ncol(pearson_correlations), ncol = 3))
+key <- as.data.frame(matrix(nrow=ncol(pearson_correlations), ncol=3))
 colnames(key) <- c("Genotype_ID","Cluster_ID","Correlation")
 key$Genotype_ID <- colnames(pearson_correlations)
 for (id in key$Genotype_ID){
@@ -244,6 +244,6 @@ for (id in key$Genotype_ID){
     }
 }
 
-write_delim(key, file=paste0(args$out, "/Genotype_ID_key.txt"), delim = "\t")
+write_delim(key, file=paste0(args$out, "/Genotype_ID_key.txt"), delim="\t")
 
 

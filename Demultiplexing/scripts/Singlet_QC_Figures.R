@@ -40,12 +40,12 @@ MT_genes <- read_delim(args$mt_genes_file, delim="\t")
 dir_locations <- read_delim(args$pool_indirs, delim="\t")
 
 ##### Read in the genes file
-if (file.exists(paste0(dir_locations$Matrix_Directories[1], "/genes.tsv"))){
-    genes <- read_delim(paste0(dir_locations$Matrix_Directories[1], "/genes.tsv"), delim="\t", col_names=c("ENSG_ID", "Gene_ID"))
-} else if (file.exists(paste0(dir_locations$Matrix_Directories[1], "/features.tsv.gz"))){
-    genes <- read_delim(paste0(dir_locations$Matrix_Directories[1], "/features.tsv.gz"), delim="\t", col_names=c("ENSG_ID", "Gene_ID", "FeatureType"))
+if (file.exists(paste0(dir_locations$MatrixDirectory[1], "/genes.tsv"))){
+    genes <- read_delim(paste0(dir_locations$MatrixDirectory[1], "/genes.tsv"), delim="\t", col_names=c("ENSG_ID", "Gene_ID"))
+} else if (file.exists(paste0(dir_locations$MatrixDirectory[1], "/features.tsv.gz"))){
+    genes <- read_delim(paste0(dir_locations$MatrixDirectory[1], "/features.tsv.gz"), delim="\t", col_names=c("ENSG_ID", "Gene_ID", "FeatureType"))
 } else {
-    print(print("We're having issues finding your gene file (gene.tsv or features.tsv.gz). Please make sure one of these exist in ", dir_locations$Matrix_Directories[1]))
+    print(print("We're having issues finding your gene file (gene.tsv or features.tsv.gz). Please make sure one of these exist in ", dir_locations$MatrixDirectory[1]))
 }
 
 
@@ -82,7 +82,7 @@ assignments_final <- as.data.frame(assignments_final)
 rownames(assignments_final) <- assignments_final$Barcode
 
 ## Read in data
-counts_list <- lapply(dir_locations$Matrix_Directories, function(x){
+counts_list <- lapply(dir_locations$MatrixDirectory, function(x){
     Read10X(x, gene.column=2)
 })
 names(counts_list) <- pools_list

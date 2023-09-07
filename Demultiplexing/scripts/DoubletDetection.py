@@ -2,7 +2,6 @@
 # Adapted from drneavin https://github.com/drneavin/Demultiplexing_Doublet_Detecting_Docs/blob/main/scripts/DoubletDetection.py
 import argparse
 import os
-import scanpy
 
 
 parser = argparse.ArgumentParser(
@@ -19,21 +18,16 @@ args = parser.parse_args()
 
 import numpy as np
 import doubletdetection
-import tarfile
 import matplotlib
 matplotlib.use('PDF')
-import matplotlib.pyplot as plt
 import sys
 import pandas as pd
 import scanpy
 
 # Load read10x function from mods directory
-
 mods_path = "/opt/WG1-pipeline-QC/Demultiplexing/mods"
 sys.path.append(mods_path)
 import read10x
-
-
 
 if args.phenograph == 'True':
     pheno = True
@@ -41,8 +35,6 @@ elif args.phenograph == 'False':
     pheno = False
 else:
     pheno = args.phenograph
-print(pheno)
-
 
 if args.standard_scaling == 'True':
     standard_scaling = True
@@ -54,8 +46,7 @@ else:
 if not os.path.isdir(args.out):
     os.mkdir(args.out)
 
-
-### Read in data ###
+# Read in data
 raw_counts = scanpy.read_10x_h5(args.counts)
 barcodes_df = read10x.read_barcodes(args.barcodes)
 
@@ -77,14 +68,11 @@ dataframe.DoubletDetection_DropletType = dataframe.DoubletDetection_DropletType.
 print("Writing results to {}.".format(os.path.join(args.out, 'DoubletDetection_doublets_singlets.tsv')))
 dataframe.to_csv(os.path.join(args.out, 'DoubletDetection_doublets_singlets.tsv'), sep = "\t", index = False)
 
-
-### Figures ###
+# Figures
 doubletdetection.plot.convergence(clf, save=os.path.join(args.out, 'convergence_test.pdf'), show=False, p_thresh=args.p_thresh, voter_thresh=args.voter_thresh)
-
 f3 = doubletdetection.plot.threshold(clf, save=os.path.join(args.out, 'threshold_test.pdf'), show=False, p_step=6)
 
-
-### Make summary of singlets and doublets and write to file ###
+# Make summary of singlets and doublets and write to file
 summary = pd.DataFrame(dataframe.DoubletDetection_DropletType.value_counts())
 summary.index.name = 'Classification'
 summary.reset_index(inplace=True)

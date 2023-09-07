@@ -3,13 +3,13 @@
 #####################################
 rule DoubletFinder:
     input:
-        counts = lambda wildcards: scrnaseq_libs_df["Matrix_Directories"][wildcards.pool],
+        counts = lambda wildcards: scrnaseq_libs_df["CountH5File"][wildcards.pool]
     output: 
         doublets = output_dict["output_dir"] + "/{pool}/DoubletFinder/DoubletFinder_doublets_singlets.tsv",
         summary = output_dict["output_dir"] + "/{pool}/DoubletFinder/DoubletFinder_doublet_summary.tsv"
     resources:
-        mem_per_thread_gb = lambda attempt: attempt * doubletfinder_dict["doubletfinder_memory"],
-        disk_per_thread_gb = lambda attempt: attempt * doubletfinder_dict["doubletfinder_memory"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * doubletfinder_dict["doubletfinder_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * doubletfinder_dict["doubletfinder_memory"]
     threads: doubletfinder_dict["doubletfinder_threads"]
     params:
         bind = input_dict["bind_path"],

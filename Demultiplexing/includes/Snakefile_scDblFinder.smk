@@ -3,13 +3,13 @@
 #####################################
 rule scDblFinder:
     input:
-        counts = lambda wildcards: scrnaseq_libs_df["Matrix_Directories"][wildcards.pool],
+        counts = lambda wildcards: scrnaseq_libs_df["CountH5File"][wildcards.pool],
     output: 
         doublets = output_dict["output_dir"] + "/{pool}/scDblFinder/scDblFinder_doublets_singlets.tsv",
         summary = output_dict["output_dir"] + "/{pool}/scDblFinder/scDblFinder_doublet_summary.tsv"
     resources:
-        mem_per_thread_gb = lambda attempt: attempt * scdblfinder_dict["scfblfinder_memory"],
-        disk_per_thread_gb = lambda attempt: attempt * scdblfinder_dict["scfblfinder_memory"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * scdblfinder_dict["scfblfinder_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * scdblfinder_dict["scfblfinder_memory"]
     threads: scdblfinder_dict["scdblfinder_threads"]
     params:
         bind = input_dict["bind_path"],

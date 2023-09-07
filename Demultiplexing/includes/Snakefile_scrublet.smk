@@ -3,17 +3,17 @@
 ##################################
 rule scrublet:
     input:
-        counts = lambda wildcards: scrnaseq_libs_df["Matrix_Directories"][wildcards.pool],
-        barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool],
+        counts = lambda wildcards: scrnaseq_libs_df["CountH5File"][wildcards.pool],
+        barcodes = lambda wildcards: scrnaseq_libs_df["BarcodeFile"][wildcards.pool],
         df = ancient(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv")
     output:
-        figure = report(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "../report_captions/scrublet.rst", subcategory = "{pool}")
-        umap = report(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/UMAP.png", category = "Scrublet", caption = "../report_captions/scrublet.rst", subcategory = "{pool}")
+        figure = report(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "../report_captions/scrublet.rst", subcategory = "{pool}"),
+        umap = report(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/UMAP.png", category = "Scrublet", caption = "../report_captions/scrublet.rst", subcategory = "{pool}"),
         results = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/scrublet_doublets_singlets.tsv",
         summary = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/scrublet_summary.tsv"
     resources:
-        mem_per_thread_gb = lambda attempt: attempt * scrublet_dict["scrublet_memory"],
-        disk_per_thread_gb = lambda attempt: attempt * scrublet_dict["scrublet_memory"],
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * scrublet_dict["scrublet_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * scrublet_dict["scrublet_memory"],
     threads: scrublet_dict["scrublet_threads"]
     params:
         bind = input_dict["bind_path"],
@@ -28,7 +28,7 @@ rule scrublet:
         scrublet_doublet_threshold = lambda wildcards: scrublet_params_dict["scrublet_doublet_threshold"][wildcards.pool]
     log: output_dict["output_dir"] + "/logs/scrublet.{pool}.pctl{pctl}.log"
     shell:
-    """
+        """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \
             --counts {input.counts} \
             --barcodes {input.barcodes} \
@@ -37,8 +37,8 @@ rule scrublet:
             --min_cells {params.min_cells} \
             --n_prin_comps {params.n_prin_comps} \
             --min_gene_variability_pctl {wildcards.pctl} \
-            --out {params.out} \
-            [[ ${params.step} == "manual" ]] && { '--scrublet_doublet_threshold {params.scrublet_doublet_threshold}'}
+            --scrublet_doublet_threshold {params.scrublet_doublet_threshold}
+            --out {params.out}
 
             singularity exec --bind {params.bind} {params.sif} echo "The pool:" {wildcards.pool} >> {log}
             singularity exec --bind {params.bind} {params.sif} echo "This was a" {params.step} "run" >> {log}
