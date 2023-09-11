@@ -13,17 +13,20 @@ rule popscle_bam_filter:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * popscle_dict["popscle_bam_filter_memory"]
     threads: popscle_dict["popscle_bam_filter_threads"]
     params:
+        out_dir = output_dict["output_dir"] + "/{pool}/popscle/bam_filter/",
         bind = input_dict["bind_path"],
-        sif = input_dict["singularity_image"]
+        sif = input_dict["singularity_image"],
+        tag_group = popscle_dict["popscle_tag_group"]
     log: output_dict["output_dir"] + "/logs/popscle_bam_filter.{pool}.log"
     shell:
         """
+        mkdir -p {params.out_dir} && \
         singularity exec --bind {params.bind} {params.sif} bedtools merge \
-            -i {input.vcf} \
-                singularity exec --bind {params.bind} {params.sif} samtools view \
+            -i {input.vcf} | singularity exec \
+                --bind {params.bind} {params.sif} samtools view \
                     --target-file \
                     - \
-                    --tag-file CB:<(zcat {input.barcodes}) \
+                    --tag-file {params.tag_group}:<(zcat {input.barcodes}) \
                     --output {output.bam} \
                     --write-index \
                     --threads {threads} \
