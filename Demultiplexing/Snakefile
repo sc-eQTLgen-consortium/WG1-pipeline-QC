@@ -64,13 +64,12 @@ souporcell_assignments_files = [os.path.join(output_dict["output_dir"], pool, "s
 souporcell_size_dict = {row["Pool"]: row["N"] for _, row in samples_df.iterrows()}
 
 ## DoubletDetection
-## DoubletDetection
 doubletdetection_files = []
 doubletdetection_man_select_path = os.path.join(output_dict["output_dir"], "manual_selections", "DoubletDetection", "DoubletDetection_manual_selection.tsv")
 doubletdetection_passed = False
 empty_doubletdetection_selection = pd.DataFrame({"Pool": samples_df["Pool"], "Result": ""})
 if os.path.exists(doubletdetection_man_select_path):
-    # Run scrublet based on the manual selection file.
+    # Run DoubletDetection based on the manual selection file.
     logger.info("Read in the DoubletDetection manual selection file.")
     doubletdetection_selection = pd.read_csv(doubletdetection_man_select_path, sep="\t")
     doubletdetection_selection["Pool"] = doubletdetection_selection["Pool"].astype(str)
@@ -80,7 +79,7 @@ if os.path.exists(doubletdetection_man_select_path):
     if doubletdetection_selection != empty_doubletdetection_selection:
         # Check if the pools still match.
         if len(set(samples_df["Pool"]).intersection(set(doubletdetection_selection["Pool"]))) != n_pools:
-            logger.info("ERROR: the 'manual_selections/scrublet/DoubletDetection_manual_selection.tsv' does not contain the same pools as the samplesheet.")
+            logger.info("ERROR: the DoubletDetection_manual_selection.tsv does not contain the same pools as the samplesheet.")
             exit()
 
         if doubletdetection_selection["Result"].value_counts()["PASS"] == n_pools:
@@ -151,21 +150,21 @@ if os.path.exists(scrublet_per_man_select_path):
     if scrublet_selection != empty_scrublet_selection:
         # Check if the pools still match.
         if len(set(samples_df["Pool"]).intersection(set(scrublet_selection["Pool"]))) != n_pools:
-            logger.info("ERROR: the 'manual_selections/scrublet/scrublet_percentile_manual_selection.tsv' does not contain the same pools as the samplesheet.")
+            logger.info("ERROR: the scrublet_percentile_manual_selection.tsv file does not contain the same pools as the sample sheet.")
             exit()
 
         # Check if all the percentages were filled in.
         for _, row in scrublet_selection.iterrows():
             # check if scrublet_percentile is an integer.
             if not row["GeneVariabilityPctl"].isdigit():
-                logger.info("ERROR: the 'GeneVariabilityPctl' column for pool '{}' in the 'manual_selections/scrublet/scrublet_percentile_manual_selection.tsv' contains an unexpected value.".format(row["Pool"]))
+                logger.info("ERROR: the 'GeneVariabilityPctl' column for pool '{}' in the scrublet_percentile_manual_selection.tsv file contains an unexpected value.".format(row["Pool"]))
                 logger.info("Please check the scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
                 logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the scrublet_gene_pctl.txt file and restart the snakemake pipeline.")
                 exit()
 
             # check if scrublet_percentile is between 0 and 100.
             if int(row["GeneVariabilityPctl"]) < 0 or row["GeneVariabilityPctl"] > 100:
-                logger.info("ERROR: the 'GeneVariabilityPctl' column for pool '{}' in the 'manual_selections/scrublet/scrublet_percentile_manual_selection.tsv' is not between 0 and 100.".format(row["Pool"]))
+                logger.info("ERROR: the 'GeneVariabilityPctl' column for pool '{}' in the scrublet_percentile_manual_selection.tsv file is not between 0 and 100.".format(row["Pool"]))
                 logger.info("Please check the scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
                 logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the scrublet_gene_pctl.txt file and restart the snakemake pipeline.")
                 exit()
@@ -208,9 +207,6 @@ if not scrublet_passed:
 combine_results_files = []
 if scrublet_passed and doubletdetection_passed:
     logger.info("All the DoubletDetection results have PASSED and thresholds selected for scrublet. Will move to next steps.")
-    # combine_results_files.extend([os.path.join(output_dict["output_dir"], pool, "CombinedResults", "Final_Assignments_demultiplexing_doublets.txt") for pool in samples_df["Pool"]])
-    # combine_results_files.append(os.path.join(output_dict["output_dir"], "QC_figures", "UMI_vs_Genes_QC_scatter.png"))
-    # combine_results_files.append(os.path.join(output_dict["output_dir"], "QC_figures", "expected_observed_individuals_classifications.png"))
     combine_results_files = [os.path.join(output_dict["output_dir"], pool, "CombinedResults", "combined_results_demultiplexing_summary.tsv") for pool in samples_df["Pool"]]
 else:
     logger.info("The DoubletDetection and scrublet results were not complete. Once they are complete, the results can be combined and downstream analyses completed.")
