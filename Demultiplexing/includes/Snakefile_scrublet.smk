@@ -5,7 +5,7 @@ rule scrublet:
     input:
         counts = lambda wildcards: scrnaseq_libs_df["CountH5File"][wildcards.pool],
         barcodes = lambda wildcards: scrnaseq_libs_df["BarcodeFile"][wildcards.pool],
-        df = ancient(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv")
+        df = ancient(output_dict["output_dir"] + "/manual_selections/scrublet_percentile_manual_selection.tsv")
     output:
         figure = report(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "../report_captions/scrublet.rst", subcategory = "{pool}"),
         umap = report(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/UMAP.png", category = "Scrublet", caption = "../report_captions/scrublet.rst", subcategory = "{pool}"),

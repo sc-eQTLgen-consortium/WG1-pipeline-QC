@@ -16,8 +16,8 @@ rule DoubletFinder:
         sif = input_dict["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/DoubletFinder.R",
         out = output_dict["output_dir"] + "/{pool}/DoubletFinder/",
-        find_clusters_resolution = Doubletfinder_extra_dict["find_clusters_resolution"],
-        n_generated_artificial_doublets = Doubletfinder_extra_dict["n_generated_artificial_doublets"]
+        find_clusters_resolution = doubletfinder_extra_dict["find_clusters_resolution"],
+        n_generated_artificial_doublets = doubletfinder_extra_dict["n_generated_artificial_doublets"]
     log: output_dict["output_dir"] + "/logs/DoubletFinder.{pool}.log"
     shell:
         """

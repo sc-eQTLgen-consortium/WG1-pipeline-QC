@@ -5,7 +5,7 @@ rule DoubletDetection:
     input:
         counts = lambda wildcards: scrnaseq_libs_df["CountH5File"][wildcards.pool],
         barcodes = lambda wildcards: scrnaseq_libs_df["BarcodeFile"][wildcards.pool],
-        df = ancient(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv")
+        df = ancient(output_dict["output_dir"] + "/manual_selections/DoubletDetection_manual_selection.tsv")
     output:
         doublets = output_dict["output_dir"] + "/{pool}/DoubletDetection/DoubletDetection_doublets_singlets.tsv",
         figure = report(output_dict["output_dir"] + "/{pool}/DoubletDetection/convergence_test.pdf", category = "DoubletDetection", subcategory = "{pool}", caption = "../report_captions/DoubletDetection.rst"),

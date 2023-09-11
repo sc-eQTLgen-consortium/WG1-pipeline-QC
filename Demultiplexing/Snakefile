@@ -22,6 +22,9 @@ if settings_dict["sc_data_type"] not in ["single-cell", "single-nucleus"]:
     logger.info("\nERROR: the 'sc_data_type' variable in the configuration file is not recognised. Please use 'single-cell' or 'single-nucleus'.\n\n Exiting.")
     quit()
 
+if not os.path.isdir(output_dict["output_dir"]):
+    os.mkdir(output_dict["output_dir"])
+
 # Rule-specific arguments
 popscle_dict = config["popscle"]
 popscle_extra_dict = config["popscle_extra"]
@@ -34,6 +37,9 @@ scrublet_extra_dict = config["scrublet_extra"]
 doubletdetection_dict = config["doubletdetection"]
 doubletdetection_manual_dict = config["doubletdetection_manual"]
 doubletdetection_extra_dict = config["doubletdetection_extra"]
+scdblfinder_dict = config["scdblfinder"]
+doubletfinder_dict = config["doubletfinder"]
+doubletfinder_extra_dict = config["doubletfinder_extra"]
 combine_results_dict = config["combine_results"]
 combine_results_extra_dict = config["combine_results_extra"]
 
@@ -46,6 +52,7 @@ if not isinstance(doubletdetection_manual_dict["run_doubletdetection_manual"], b
 
 logger.info("read in sample info")
 samples_df = pd.read_csv(input_dict["samplesheet_filepath"], sep="\t")
+samples_df = samples_df.iloc[:1, :] #TODO: remove
 samples_df.columns = ["Pool", "N"]
 samples_df["Pool"] = samples_df["Pool"].astype(str)
 n_pools = samples_df.shape[0]
@@ -65,9 +72,11 @@ souporcell_size_dict = {row["Pool"]: row["N"] for _, row in samples_df.iterrows(
 
 ## DoubletDetection
 doubletdetection_files = []
-doubletdetection_man_select_path = os.path.join(output_dict["output_dir"], "manual_selections", "DoubletDetection", "DoubletDetection_manual_selection.tsv")
+doubletdetection_man_select_path = os.path.join(output_dict["output_dir"], "manual_selections", "DoubletDetection_manual_selection.tsv")
+if not os.path.isdir(os.path.join(output_dict["output_dir"], "manual_selections")):
+    os.mkdir(os.path.join(output_dict["output_dir"], "manual_selections"))
 doubletdetection_passed = False
-empty_doubletdetection_selection = pd.DataFrame({"Pool": samples_df["Pool"], "Result": ""})
+empty_doubletdetection_selection = pd.DataFrame({"Pool": samples_df["Pool"], "Result": "TBD"})
 if os.path.exists(doubletdetection_man_select_path):
     # Run DoubletDetection based on the manual selection file.
     logger.info("Read in the DoubletDetection manual selection file.")
@@ -76,13 +85,13 @@ if os.path.exists(doubletdetection_man_select_path):
     doubletdetection_selection["Result"] = doubletdetection_selection["Result"].astype(str)
 
     # Check if something has been filled in.
-    if doubletdetection_selection != empty_doubletdetection_selection:
+    if not doubletdetection_selection.equals(empty_doubletdetection_selection):
         # Check if the pools still match.
         if len(set(samples_df["Pool"]).intersection(set(doubletdetection_selection["Pool"]))) != n_pools:
             logger.info("ERROR: the DoubletDetection_manual_selection.tsv does not contain the same pools as the samplesheet.")
             exit()
 
-        if doubletdetection_selection["Result"].value_counts()["PASS"] == n_pools:
+        if "PASS" in doubletdetection_selection and doubletdetection_selection["Result"].value_counts()["PASS"] == n_pools:
             logger.info("All the DoubletDetection results have PASSED. Will move to next steps.")
             doubletdetection_files = [os.path.join(output_dict["output_dir"], pool, "DoubletDetection", "DoubletDetection_doublets_singlets.tsv") for pool in samples_df["Pool"]]
             doubletdetection_passed = True
@@ -104,6 +113,7 @@ if not doubletdetection_passed:
             if os.path.isfile(fname):
                 os.remove(fname)
         doubletdetection_params_dict = {
+            "log": "manual_rerun_variables.txt",
             "step": "manual",
             "n_iterations": {pool: doublet_threshold for pool, doublet_threshold in zip(doubletdetection_manual_dict["doubletdetection_manual_pools"], doubletdetection_manual_dict["doubletdetection_manual_n_iterations"])},
             "phenograph": {pool: doublet_threshold for pool, doublet_threshold in zip(doubletdetection_manual_dict["doubletdetection_manual_pools"], doubletdetection_manual_dict["doubletdetection_manual_phenograph"])},
@@ -113,8 +123,9 @@ if not doubletdetection_passed:
         }
     else:
         logger.info("Running the default DoubletDetection rules since 'run_doubletdetection_manual' is set to False.")
-        doubletdetection_files = [os.path.join(output_dict["output_dir"], pool, "DoubletDetection", "default_run_variables.txt") for pool in samples_df["Pool"]]
+        doubletdetection_files = [os.path.join(output_dict["output_dir"], pool, "DoubletDetection", "DoubletDetection_doublets_singlets.tsv") for pool in samples_df["Pool"]]
         doubletdetection_params_dict = {
+            "log": "default_run_variables.txt",
             "step": "default",
             "n_iterations": {pool: doubletdetection_extra_dict["n_iterations"] for pool in samples_df["Pool"]},
             "phenograph": {pool: doubletdetection_extra_dict["phenograph"] for pool in samples_df["Pool"]},
@@ -135,10 +146,12 @@ scds_files = [os.path.join(output_dict["output_dir"], pool, "scds", "scds_double
 ## scrublet
 ## the scrublet files that will be run are dependent on user inputs in the yaml file
 scrublet_files = []
-scrublet_per_man_select_path = os.path.join(output_dict["output_dir"], "manual_selections", "scrublet", "scrublet_percentile_manual_selection.tsv")
+scrublet_per_man_select_path = os.path.join(output_dict["output_dir"], "manual_selections", "scrublet_percentile_manual_selection.tsv")
+if not os.path.isdir(os.path.join(output_dict["output_dir"], "manual_selections")):
+    os.mkdir(os.path.join(output_dict["output_dir"], "manual_selections"))
 scrublet_select_dict = {}
 scrublet_passed = False
-empty_scrublet_selection = pd.DataFrame({"Pool": samples_df["Pool"], "GeneVariabilityPctl": ""})
+empty_scrublet_selection = pd.DataFrame({"Pool": samples_df["Pool"], "GeneVariabilityPctl": "TBD"})
 if os.path.exists(scrublet_per_man_select_path):
     # Run scrublet based on the manual selection file.
     logger.info("Read in the scrublet manual selection file.")
@@ -147,7 +160,7 @@ if os.path.exists(scrublet_per_man_select_path):
     scrublet_selection["GeneVariabilityPctl"] = scrublet_selection["GeneVariabilityPctl"].astype(str)
 
     # Check if something has been filled in.
-    if scrublet_selection != empty_scrublet_selection:
+    if not scrublet_selection.equals(empty_scrublet_selection):
         # Check if the pools still match.
         if len(set(samples_df["Pool"]).intersection(set(scrublet_selection["Pool"]))) != n_pools:
             logger.info("ERROR: the scrublet_percentile_manual_selection.tsv file does not contain the same pools as the sample sheet.")
@@ -197,7 +210,7 @@ if not scrublet_passed:
         }
     else:
         logger.info("Running the default scrublet rules since 'run_scrublet_manual' is set to False.")
-        scrublet_files = [os.path.join(output_dict["output_dir"], pool, "scrublet_" + str(pctl), "default_run_variables.txt") for pool in samples_df["Pool"] for pctl in scrublet_dict["percentile"]]
+        scrublet_files = [os.path.join(output_dict["output_dir"], pool, "scrublet_" + str(pctl), "scrublet_doublets_singlets.tsv") for pool in samples_df["Pool"] for pctl in scrublet_dict["percentile"]]
         scrublet_params_dict = {
             "step": "default",
             "scrublet_doublet_threshold": {pool: None for pool in samples_df["Pool"]}

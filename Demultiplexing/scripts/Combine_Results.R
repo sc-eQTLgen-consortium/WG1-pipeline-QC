@@ -1,13 +1,7 @@
 #!/usr/bin/env Rscript
 # Author: drneavin https://github.com/drneavin/Demultiplexing_Doublet_Detecting_Docs/blob/main/scripts/Combine_Results.R
 .libPaths("/usr/local/lib/R/site-library")
-
-suppressMessages(suppressWarnings(library(data.table)))
 suppressMessages(suppressWarnings(library(argparse)))
-suppressMessages(suppressWarnings(library(tidyverse)))
-suppressMessages(suppressWarnings(library(future.apply)))
-suppressMessages(suppressWarnings(library(ComplexUpset)))
-suppressMessages(suppressWarnings(library(RColorBrewer)))
 
 
 # create parser object
@@ -43,6 +37,12 @@ parser$add_argument("-m", "--method", required=FALSE, type="character", default=
 # otherwise if options not found on command line then set defaults,
 args <- parser$parse_args()
 
+
+suppressMessages(suppressWarnings(library(data.table)))
+suppressMessages(suppressWarnings(library(tidyverse)))
+suppressMessages(suppressWarnings(library(future.apply)))
+suppressMessages(suppressWarnings(library(ComplexUpset)))
+suppressMessages(suppressWarnings(library(RColorBrewer)))
 
 ### Functions ###
 which.max.simple=function(x,na.rm=TRUE,tie_value="NA"){

@@ -89,7 +89,7 @@ You will need to run the snakemake pipeline three times (which enables some manu
    .. figure:: https://user-images.githubusercontent.com/44268007/104434976-ccf8fa80-55db-11eb-9f30-00f71e4592d4.png
      :width: 400
     
-   - In order to indicate whether the pool passed or failed your manual inspection, go to the "DoubletDetection_manual_selection.tsv" located in ``outdir/manual_selections/DoubletDetection``. This is a tab separated file that has the pools in the first column and a second column header to indicate whether or not the sample passed or failed the manual inspection. For this example, this is what our tsv looks like:
+   - In order to indicate whether the pool passed or failed your manual inspection, go to the "DoubletDetection_manual_selection.tsv" located in ``outdir/manual_selections``. This is a tab separated file that has the pools in the first column and a second column header to indicate whether or not the sample passed or failed the manual inspection. For this example, this is what our tsv looks like:
     
    Before user input:
 
@@ -116,7 +116,7 @@ You will need to run the snakemake pipeline three times (which enables some manu
 
    .. figure:: https://user-images.githubusercontent.com/44268007/104436850-016db600-55de-11eb-8f75-229338f7bac7.png
 
-   - In order to identify which scrublet results should be used for downstream analyses, you need to decide which percentile variable gene threshold resulted in the  best simulated doublet bimodal distribution with an effectively set threshold and provide that information in the ``outdir/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv`` file. For this example, the contents of our ``scrublet_percentile_manual_selection.tsv`` look like this:
+   - In order to identify which scrublet results should be used for downstream analyses, you need to decide which percentile variable gene threshold resulted in the  best simulated doublet bimodal distribution with an effectively set threshold and provide that information in the ``outdir/manual_selections/scrublet_percentile_manual_selection.tsv`` file. For this example, the contents of our ``scrublet_percentile_manual_selection.tsv`` look like this:
       
    +------------+----------------------+
    |Pool        |  scrublet_Percentile |
