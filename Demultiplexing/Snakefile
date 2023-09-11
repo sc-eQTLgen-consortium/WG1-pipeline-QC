@@ -143,10 +143,10 @@ scdblfinder_files = [os.path.join(output_dict["output_dir"], pool, "scDblFinder"
 # scds
 scds_files = [os.path.join(output_dict["output_dir"], pool, "scds", "scds_doublets_singlets.tsv") for pool in samples_df["Pool"]]
 
-## scrublet
+## Scrublet
 ## the scrublet files that will be run are dependent on user inputs in the yaml file
 scrublet_files = []
-scrublet_per_man_select_path = os.path.join(output_dict["output_dir"], "manual_selections", "scrublet_percentile_manual_selection.tsv")
+scrublet_per_man_select_path = os.path.join(output_dict["output_dir"], "manual_selections", "Scrublet_percentile_manual_selection.tsv")
 if not os.path.isdir(os.path.join(output_dict["output_dir"], "manual_selections")):
     os.mkdir(os.path.join(output_dict["output_dir"], "manual_selections"))
 scrublet_select_dict = {}
@@ -154,7 +154,7 @@ scrublet_passed = False
 empty_scrublet_selection = pd.DataFrame({"Pool": samples_df["Pool"], "GeneVariabilityPctl": "TBD"})
 if os.path.exists(scrublet_per_man_select_path):
     # Run scrublet based on the manual selection file.
-    logger.info("Read in the scrublet manual selection file.")
+    logger.info("Read in the Scrublet manual selection file.")
     scrublet_selection = pd.read_csv(scrublet_per_man_select_path, sep="\t")
     scrublet_selection["Pool"] = scrublet_selection["Pool"].astype(str)
     scrublet_selection["GeneVariabilityPctl"] = scrublet_selection["GeneVariabilityPctl"].astype(str)
@@ -163,35 +163,35 @@ if os.path.exists(scrublet_per_man_select_path):
     if not scrublet_selection.equals(empty_scrublet_selection):
         # Check if the pools still match.
         if len(set(samples_df["Pool"]).intersection(set(scrublet_selection["Pool"]))) != n_pools:
-            logger.info("ERROR: the scrublet_percentile_manual_selection.tsv file does not contain the same pools as the sample sheet.")
+            logger.info("ERROR: the Scrublet_percentile_manual_selection.tsv file does not contain the same pools as the sample sheet.")
             exit()
 
         # Check if all the percentages were filled in.
         for _, row in scrublet_selection.iterrows():
             # check if scrublet_percentile is an integer.
             if not row["GeneVariabilityPctl"].isdigit():
-                logger.info("ERROR: the 'GeneVariabilityPctl' column for pool '{}' in the scrublet_percentile_manual_selection.tsv file contains an unexpected value.".format(row["Pool"]))
-                logger.info("Please check the scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
-                logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the scrublet_gene_pctl.txt file and restart the snakemake pipeline.")
+                logger.info("ERROR: the 'GeneVariabilityPctl' column for pool '{}' in the Scrublet_percentile_manual_selection.tsv file contains an unexpected value.".format(row["Pool"]))
+                logger.info("Please check the Scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
+                logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the Scrublet_gene_pctl.txt file and restart the snakemake pipeline.")
                 exit()
 
             # check if scrublet_percentile is between 0 and 100.
             if int(row["GeneVariabilityPctl"]) < 0 or row["GeneVariabilityPctl"] > 100:
-                logger.info("ERROR: the 'GeneVariabilityPctl' column for pool '{}' in the scrublet_percentile_manual_selection.tsv file is not between 0 and 100.".format(row["Pool"]))
-                logger.info("Please check the scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
-                logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the scrublet_gene_pctl.txt file and restart the snakemake pipeline.")
+                logger.info("ERROR: the 'GeneVariabilityPctl' column for pool '{}' in the Scrublet_percentile_manual_selection.tsv file is not between 0 and 100.".format(row["Pool"]))
+                logger.info("Please check the Scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
+                logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the Scrublet_gene_pctl.txt file and restart the snakemake pipeline.")
                 exit()
 
             # check if the scrublet_percentile exists.
-            if not os.path.exists(os.path.join(output_dict["output_dir"], row["Pool"], "scrublet_" + row["GeneVariabilityPctl"] + "scrublet_doublets_singlets.tsv")):
-                logger.info("ERROR: the '{}/scrublet_{}/scrublet_doublets_singlets.tsv' does not exist.".format(row["Pool"], row["GeneVariabilityPctl"]))
-                logger.info("Please check the scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
-                logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the scrublet_gene_pctl.txt file and restart the snakemake pipeline.")
+            if not os.path.exists(os.path.join(output_dict["output_dir"], row["Pool"], "Scrublet_" + row["GeneVariabilityPctl"] + "Scrublet_doublets_singlets.tsv")):
+                logger.info("ERROR: the '{}/Scrublet_{}/Scrublet_doublets_singlets.tsv' does not exist.".format(row["Pool"], row["GeneVariabilityPctl"]))
+                logger.info("Please check the Scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
+                logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the Scrublet_gene_pctl.txt file and restart the snakemake pipeline.")
                 exit()
 
         # All the selections are correct and the output files exist.
-        logger.info("All the scrublet results have been selected. Will move to next steps.")
-        scrublet_files = [os.path.join(output_dict["output_dir"], row["Pool"], "scrublet_" + row["GeneVariabilityPctl"], "scrublet_doublets_singlets.tsv") for _, row in scrublet_selection]
+        logger.info("All the Scrublet results have been selected. Will move to next steps.")
+        scrublet_files = [os.path.join(output_dict["output_dir"], row["Pool"], "Scrublet_" + row["GeneVariabilityPctl"], "Scrublet_doublets_singlets.tsv") for _, row in scrublet_selection]
         scrublet_select_dict = {row["Pool"]: row["GeneVariabilityPctl"] for _, row in scrublet_selection.iterrows()}
         scrublet_passed = True
 else:
@@ -202,15 +202,15 @@ else:
 if not scrublet_passed:
     # Run scrublet jobs.
     if scrublet_manual_dict["run_scrublet_manual"]:
-        logger.info("Running scrublet rules with manual selections since 'run_scrublet_manual' is set to True.")
-        scrublet_files = [os.path.join(output_dict["output_dir"], pool, "scrublet_" + str(pctl), "scrublet_doublets_singlets.tsv") for pool in scrublet_manual_dict["scrublet_manual_threshold_pools"] for pctl in scrublet_manual_dict["scrublet_manual_threshold_percentiles"]]
+        logger.info("Running scrublet rules with manual selections since 'run_Scrublet_manual' is set to True.")
+        scrublet_files = [os.path.join(output_dict["output_dir"], pool, "Scrublet_" + str(pctl), "Scrublet_doublets_singlets.tsv") for pool in scrublet_manual_dict["scrublet_manual_threshold_pools"] for pctl in scrublet_manual_dict["scrublet_manual_threshold_percentiles"]]
         scrublet_params_dict = {
             "step": "manual",
             "scrublet_doublet_threshold": {pool: doublet_threshold for pool, doublet_threshold in zip(scrublet_manual_dict["scrublet_manual_threshold_pools"], scrublet_manual_dict["scrublet_manual_threshold_thresholds"])}
         }
     else:
-        logger.info("Running the default scrublet rules since 'run_scrublet_manual' is set to False.")
-        scrublet_files = [os.path.join(output_dict["output_dir"], pool, "scrublet_" + str(pctl), "scrublet_doublets_singlets.tsv") for pool in samples_df["Pool"] for pctl in scrublet_dict["percentile"]]
+        logger.info("Running the default Scrublet rules since 'run_scrublet_manual' is set to False.")
+        scrublet_files = [os.path.join(output_dict["output_dir"], pool, "Scrublet_" + str(pctl), "Scrublet_doublets_singlets.tsv") for pool in samples_df["Pool"] for pctl in scrublet_dict["percentile"]]
         scrublet_params_dict = {
             "step": "default",
             "scrublet_doublet_threshold": {pool: None for pool in samples_df["Pool"]}
@@ -219,16 +219,16 @@ if not scrublet_passed:
 ## Combined files at the end
 combine_results_files = []
 if scrublet_passed and doubletdetection_passed:
-    logger.info("All the DoubletDetection results have PASSED and thresholds selected for scrublet. Will move to next steps.")
+    logger.info("All the DoubletDetection results have PASSED and thresholds selected for Scrublet. Will move to next steps.")
     combine_results_files = [os.path.join(output_dict["output_dir"], pool, "CombinedResults", "combined_results_demultiplexing_summary.tsv") for pool in samples_df["Pool"]]
 else:
-    logger.info("The DoubletDetection and scrublet results were not complete. Once they are complete, the results can be combined and downstream analyses completed.")
+    logger.info("The DoubletDetection and Scrublet results were not complete. Once they are complete, the results can be combined and downstream analyses completed.")
 
 # Import individual rules
 include: "includes/Snakefile_popscle.smk" # demultiplexing + doublet detection
 include: "includes/Snakefile_souporcell.smk" # demultiplexing + doublet detection
 include: "includes/Snakefile_scds.smk" # doublet detection
-include: "includes/Snakefile_scrublet.smk" # doublet detection
+include: "includes/Snakefile_Scrublet.smk" # doublet detection
 include: "includes/Snakefile_DoubletDetection.smk" # doublet detection
 include: "includes/Snakefile_scDblFinder.smk" # doublet detection
 include: "includes/Snakefile_DoubletFinder.smk" # doublet detection

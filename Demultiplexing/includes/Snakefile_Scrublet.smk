@@ -5,12 +5,12 @@ rule scrublet:
     input:
         counts = lambda wildcards: scrnaseq_libs_df["CountH5File"][wildcards.pool],
         barcodes = lambda wildcards: scrnaseq_libs_df["BarcodeFile"][wildcards.pool],
-        df = ancient(output_dict["output_dir"] + "/manual_selections/scrublet_percentile_manual_selection.tsv")
+        df = ancient(output_dict["output_dir"] + "/manual_selections/Scrublet_percentile_manual_selection.tsv")
     output:
-        figure = report(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "../report_captions/scrublet.rst", subcategory = "{pool}"),
-        umap = report(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/UMAP.png", category = "Scrublet", caption = "../report_captions/scrublet.rst", subcategory = "{pool}"),
-        results = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/scrublet_doublets_singlets.tsv",
-        summary = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/scrublet_summary.tsv"
+        figure = report(output_dict["output_dir"] + "/{pool}/Scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "../report_captions/Scrublet.rst", subcategory = "{pool}"),
+        umap = report(output_dict["output_dir"] + "/{pool}/Scrublet_{pctl}/UMAP.png", category = "Scrublet", caption = "../report_captions/Scrublet.rst", subcategory = "{pool}"),
+        results = output_dict["output_dir"] + "/{pool}/Scrublet_{pctl}/Scrublet_doublets_singlets.tsv",
+        summary = output_dict["output_dir"] + "/{pool}/Scrublet_{pctl}/Scrublet_summary.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * scrublet_dict["scrublet_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * scrublet_dict["scrublet_memory"],
@@ -18,15 +18,15 @@ rule scrublet:
     params:
         bind = input_dict["bind_path"],
         sif = input_dict["singularity_image"],
-        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scrublet_pipeline.py",
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Scrublet_pipeline.py",
         sim_dbl = scrublet_extra_dict["sim_dbl"],
         min_counts = scrublet_extra_dict["min_counts"],
         min_cells = scrublet_extra_dict["min_cells"],
         n_prin_comps = scrublet_extra_dict["n_prin_comps"],
-        out = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/",
+        out = output_dict["output_dir"] + "/{pool}/Scrublet_{pctl}/",
         step = scrublet_params_dict["step"],
         scrublet_doublet_threshold = lambda wildcards: scrublet_params_dict["scrublet_doublet_threshold"][wildcards.pool]
-    log: output_dict["output_dir"] + "/logs/scrublet.{pool}.pctl{pctl}.log"
+    log: output_dict["output_dir"] + "/logs/Scrublet.{pool}.pctl{pctl}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \
