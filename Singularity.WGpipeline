@@ -146,6 +146,42 @@ From: drneavin/SingularityBaseImages:r363_python368
 
     sed -i 's/louvain.set_rng_seed(random_state)/partition_kwargs["seed"] = random_state/g'  /opt/conda/envs/py36/lib/python3.6/site-packages/scanpy/tools/_louvain.py
 
+	### Needed for R libraries ###
+    cp /opt/conda/lib/libstdc++.so.6.0.28 /usr/lib/x86_64-linux-gnu/
+    mv /usr/lib/x86_64-linux-gnu/libstdc++.so.6 /usr/lib/x86_64-linux-gnu/libstdc++.so.6.bkp
+    ln -s /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28 /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+
+
+	### Install R libraries ###
+	## Base helper packages ##
+    R --slave -e 'install.packages("V8", repos = "http://cran.us.r-project.org")'
+    R --slave -e 'install.packages("argparse", repos = "http://cran.us.r-project.org")'
+    R --slave -e 'install.packages("tidyr", repos = "http://cran.us.r-project.org")' # new
+    R --slave -e 'install.packages("tidyverse", repos = "http://cran.us.r-project.org")'
+    R --slave -e 'install.packages("dplyr", repos = "http://cran.us.r-project.org")' # new
+    R --slave -e 'install.packages("lsa", repos = "http://cran.us.r-project.org")'
+    R --slave -e 'install.packages("data.table", repos = "http://cran.us.r-project.org")'
+    R --slave -e 'install.packages("future.apply", repos = "http://cran.us.r-project.org")' # new
+    R --slave -e 'install.packages("ComplexUpset", repos = "http://cran.us.r-project.org")' # new
+    R --slave -e 'install.packages("RColorBrewer", repos = "http://cran.us.r-project.org")' # new
+    R --slave -e 'install.packages("scCustomize", repos = "http://cran.us.r-project.org")' # new
+    R --slave -e 'install.packages("Seurat", repos = "http://cran.us.r-project.org")'
+    R --slave -e 'install.packages("readr", repos = "http://cran.us.r-project.org")' # new
+    R --slave -e 'install.packages("ggplot2", repos = "http://cran.us.r-project.org")' # new
+    R --slave -e 'install.packages("ggpubr", repos = "http://cran.us.r-project.org")' # new
+    R --slave -e 'install.packages("cowplot", repos = "http://cran.us.r-project.org")' # new
+    R --slave -e 'install.packages("xgboost" ,repo="http://cran.us.r-project.org")'
+
+    R --slave -e 'devtools::install_github(repo="knausb/vcfR")'
+    R --slave -e 'remotes::install_github("chris-mcginnis-ucsf/DoubletFinder")'
+    R --slave -e 'devtools::install_github("kostkalab/scds", ref="master")'
+
+    R --slave -e 'install.packages("BiocManager")'
+    R --slave -e 'BiocManager::install("ComplexHeatmap")'
+	R --slave -e 'BiocManager::install("mbkmeans")'
+    R --slave -e 'BiocManager::install("scDblFinder")'
+    R --slave -e 'BiocManager::install("SingleCellExperiment")'
+
 ##############################
 # setup scripts for users
 ##############################
