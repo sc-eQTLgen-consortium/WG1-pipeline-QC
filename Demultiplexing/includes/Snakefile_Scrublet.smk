@@ -1,7 +1,7 @@
 ##################################
 ############ SCRUBLET ############
 ##################################
-rule scrublet:
+rule Scrublet:
     input:
         counts = lambda wildcards: scrnaseq_libs_df["CountH5File"][wildcards.pool],
         barcodes = lambda wildcards: scrnaseq_libs_df["BarcodeFile"][wildcards.pool],

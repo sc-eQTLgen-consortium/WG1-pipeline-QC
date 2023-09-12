@@ -58,8 +58,7 @@ rule souporcell_summary:
     threads: souporcell_dict["souporcell_summary_threads"]
     params:
         bind = input_dict["bind_path"],
-        sif = input_dict["singularity_image"],
-        individuals = lambda wildcards: scrnaseq_libs_df["IndividualFile"][wildcards.pool]
+        sif = input_dict["singularity_image"]
     log: output_dict["output_dir"] + "/logs/souporcell_summary.{pool}.log"
     shell:
         """
@@ -87,13 +86,12 @@ rule souporcell_pool_vcf:
         filtered_refs_temp = output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf",
         filtered_refs = output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz"
     resources:
-    resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * souporcell_dict["souporcell_pool_vcf_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * souporcell_dict["souporcell_pool_vcf_memory"]
     threads: souporcell_dict["souporcell_pool_vcf_threads"]
     params:
+        bind=input_dict["bind_path"],
         sif = input_dict["singularity_image"],
-        bind = input_dict["bind_path"],
         individuals = lambda wildcards: scrnaseq_libs_df["IndividualFile"][wildcards.pool]
     log: output_dict["output_dir"] + "/logs/souporcell_pool_vcf.{pool}.log"
     shell:
