@@ -21,27 +21,55 @@ else:
     logger.info("\nERROR: the 'sc_data_type' variable in the configuration file is not recognised. Please use 'single-cell' or 'single-nucleus'.\n\n Exiting.")
     quit()
 
+# Remove trailing /.
+if not config["inputs"]["sc_rnaseq_dir"].endswith("/"):
+    config["inputs"]["sc_rnaseq_dir"] += "/"
+if not config["inputs"]["individual_list_dir"].endswith("/"):
+    config["inputs"]["individual_list_dir"] += "/"
+if not config["outputs"]["output_dir"].endswith("/"):
+    config["outputs"]["output_dir"] += "/"
+if not config["outputs"]["output_dir"].endswith("/"):
+    config["outputs"]["output_dir"] += "/"
+
+if not config["refs_extra"]["relative_fasta_path"].startswith("/"):
+    config["refs_extra"]["relative_fasta_path"] = "/" + config["refs_extra"]["relative_fasta_path"]
+if not config["settings_extra"]["relative_barcodes_path"].startswith("/"):
+    config["settings_extra"]["relative_barcodes_path"] = "/" + config["settings_extra"]["relative_barcodes_path"]
+if not config["settings_extra"]["relative_filtered_h5_path"].startswith("/"):
+    config["settings_extra"]["relative_filtered_h5_path"] = "/" + config["settings_extra"]["relative_filtered_h5_path"]
+if not config["settings_extra"]["relative_bam_path"].startswith("/"):
+    config["settings_extra"]["relative_bam_path"] = "/" + config["settings_extra"]["relative_bam_path"]
+
 #####################
 ######## ALL ########
 #####################
 def get_all_input(wildcards):
+    """
+    This function determines all files that are required for the current run. This has to be dynamic since DoubletDetection and Scrublet require
+    a manual selection step. Simply requesting the final files is not an option since we do not know if the runs possed or not. Therefore,
+    we create a list of all method output files that we require. However, if DoubletDetection or Scrublet are not run or if the manual_selection says
+    they passed we can skip over all this and directory request the combined_results output.
+    """
     input_files = []
 
     if "popscle" in METHODS:
-        input_files.extend(expand(config["outputs"]["output_dir"] + "/{pool}/popscle/demuxlet/demuxletOUT.best", pool=SAMPLES["Pool"]))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best", pool=SAMPLES["Pool"]))
 
     if "souporcell" in METHODS:
-        input_files.extend(expand(config["outputs"]["output_dir"] + "/{pool}/souporcell/clusters.tsv", pool=SAMPLES["Pool"]))
-        input_files.extend(expand(config["outputs"]["output_dir"] + "/{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt", pool=SAMPLES["Pool"]))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv", pool=SAMPLES["Pool"]))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt", pool=SAMPLES["Pool"]))
 
     if "DoubletFinder" in METHODS:
-        input_files.extend(expand(config["outputs"]["output_dir"] + "/{pool}/DoubletFinder/DoubletFinder_doublets_singlets.tsv", pool=SAMPLES["Pool"]))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/DoubletFinder/DoubletFinder_doublets_singlets.tsv", pool=SAMPLES["Pool"]))
 
     if "scDblFinder" in METHODS:
-        input_files.extend(expand(config["outputs"]["output_dir"] + "/{pool}/scDblFinder/scDblFinder_doublets_singlets.tsv", pool=SAMPLES["Pool"]))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/scDblFinder/scDblFinder_doublets_singlets.tsv", pool=SAMPLES["Pool"]))
 
     doubletdetection_passed = False
     if "DoubletDetection" in METHODS:
+        if not os.path.isdir(config["outputs"]["output_dir"] + "manual_selections"):
+            os.mkdir(config["outputs"]["output_dir"] + "manual_selections")
+
         man_select_path = config["outputs"]["output_dir"] + "manual_selections/DoubletDetection_manual_selection.tsv"
         if os.path.exists(man_select_path):
             # Find which thresholds were selected.
@@ -79,10 +107,13 @@ def get_all_input(wildcards):
             input_files.extend(doubletdetection_files)
 
     if "scds" in METHODS:
-        input_files.extend(expand(config["outputs"]["output_dir"] + "/{pool}/scds/scds_doublets_singlets.tsv", pool=SAMPLES["Pool"]))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/scds/scds_doublets_singlets.tsv", pool=SAMPLES["Pool"]))
 
     scrublet_passed = False
     if "Scrublet" in METHODS:
+        if not os.path.isdir(config["outputs"]["output_dir"] + "manual_selections"):
+            os.mkdir(config["outputs"]["output_dir"] + "manual_selections")
+
         man_select_path = config["outputs"]["output_dir"] + "manual_selections/Scrublet_percentile_manual_selection.tsv"
         if os.path.exists(man_select_path):
             # Find which thresholds were selected.
@@ -136,7 +167,7 @@ def get_all_input(wildcards):
             input_files.extend(scrublet_files)
 
     if ("DoubletDetection" not in METHODS or doubletdetection_passed) and ("Scrublet" not in METHODS or scrublet_passed):
-        return expand(config["outputs"]["output_dir"] + "/{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv", pool=SAMPLES["Pool"])
+        return expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv", pool=SAMPLES["Pool"])
 
     return input_files
 
@@ -151,21 +182,21 @@ rule all:
 ###################################
 rule popscle_bam_filter:
     input:
-        barcodes = config["inputs"]["sc_rnaseq_dir"] + "/{pool}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz",
+        barcodes = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_barcodes_path"],
         vcf = config["inputs"]["vcf"],
-        bam = config["inputs"]["sc_rnaseq_dir"] + "/{pool}/outs/possorted_genome_bam.bam",
+        bam = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_bam_path"],
     output:
-        bam = config["outputs"]["output_dir"] + "/{pool}/popscle/bam_filter/{pool}_snpfiltered_alignment.bam"
+        bam = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/{pool}_snpfiltered_alignment.bam"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_bam_filter_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_bam_filter_memory"]
     threads: config["popscle"]["popscle_bam_filter_threads"]
     params:
-        out_dir = config["outputs"]["output_dir"] + "/{pool}/popscle/bam_filter/",
+        out_dir = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/",
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         tag_group = config["popscle"]["popscle_tag_group"]
-    log: config["outputs"]["output_dir"] + "/logs/popscle_bam_filter.{pool}.log"
+    log: config["outputs"]["output_dir"] + "logs/popscle_bam_filter.{pool}.log"
     shell:
         """
         mkdir -p {params.out_dir} && \
@@ -184,12 +215,12 @@ rule popscle_bam_filter:
 
 rule popscle_pileup:
     input:
-        bam = config["outputs"]["output_dir"] + "/{pool}/popscle/bam_filter/{pool}_snpfiltered_alignment.bam",
+        bam = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/{pool}_snpfiltered_alignment.bam",
         sm_list = config["inputs"]["individual_list_dir"] + "/{pool}.txt",
         vcf = config["inputs"]["vcf"],
-        barcodes = config["inputs"]["sc_rnaseq_dir"] + "/{pool}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz",
+        barcodes = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_barcodes_path"],
     output:
-        pileup = config["outputs"]["output_dir"] + "/{pool}/popscle/pileup/pileup.var.gz",
+        pileup = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup.var.gz",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_pileup_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_pileup_memory"]
@@ -206,8 +237,8 @@ rule popscle_pileup:
         excl_flag = config["popscle_extra"]["excl_flag"],
         min_total = config["popscle_extra"]["min_total"],
         min_snp = config["popscle_extra"]["min_snp"],
-        out = config["outputs"]["output_dir"] + "/{pool}/popscle/pileup/pileup",
-    log: config["outputs"]["output_dir"] + "/logs/popscle_pileup.{pool}.log"
+        out = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup",
+    log: config["outputs"]["output_dir"] + "logs/popscle_pileup.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} popscle dsc-pileup \
@@ -230,12 +261,12 @@ rule popscle_pileup:
 
 rule popscle_demuxlet:
     input:
-        pileup = config["outputs"]["output_dir"] + "/{pool}/popscle/pileup/pileup.var.gz",
+        pileup = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup.var.gz",
         vcf = config["inputs"]["vcf"],
-        group_list = config["inputs"]["sc_rnaseq_dir"] + "/{pool}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz",
+        group_list = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_barcodes_path"],
         sm_list = config["inputs"]["individual_list_dir"] + "/{pool}.txt"
     output:
-        out = config["outputs"]["output_dir"] + "/{pool}/popscle/demuxlet/demuxletOUT.best"
+        out = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_demuxlet_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_demuxlet_memory"]
@@ -243,7 +274,7 @@ rule popscle_demuxlet:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        plp = config["outputs"]["output_dir"] + "/{pool}/popscle/pileup/pileup",
+        plp = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup",
         field = config["popscle"]["popscle_genotype_field"],
         geno_error_offset = config["popscle_extra"]["geno_error_offset"],
         geno_error_coeff = config["popscle_extra"]["geno_error_coeff"],
@@ -258,8 +289,8 @@ rule popscle_demuxlet:
         excl_flag = config["popscle_extra"]["excl_flag"],
         min_total = config["popscle_extra"]["min_total"],
         min_snp = config["popscle_extra"]["min_snp"],
-        out = config["outputs"]["output_dir"] + "/{pool}/popscle/demuxlet/demuxletOUT"
-    log: config["outputs"]["output_dir"] + "/logs/popscle_demuxlet.{pool}.log"
+        out = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT"
+    log: config["outputs"]["output_dir"] + "logs/popscle_demuxlet.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} popscle demuxlet \
@@ -291,30 +322,30 @@ rule popscle_demuxlet:
 ####################################
 rule souporcell:
     input:
-        bam = config["inputs"]["sc_rnaseq_dir"] + "/{pool}/outs/possorted_genome_bam.bam",
-        barcodes = config["inputs"]["sc_rnaseq_dir"] + "/{pool}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz",
-        fasta = config["refs"]["ref_dir"] + "/ref_genome_QC/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+        bam = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_bam_path"],
+        barcodes = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_barcodes_path"],
+        fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
         vcf = config["inputs"]["vcf"]
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_memory"]
     threads: config["souporcell"]["souporcell_threads"]
     output:
-        ambient_rna = config["outputs"]["output_dir"] + "/{pool}/souporcell/ambient_rna.txt",
-        clustering = config["outputs"]["output_dir"] + "/{pool}/souporcell/clustering.done",
-        genotypes = config["outputs"]["output_dir"] + "/{pool}/souporcell/cluster_genotypes.vcf",
-        clusters = config["outputs"]["output_dir"] + "/{pool}/souporcell/clusters.tsv",
-        concensus = config["outputs"]["output_dir"] + "/{pool}/souporcell/consensus.done",
-        troublet = config["outputs"]["output_dir"] + "/{pool}/souporcell/troublet.done"
+        ambient_rna = config["outputs"]["output_dir"] + "{pool}/souporcell/ambient_rna.txt",
+        clustering = config["outputs"]["output_dir"] + "{pool}/souporcell/clustering.done",
+        genotypes = config["outputs"]["output_dir"] + "{pool}/souporcell/cluster_genotypes.vcf",
+        clusters = config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv",
+        concensus = config["outputs"]["output_dir"] + "{pool}/souporcell/consensus.done",
+        troublet = config["outputs"]["output_dir"] + "{pool}/souporcell/troublet.done"
     params:
-        out = config["outputs"]["output_dir"] + "/{pool}/souporcell/",
+        out = config["outputs"]["output_dir"] + "{pool}/souporcell/",
         sif = config["inputs"]["singularity_image"],
         bind = config["inputs"]["bind_path"],
         clusters = lambda wildcards: SAMPLES_DICT[wildcards.pool],
         min_alt = config["souporcell_extra"]["min_alt"],
         min_ref = config["souporcell_extra"]["min_ref"],
         max_loci = config["souporcell_extra"]["max_loci"]
-    log: config["outputs"]["output_dir"] + "/logs/souporcell.{pool}.log"
+    log: config["outputs"]["output_dir"] + "logs/souporcell.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} souporcell_pipeline.py \
@@ -335,9 +366,9 @@ rule souporcell:
 
 rule souporcell_summary:
     input:
-        clusters = config["outputs"]["output_dir"] + "/{pool}/souporcell/clusters.tsv"
+        clusters = config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv"
     output:
-        summary = config["outputs"]["output_dir"] + "/{pool}/souporcell/souporcell_summary.tsv"
+        summary = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_summary.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_summary_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_summary_memory"]
@@ -345,7 +376,7 @@ rule souporcell_summary:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"]
-    log: config["outputs"]["output_dir"] + "/logs/souporcell_summary.{pool}.log"
+    log: config["outputs"]["output_dir"] + "logs/souporcell_summary.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} \
@@ -365,10 +396,10 @@ rule souporcell_summary:
 rule souporcell_pool_vcf:
     input:
         vcf = config["inputs"]["vcf"],
-        cluster_vcf = config["outputs"]["output_dir"] + "/{pool}/souporcell/cluster_genotypes.vcf"
+        cluster_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/cluster_genotypes.vcf"
     output:
-        filtered_refs_temp = config["outputs"]["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf",
-        filtered_refs = config["outputs"]["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz"
+        filtered_refs_temp = config["outputs"]["output_dir"] + "{pool}/souporcell/Individual_genotypes_subset.vcf",
+        filtered_refs = config["outputs"]["output_dir"] + "{pool}/souporcell/Individual_genotypes_subset.vcf.gz"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_pool_vcf_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_pool_vcf_memory"]
@@ -377,7 +408,7 @@ rule souporcell_pool_vcf:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         individuals = config["inputs"]["individual_list_dir"] + "/{pool}.txt"
-    log: config["outputs"]["output_dir"] + "/logs/souporcell_pool_vcf.{pool}.log"
+    log: config["outputs"]["output_dir"] + "logs/souporcell_pool_vcf.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bedtools intersect -a {input.vcf} -b {input.cluster_vcf} -f 1.0 -r -wa -header > {output.filtered_refs_temp} 2> {log}
@@ -387,12 +418,12 @@ rule souporcell_pool_vcf:
 
 rule souporcell_correlate_genotypes:
     input:
-        reference_vcf = config["outputs"]["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz",
-        cluster_vcf = config["outputs"]["output_dir"] + "/{pool}/souporcell/cluster_genotypes.vcf",
+        reference_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/Individual_genotypes_subset.vcf.gz",
+        cluster_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/cluster_genotypes.vcf",
     output:
-        correlation_file = config["outputs"]["output_dir"] + "/{pool}/souporcell/genotype_correlations/ref_clust_pearson_correlations.tsv",
-        correlation_img = config["outputs"]["output_dir"] + "/{pool}/souporcell/genotype_correlations/ref_clust_pearson_correlation.png",
-        assignments = config["outputs"]["output_dir"] + "/{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt"
+        correlation_file = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/ref_clust_pearson_correlations.tsv",
+        correlation_img = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/ref_clust_pearson_correlation.png",
+        assignments = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt"
     resources:
         mem_per_thread_gb = config["souporcell"]["souporcell_correlations_memory"],
         disk_per_thread_gb = config["souporcell"]["souporcell_correlations_memory"]
@@ -401,8 +432,8 @@ rule souporcell_correlate_genotypes:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Assign_Indiv_by_Geno.R",
-        out = config["outputs"]["output_dir"] + "/{pool}/souporcell/genotype_correlations"
-    log: config["outputs"]["output_dir"] + "/logs/souporcell_correlate_genotypes.{pool}.log"
+        out = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations"
+    log: config["outputs"]["output_dir"] + "logs/souporcell_correlate_genotypes.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script}
@@ -419,10 +450,10 @@ rule souporcell_correlate_genotypes:
 #####################################
 rule DoubletFinder:
     input:
-        counts = config["inputs"]["sc_rnaseq_dir"] + "/{pool}/outs/filtered_feature_bc_matrix.h5",
+        counts = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_filtered_h5_path"],
     output:
-        doublets = config["outputs"]["output_dir"] + "/{pool}/DoubletFinder/DoubletFinder_doublets_singlets.tsv",
-        summary = config["outputs"]["output_dir"] + "/{pool}/DoubletFinder/DoubletFinder_doublet_summary.tsv"
+        doublets = config["outputs"]["output_dir"] + "{pool}/DoubletFinder/DoubletFinder_doublets_singlets.tsv",
+        summary = config["outputs"]["output_dir"] + "{pool}/DoubletFinder/DoubletFinder_doublet_summary.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletfinder"]["doubletfinder_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletfinder"]["doubletfinder_memory"]
@@ -431,10 +462,10 @@ rule DoubletFinder:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/DoubletFinder.R",
-        out = config["outputs"]["output_dir"] + "/{pool}/DoubletFinder/",
+        out = config["outputs"]["output_dir"] + "{pool}/DoubletFinder/",
         find_clusters_resolution = config["doubletfinder_extra"]["find_clusters_resolution"],
         n_generated_artificial_doublets = config["doubletfinder_extra"]["n_generated_artificial_doublets"]
-    log: config["outputs"]["output_dir"] + "/logs/DoubletFinder.{pool}.log"
+    log: config["outputs"]["output_dir"] + "logs/DoubletFinder.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
@@ -449,10 +480,10 @@ rule DoubletFinder:
 #####################################
 rule scDblFinder:
     input:
-        counts = config["inputs"]["sc_rnaseq_dir"] + "/{pool}/outs/filtered_feature_bc_matrix.h5",
+        counts = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_filtered_h5_path"],
     output:
-        doublets = config["outputs"]["output_dir"] + "/{pool}/scDblFinder/scDblFinder_doublets_singlets.tsv",
-        summary = config["outputs"]["output_dir"] + "/{pool}/scDblFinder/scDblFinder_doublet_summary.tsv"
+        doublets = config["outputs"]["output_dir"] + "{pool}/scDblFinder/scDblFinder_doublets_singlets.tsv",
+        summary = config["outputs"]["output_dir"] + "{pool}/scDblFinder/scDblFinder_doublet_summary.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["scdblfinder"]["scfblfinder_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["scdblfinder"]["scfblfinder_memory"]
@@ -461,8 +492,8 @@ rule scDblFinder:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scDblFinder.R",
-        out = config["outputs"]["output_dir"] + "/{pool}/scDblFinder/"
-    log: config["outputs"]["output_dir"] + "/logs/scDblFinder.{pool}.log"
+        out = config["outputs"]["output_dir"] + "{pool}/scDblFinder/"
+    log: config["outputs"]["output_dir"] + "logs/scDblFinder.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
@@ -473,6 +504,7 @@ rule scDblFinder:
 ###########################################
 ############ DOUBLET DETECTION ############
 ###########################################
+# These steps uses different settings based on the user input in the yaml.
 if config["doubletdetection_manual"]["run_doubletdetection_manual"]:
     logger.info("Running DoubletDetection with manual settings since 'run_doubletdetection_manual' is set to True.")
     doubletdetection_params_dict = {
@@ -499,13 +531,13 @@ else:
 
 rule DoubletDetection:
     input:
-        counts = config["inputs"]["sc_rnaseq_dir"] + "/{pool}/outs/filtered_feature_bc_matrix.h5",
-        barcodes = config["inputs"]["sc_rnaseq_dir"] + "/{pool}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz",
+        counts = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_filtered_h5_path"],
+        barcodes = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_barcodes_path"],
     output:
-        doublets = config["outputs"]["output_dir"] + "/{pool}/DoubletDetection/DoubletDetection_doublets_singlets.tsv",
-        figure = report(config["outputs"]["output_dir"] + "/{pool}/DoubletDetection/convergence_test.pdf", category = "DoubletDetection", subcategory = "{pool}", caption = "../report_captions/DoubletDetection.rst"),
-        summary = config["outputs"]["output_dir"] + "/{pool}/DoubletDetection/DoubletDetection_summary.tsv",
-        log = config["outputs"]["output_dir"] + "/{pool}/DoubletDetection/" + doubletdetection_params_dict["log"]
+        doublets = config["outputs"]["output_dir"] + "{pool}/DoubletDetection/DoubletDetection_doublets_singlets.tsv",
+        figure = report(config["outputs"]["output_dir"] + "{pool}/DoubletDetection/convergence_test.pdf", category = "DoubletDetection", subcategory = "{pool}", caption = "../report_captions/DoubletDetection.rst"),
+        summary = config["outputs"]["output_dir"] + "{pool}/DoubletDetection/DoubletDetection_summary.tsv",
+        log = config["outputs"]["output_dir"] + "{pool}/DoubletDetection/" + doubletdetection_params_dict["log"]
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletdetection"]["doubletdetection_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletdetection"]["doubletdetection_memory"]
@@ -520,7 +552,7 @@ rule DoubletDetection:
         p_thresh = lambda wildcards: doubletdetection_params_dict["p_thresh"][wildcards.pool],
         voter_thresh = lambda wildcards: doubletdetection_params_dict["voter_thresh"][wildcards.pool],
         step = doubletdetection_params_dict["step"],
-        out = config["outputs"]["output_dir"] + "/{pool}/DoubletDetection/"
+        out = config["outputs"]["output_dir"] + "{pool}/DoubletDetection/"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \
@@ -547,10 +579,10 @@ rule DoubletDetection:
 ##############################
 rule scds:
     input:
-        counts = config["inputs"]["sc_rnaseq_dir"] + "/{pool}/outs/filtered_feature_bc_matrix.h5",
+        counts = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_filtered_h5_path"],
     output:
-        doublets = config["outputs"]["output_dir"] + "/{pool}/scds/scds_doublets_singlets.tsv",
-        summary = config["outputs"]["output_dir"] + "/{pool}/scds/scds_doublet_summary.tsv"
+        doublets = config["outputs"]["output_dir"] + "{pool}/scds/scds_doublets_singlets.tsv",
+        summary = config["outputs"]["output_dir"] + "{pool}/scds/scds_doublet_summary.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["scds"]["scds_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["scds"]["scds_memory"]
@@ -559,8 +591,8 @@ rule scds:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scds.R",
-        out = config["outputs"]["output_dir"] + "/{pool}/scds/"
-    log: config["outputs"]["output_dir"] + "/logs/scds.{pool}.log"
+        out = config["outputs"]["output_dir"] + "{pool}/scds/"
+    log: config["outputs"]["output_dir"] + "logs/scds.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
@@ -571,8 +603,9 @@ rule scds:
 ##################################
 ############ SCRUBLET ############
 ##################################
+# These steps uses different settings based on the user input in the yaml.
 if config["scrublet_manual"]["run_scrublet_manual"]:
-    logger.info("Running Scrublet with manual settings since 'run_Scrublet_manual' is set to True.")
+    logger.info("Running Scrublet with manual settings since 'run_scrublet_manual' is set to True.")
     pool_threshold_dict = dict(zip(config["scrublet_manual"]["scrublet_manual_threshold_pools"], config["scrublet_manual"]["scrublet_manual_threshold_thresholds"]))
     scrublet_params_dict = {
         "step": "manual",
@@ -587,13 +620,13 @@ else:
 
 rule Scrublet:
     input:
-        counts = config["inputs"]["sc_rnaseq_dir"] + "/{pool}/outs/filtered_feature_bc_matrix.h5",
-        barcodes = config["inputs"]["sc_rnaseq_dir"] + "/{pool}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz"
+        counts = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_filtered_h5_path"],
+        barcodes = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_barcodes_path"]
     output:
-        figure = report(config["outputs"]["output_dir"] + "/{pool}/Scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "../report_captions/Scrublet.rst", subcategory = "{pool}"),
-        umap = report(config["outputs"]["output_dir"] + "/{pool}/Scrublet_{pctl}/UMAP.png", category = "Scrublet", caption = "../report_captions/Scrublet.rst", subcategory = "{pool}"),
-        results = config["outputs"]["output_dir"] + "/{pool}/Scrublet_{pctl}/Scrublet_doublets_singlets.tsv",
-        summary = config["outputs"]["output_dir"] + "/{pool}/Scrublet_{pctl}/Scrublet_summary.tsv"
+        figure = report(config["outputs"]["output_dir"] + "{pool}/Scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "../report_captions/Scrublet.rst", subcategory = "{pool}"),
+        umap = report(config["outputs"]["output_dir"] + "{pool}/Scrublet_{pctl}/UMAP.png", category = "Scrublet", caption = "../report_captions/Scrublet.rst", subcategory = "{pool}"),
+        results = config["outputs"]["output_dir"] + "{pool}/Scrublet_{pctl}/Scrublet_doublets_singlets.tsv",
+        summary = config["outputs"]["output_dir"] + "{pool}/Scrublet_{pctl}/Scrublet_summary.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["scrublet"]["scrublet_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["scrublet"]["scrublet_memory"],
@@ -606,10 +639,10 @@ rule Scrublet:
         min_counts = config["scrublet_extra"]["min_counts"],
         min_cells = config["scrublet_extra"]["min_cells"],
         n_prin_comps = config["scrublet_extra"]["n_prin_comps"],
-        out = config["outputs"]["output_dir"] + "/{pool}/Scrublet_{pctl}/",
+        out = config["outputs"]["output_dir"] + "{pool}/Scrublet_{pctl}/",
         step = lambda wildcards: scrublet_params_dict["step"],
         scrublet_doublet_threshold = lambda wildcards: scrublet_params_dict["scrublet_doublet_threshold"][wildcards.pool],
-    log: config["outputs"]["output_dir"] + "/logs/Scrublet.{pool}.pctl{pctl}.log"
+    log: config["outputs"]["output_dir"] + "logs/Scrublet.{pool}.pctl{pctl}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \
@@ -638,6 +671,9 @@ rule Scrublet:
 ######## COMBINE RESULTS ########
 #################################
 def get_scrublet_input(wildcards):
+    """
+    This function selection the correct run of Scrublet we want to use for the combine_results rule.
+    """
     if "Scrublet" in METHODS:
         man_select_path = config["outputs"]["output_dir"] + "manual_selections/Scrublet_percentile_manual_selection.tsv"
         if os.path.exists(man_select_path):
@@ -648,21 +684,21 @@ def get_scrublet_input(wildcards):
             selection["GeneVariabilityPctl"] = selection["GeneVariabilityPctl"].astype(str)
             select_dict = dict(zip(selection["Pool"], selection["GeneVariabilityPctl"]))
 
-            return config["outputs"]["output_dir"] + "/" + wildcards.pool + "/Scrublet_" + select_dict[wildcards.pool] + "/Scrublet_doublets_singlets.tsv"
+            return config["outputs"]["output_dir"] + "" + wildcards.pool + "/Scrublet_" + select_dict[wildcards.pool] + "/Scrublet_doublets_singlets.tsv"
     return []
 
 rule combine_results:
     input:
-        demuxlet = lambda wildcards: config["outputs"]["output_dir"] + "/" + wildcards.pool + "/popscle/demuxlet/demuxletOUT.best" if "popscle" in METHODS else [],
-        souporcell = lambda wildcards: config["outputs"]["output_dir"] + "/" + wildcards.pool + "/souporcell/clusters.tsv" if "souporcell" in METHODS else [],
-        souporcell_assignments = lambda wildcards: config["outputs"]["output_dir"] + "/" + wildcards.pool + "/souporcell/genotype_correlations/Genotype_ID_key.txt" if "souporcell" in METHODS else [],
-        doubletfinder = lambda wildcards: config["outputs"]["output_dir"] + "/" + wildcards.pool + "/DoubletFinder/DoubletFinder_doublets_singlets.tsv" if "DoubletFinder" in METHODS else [],
-        scdblfinder = lambda wildcards: config["outputs"]["output_dir"] + "/" + wildcards.pool + "/scDblFinder/scDblFinder_doublets_singlets.tsv" if "scDblFinder" in METHODS else [],
-        doubletdetection = lambda wildcards: config["outputs"]["output_dir"] + "/" + wildcards.pool + "/DoubletDetection/DoubletDetection_doublets_singlets.tsv" if "DoubletDetection" in METHODS else [],
-        scds = lambda wildcards: config["outputs"]["output_dir"] + "/" + wildcards.pool + "/scds/scds_doublets_singlets.tsv" if "scds" in METHODS else [],
+        demuxlet = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/popscle/demuxlet/demuxletOUT.best" if "popscle" in METHODS else [],
+        souporcell = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/souporcell/clusters.tsv" if "souporcell" in METHODS else [],
+        souporcell_assignments = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/souporcell/genotype_correlations/Genotype_ID_key.txt" if "souporcell" in METHODS else [],
+        doubletfinder = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/DoubletFinder/DoubletFinder_doublets_singlets.tsv" if "DoubletFinder" in METHODS else [],
+        scdblfinder = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/scDblFinder/scDblFinder_doublets_singlets.tsv" if "scDblFinder" in METHODS else [],
+        doubletdetection = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/DoubletDetection/DoubletDetection_doublets_singlets.tsv" if "DoubletDetection" in METHODS else [],
+        scds = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/scds/scds_doublets_singlets.tsv" if "scds" in METHODS else [],
         scrublet = get_scrublet_input,
     output:
-        summary = config["outputs"]["output_dir"] + "/{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv"
+        summary = config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * config["combine_results"]["combine_results_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * config["combine_results"]["combine_results_memory"]
@@ -672,8 +708,8 @@ rule combine_results:
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Combine_Results.R",
         souporcell_correlation_limit = config["souporcell"]["souporcell_genotype_correlation_threshold"],
-        out = config["outputs"]["output_dir"] + "/{pool}/CombinedResults/"
-    log: config["outputs"]["output_dir"] + "/logs/combine_results.{pool}.log"
+        out = config["outputs"]["output_dir"] + "{pool}/CombinedResults/"
+    log: config["outputs"]["output_dir"] + "logs/combine_results.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \

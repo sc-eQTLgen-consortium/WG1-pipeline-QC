@@ -95,10 +95,16 @@ doubletdetection_manual:
 ############################################################################################################################################
 ##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####
 ############################################################################################################################################
+refs_extra:
+  relative_fasta_path: "/ref_genome_QC/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+
 settings_extra:
     multiplexing_methods: ["popscle", "souporcell"]
     sc_doubletdetection_methods: ["DoubletDetection", "scds", "Scrublet"]
     sn_doubletdetection_methods: ["DoubletFinder", "scDblFinder"]
+    relative_barcodes_path: "/outs/filtered_feature_bc_matrix/barcodes.tsv.gz"
+    relative_filtered_h5_path: "/outs/filtered_feature_bc_matrix.h5"
+    relative_bam_path: "/outs/possorted_genome_bam.bam"
 
 popscle_extra:
   cap_bq: 40 ### Maximum base quality (higher BQ will be capped)
