@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import numpy as np
 import pandas as pd
 import os
 
@@ -7,7 +8,24 @@ SAMPLES = pd.read_csv(config["inputs"]["samplesheet_filepath"], sep="\t")
 SAMPLES = SAMPLES.iloc[:1, :] #TODO: remove
 SAMPLES.columns = ["Pool", "N"]
 SAMPLES["Pool"] = SAMPLES["Pool"].astype(str)
-SAMPLES_DICT = dict(zip(SAMPLES["Pool"], SAMPLES["N"]))
+
+# Get the file paths.
+FILE_PATHS = pd.read_csv(config["inputs"]["sample_file_paths"], sep="\t")
+FILE_PATHS = FILE_PATHS.iloc[:1, :] #TODO: remove
+for column in ["Pool", "Bam", "Counts", "Barcodes"]:
+    if column not in FILE_PATHS:
+        logger.info("\nERROR: column '{}' is missing in the sample_file_paths.\n\n Exiting.".format(column))
+        quit()
+for pool in SAMPLES["Pool"]:
+    if not pool in FILE_PATHS["Pool"]:
+        logger.info("\nERROR: pool '{}' is missing in the sample_file_paths.\n\n Exiting.".format(pool))
+        quit()
+for _, row in FILE_PATHS.iterrows():
+    for column in ["Bam", "Counts", "Barcodes"]:
+        if not os.path.exists(row[column]):
+            logger.info("\nERROR: file '{}' for pool '{}' in the sample_file_paths does not exist.\n\n Exiting.".format(column, row["Pool"]))
+            quit()
+SAMPLES = SAMPLES.merge(FILE_PATHS, on="Pool", how="left")
 
 # Find which methods to run.
 METHODS = []
@@ -22,8 +40,6 @@ else:
     quit()
 
 # Remove trailing /.
-if not config["inputs"]["sc_rnaseq_dir"].endswith("/"):
-    config["inputs"]["sc_rnaseq_dir"] += "/"
 if not config["inputs"]["individual_list_dir"].endswith("/"):
     config["inputs"]["individual_list_dir"] += "/"
 if not config["outputs"]["output_dir"].endswith("/"):
@@ -31,13 +47,6 @@ if not config["outputs"]["output_dir"].endswith("/"):
 
 if not config["refs_extra"]["relative_fasta_path"].startswith("/"):
     config["refs_extra"]["relative_fasta_path"] = "/" + config["refs_extra"]["relative_fasta_path"]
-if not config["settings_extra"]["relative_barcodes_path"].startswith("/"):
-    config["settings_extra"]["relative_barcodes_path"] = "/" + config["settings_extra"]["relative_barcodes_path"]
-if not config["settings_extra"]["relative_filtered_h5_path"].startswith("/"):
-    config["settings_extra"]["relative_filtered_h5_path"] = "/" + config["settings_extra"]["relative_filtered_h5_path"]
-if not config["settings_extra"]["relative_bam_path"].startswith("/"):
-    config["settings_extra"]["relative_bam_path"] = "/" + config["settings_extra"]["relative_bam_path"]
-# TODO: change to either cellranger or cellbender relative paths
 
 #####################
 ######## ALL ########
@@ -70,39 +79,43 @@ def get_all_input(wildcards):
             os.mkdir(config["outputs"]["output_dir"] + "manual_selections")
 
         man_select_path = config["outputs"]["output_dir"] + "manual_selections/DoubletDetection_manual_selection.tsv"
+        empty_select_df = pd.DataFrame({"Pool": SAMPLES["Pool"], "Result": np.nan})
         if os.path.exists(man_select_path):
-            # Find which thresholds were selected.
             logger.info("Read in the DoubletDetection manual selection file.")
-            selection = pd.read_csv(man_select_path,sep="\t")
+            selection = pd.read_csv(man_select_path, sep="\t", index_col=None)
             selection["Pool"] = selection["Pool"].astype(str)
-            selection["Result"] = selection["Result"].astype(str)
+            if not selection.equals(empty_select_df):
+                logger.info("The DoubletDetection_manual_selection.tsv file has been updated, evaluating if selection is valid.")
+                selection["Result"] = selection["Result"].astype(str)
 
-            # Check if the pools still match.
-            if len(set(SAMPLES["Pool"]).intersection(set(selection["Pool"]))) != SAMPLES.shape[0]:
-                logger.info("ERROR: the DoubletDetection_manual_selection.tsv does not contain the same pools as the samplesheet.")
-                exit()
+                # Check if the pools still match.
+                if len(set(SAMPLES["Pool"]).intersection(set(selection["Pool"]))) != SAMPLES.shape[0]:
+                    logger.info("ERROR: the DoubletDetection_manual_selection.tsv does not contain the same pools as the samplesheet.")
+                    exit()
 
-            if "PASS" in selection and selection["Result"].value_counts()["PASS"] == SAMPLES.shape[0]:
-                logger.info("All the DoubletDetection results have PASSED. Will move to next steps.")
-                doubletdetection_passed = True
-            else:
-                logger.info("You haven't put PASS/FAIL values into the DoubletDetection_manual_selection.tsv file.")
-                logger.info("Please check the DoubletDetection outputs and decide if the pools passed - rerun any of the pools where the doublet numbers don't reach convergence using the manual selections (see the docs).")
-                logger.info("Once you are happy with the results, input PASS into the second column of the DoubletDetection_manual_selection.tsv file and restart the snakemake pipeline.")
+                if "PASS" in selection and selection["Result"].value_counts()["PASS"] == SAMPLES.shape[0]:
+                    logger.info("All the DoubletDetection results have PASSED. Will move to next steps.")
+                    doubletdetection_passed = True
+                else:
+                    logger.info("You haven't put PASS/FAIL values into the DoubletDetection_manual_selection.tsv file.")
+                    logger.info("Please check the DoubletDetection outputs and decide if the pools passed - rerun any of the pools where the doublet numbers don't reach convergence using the manual selections (see the docs).")
+                    logger.info("Once you are happy with the results, input PASS into the second column of the DoubletDetection_manual_selection.tsv file and restart the snakemake pipeline.")
+        else:
+            empty_select_df.to_csv(man_select_path, sep="\t", header=True, index=False)
 
         if not doubletdetection_passed:
             # Run DoubletDetection jobs.
             doubletdetection_files = []
             if config["doubletdetection_manual"]["run_doubletdetection_manual"]:
                 logger.info("Running DoubletDetection for specified rules since 'run_doubletdetection_manual' is set to True.")
-                doubletdetection_files = [os.path.join(config["outputs"]["output_dir"],pool,"DoubletDetection","DoubletDetection_doublets_singlets.tsv") for pool in config["doubletdetection_manual"]["DoubletDetection_manual_pools"]]
+                doubletdetection_files = [config["outputs"]["output_dir"] + pool + "/DoubletDetection/DoubletDetection_doublets_singlets.tsv" for pool in config["doubletdetection_manual"]["DoubletDetection_manual_pools"]]
                 # NOTE: this will fail if you do multiple manual runs (e.g. checking if DoubletDetection_doublets_singlets.tsv exists). Therefore remove the results file to force a rerun.
                 for fname in doubletdetection_files:
                     if os.path.isfile(fname):
                         os.remove(fname)
             else:
                 logger.info("Running the default DoubletDetection rules since 'run_doubletdetection_manual' is set to False.")
-                doubletdetection_files = [os.path.join(config["outputs"]["output_dir"],pool,"DoubletDetection","DoubletDetection_doublets_singlets.tsv") for pool in SAMPLES["Pool"]]
+                doubletdetection_files = [config["outputs"]["output_dir"] + pool + "/DoubletDetection/DoubletDetection_doublets_singlets.tsv" for pool in SAMPLES["Pool"]]
             input_files.extend(doubletdetection_files)
 
     if "scds" in METHODS:
@@ -114,58 +127,63 @@ def get_all_input(wildcards):
             os.mkdir(config["outputs"]["output_dir"] + "manual_selections")
 
         man_select_path = config["outputs"]["output_dir"] + "manual_selections/Scrublet_percentile_manual_selection.tsv"
+        empty_select_df = pd.DataFrame({"Pool": SAMPLES["Pool"], "GeneVariabilityPctl": np.nan})
         if os.path.exists(man_select_path):
             # Find which thresholds were selected.
             logger.info("Read in the Scrublet manual selection file.")
-            selection = pd.read_csv(man_select_path,sep="\t")
+            selection = pd.read_csv(man_select_path, sep="\t", index_col=None)
             selection["Pool"] = selection["Pool"].astype(str)
-            selection["GeneVariabilityPctl"] = selection["GeneVariabilityPctl"].astype(str)
+            if not selection.equals(empty_select_df):
+                logger.info("The Scrublet_percentile_manual_selection.tsv file has been updated, evaluating if selection is valid.")
+                selection["GeneVariabilityPctl"] = selection["GeneVariabilityPctl"].astype(str)
 
-            # Check if the pools still match.
-            if len(set(SAMPLES["Pool"]).intersection(set(selection["Pool"]))) != SAMPLES.shape[0]:
-                logger.info("ERROR: the Scrublet_percentile_manual_selection.tsv file does not contain the same pools as the sample sheet.")
-                exit()
-
-            # Check if all the percentages were filled in.
-            for _, row in selection.iterrows():
-                # check if scrublet_percentile is an integer.
-                if not row["GeneVariabilityPctl"].isdigit():
-                    logger.info("ERROR: the 'GeneVariabilityPctl' column for pool '{}' in the Scrublet_percentile_manual_selection.tsv file contains an unexpected value.".format(row["Pool"]))
-                    logger.info("Please check the Scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
-                    logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the Scrublet_gene_pctl.txt file and restart the snakemake pipeline.")
+                # Check if the pools still match.
+                if len(set(SAMPLES["Pool"]).intersection(set(selection["Pool"]))) != SAMPLES.shape[0]:
+                    logger.info("ERROR: the Scrublet_percentile_manual_selection.tsv file does not contain the same pools as the sample sheet.")
                     exit()
 
-                # check if scrublet_percentile is between 0 and 100.
-                if int(row["GeneVariabilityPctl"]) < 0 or row["GeneVariabilityPctl"] > 100:
-                    logger.info("ERROR: the 'GeneVariabilityPctl' column for pool '{}' in the Scrublet_percentile_manual_selection.tsv file is not between 0 and 100.".format(row["Pool"]))
-                    logger.info("Please check the Scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
-                    logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the Scrublet_gene_pctl.txt file and restart the snakemake pipeline.")
-                    exit()
+                # Check if all the percentages were filled in.
+                for _, row in selection.iterrows():
+                    # check if scrublet_percentile is an integer.
+                    if not row["GeneVariabilityPctl"].isdigit():
+                        logger.info("ERROR: the 'GeneVariabilityPctl' column for pool '{}' in the Scrublet_percentile_manual_selection.tsv file contains an unexpected value.".format(row["Pool"]))
+                        logger.info("Please check the Scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
+                        logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the Scrublet_gene_pctl.txt file and restart the snakemake pipeline.")
+                        exit()
 
-                # check if the scrublet_percentile exists.
-                if not os.path.exists(os.path.join(config["outputs"]["output_dir"], row["Pool"], "Scrublet_" + row["GeneVariabilityPctl"] + "Scrublet_doublets_singlets.tsv")):
-                    logger.info("ERROR: the '{}/Scrublet_{}/Scrublet_doublets_singlets.tsv' does not exist.".format(row["Pool"], row["GeneVariabilityPctl"]))
-                    logger.info("Please check the Scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
-                    logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the Scrublet_gene_pctl.txt file and restart the snakemake pipeline.")
-                    exit()
+                    # check if scrublet_percentile is between 0 and 100.
+                    if int(row["GeneVariabilityPctl"]) < 0 or row["GeneVariabilityPctl"] > 100:
+                        logger.info("ERROR: the 'GeneVariabilityPctl' column for pool '{}' in the Scrublet_percentile_manual_selection.tsv file is not between 0 and 100.".format(row["Pool"]))
+                        logger.info("Please check the Scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
+                        logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the Scrublet_gene_pctl.txt file and restart the snakemake pipeline.")
+                        exit()
 
-            # All the selections are correct and the output files exist.
-            logger.info("All the Scrublet results have been selected. Will move to next steps.")
-            scrublet_passed = True
+                    # check if the scrublet_percentile exists.
+                    if not os.path.exists(config["outputs"]["output_dir"] + row["Pool"] + "/Scrublet_" + row["GeneVariabilityPctl"] + "/Scrublet_doublets_singlets.tsv"):
+                        logger.info("ERROR: the '{}/Scrublet_{}/Scrublet_doublets_singlets.tsv' does not exist.".format(row["Pool"], row["GeneVariabilityPctl"]))
+                        logger.info("Please check the Scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold.")
+                        logger.info("Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the Scrublet_percentile_manual_selection.tsv file and restart the snakemake pipeline.")
+                        exit()
+
+                # All the selections are correct and the output files exist.
+                logger.info("All the Scrublet results have been selected. Will move to next steps.")
+                scrublet_passed = True
+        else:
+            empty_select_df.to_csv(man_select_path, sep="\t", header=True, index=False)
 
         if not scrublet_passed:
             # Run scrublet jobs.
             scrublet_files = []
             if config["scrublet_manual"]["run_scrublet_manual"]:
                 logger.info("Running scrublet rules with manual selections since 'run_Scrublet_manual' is set to True.")
-                scrublet_files = [os.path.join(config["outputs"]["output_dir"],pool,"Scrublet_" + str(pctl), "Scrublet_doublets_singlets.tsv") for pool in config["scrublet_manual"]["scrublet_manual_threshold_pools"] for pctl in config["scrublet_manual"]["scrublet_manual_threshold_percentiles"]]
+                scrublet_files = [config["outputs"]["output_dir"] + pool + "/Scrublet_" + str(pctl) + "/Scrublet_doublets_singlets.tsv" for pool in config["scrublet_manual"]["scrublet_manual_threshold_pools"] for pctl in config["scrublet_manual"]["scrublet_manual_threshold_percentiles"]]
                 # NOTE: this will fail if you do multiple manual runs (e.g. checking if Scrublet_doublets_singlets.tsv exists). Therefore remove the results file to force a rerun.
                 for fname in scrublet_files:
                     if os.path.isfile(fname):
                         os.remove(fname)
             else:
                 logger.info("Running the default Scrublet rules since 'run_scrublet_manual' is set to False.")
-                scrublet_files = [os.path.join(config["outputs"]["output_dir"],pool,"Scrublet_" + str(pctl), "Scrublet_doublets_singlets.tsv") for pool in SAMPLES["Pool"] for pctl in config["scrublet"]["percentile"]]
+                scrublet_files = [config["outputs"]["output_dir"] + pool + "/Scrublet_" + str(pctl) + "/Scrublet_doublets_singlets.tsv" for pool in SAMPLES["Pool"] for pctl in config["scrublet"]["percentile"]]
             input_files.extend(scrublet_files)
 
     if ("DoubletDetection" not in METHODS or doubletdetection_passed) and ("Scrublet" not in METHODS or scrublet_passed):
@@ -184,9 +202,9 @@ rule all:
 ###################################
 rule popscle_bam_filter:
     input:
-        barcodes = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_barcodes_path"],
+        barcodes = SAMPLES.loc["{pool}", "Barcodes"],
         vcf = config["inputs"]["vcf"],
-        bam = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_bam_path"],
+        bam = SAMPLES.loc["{pool}", "Bam"]
     output:
         bam = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/{pool}_snpfiltered_alignment.bam"
     resources:
@@ -218,9 +236,9 @@ rule popscle_bam_filter:
 rule popscle_pileup:
     input:
         bam = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/{pool}_snpfiltered_alignment.bam",
-        sm_list = config["inputs"]["individual_list_dir"] + "/{pool}.txt",
+        sm_list = config["inputs"]["individual_list_dir"] + "{pool}.txt",
         vcf = config["inputs"]["vcf"],
-        barcodes = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_barcodes_path"],
+        barcodes = SAMPLES.loc["{pool}", "Barcodes"],
     output:
         pileup = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup.var.gz",
     resources:
@@ -265,8 +283,8 @@ rule popscle_demuxlet:
     input:
         pileup = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup.var.gz",
         vcf = config["inputs"]["vcf"],
-        group_list = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_barcodes_path"],
-        sm_list = config["inputs"]["individual_list_dir"] + "/{pool}.txt"
+        group_list = SAMPLES.loc["{pool}", "Barcodes"],
+        sm_list = config["inputs"]["individual_list_dir"] + "{pool}.txt"
     output:
         out = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best"
     resources:
@@ -324,8 +342,8 @@ rule popscle_demuxlet:
 ####################################
 rule souporcell:
     input:
-        bam = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_bam_path"],
-        barcodes = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_barcodes_path"],
+        bam = SAMPLES.loc["{pool}", "Bam"],
+        barcodes = SAMPLES.loc["{pool}", "Barcodes"],
         fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
         vcf = config["inputs"]["vcf"]
     resources:
@@ -452,7 +470,7 @@ rule souporcell_correlate_genotypes:
 #####################################
 rule DoubletFinder:
     input:
-        counts = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_filtered_h5_path"],
+        counts = SAMPLES.loc["{pool}", "Counts"]
     output:
         doublets = config["outputs"]["output_dir"] + "{pool}/DoubletFinder/DoubletFinder_doublets_singlets.tsv",
         summary = config["outputs"]["output_dir"] + "{pool}/DoubletFinder/DoubletFinder_doublet_summary.tsv"
@@ -482,7 +500,7 @@ rule DoubletFinder:
 #####################################
 rule scDblFinder:
     input:
-        counts = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_filtered_h5_path"],
+        counts = SAMPLES.loc["{pool}", "Counts"]
     output:
         doublets = config["outputs"]["output_dir"] + "{pool}/scDblFinder/scDblFinder_doublets_singlets.tsv",
         summary = config["outputs"]["output_dir"] + "{pool}/scDblFinder/scDblFinder_doublet_summary.tsv"
@@ -519,7 +537,7 @@ if config["doubletdetection_manual"]["run_doubletdetection_manual"]:
         "voter_thresh": {str(pool): doublet_threshold for pool, doublet_threshold in zip(config["doubletdetection_manual"]["doubletdetection_manual_pools"],config["doubletdetection_manual"]["doubletdetection_manual_voter_thresh"])}
     }
 else:
-    logger.info("RunningDoubletDetection with default settings since 'run_doubletdetection_manual' is set to False.")
+    logger.info("Running DoubletDetection with default settings since 'run_doubletdetection_manual' is set to False.")
     doubletdetection_params_dict = {
         "log": "default_run_variables.txt",
         "step": "default",
@@ -533,8 +551,8 @@ else:
 
 rule DoubletDetection:
     input:
-        counts = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_filtered_h5_path"],
-        barcodes = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_barcodes_path"],
+        counts = SAMPLES.loc["{pool}", "Counts"],
+        barcodes = SAMPLES.loc["{pool}", "Barcodes"],
     output:
         doublets = config["outputs"]["output_dir"] + "{pool}/DoubletDetection/DoubletDetection_doublets_singlets.tsv",
         figure = report(config["outputs"]["output_dir"] + "{pool}/DoubletDetection/convergence_test.pdf", category = "DoubletDetection", subcategory = "{pool}", caption = "../report_captions/DoubletDetection.rst"),
@@ -581,7 +599,7 @@ rule DoubletDetection:
 ##############################
 rule scds:
     input:
-        counts = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_filtered_h5_path"],
+        counts = SAMPLES.loc["{pool}", "Counts"]
     output:
         doublets = config["outputs"]["output_dir"] + "{pool}/scds/scds_doublets_singlets.tsv",
         summary = config["outputs"]["output_dir"] + "{pool}/scds/scds_doublet_summary.tsv"
@@ -622,8 +640,8 @@ else:
 
 rule Scrublet:
     input:
-        counts = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_filtered_h5_path"],
-        barcodes = config["inputs"]["sc_rnaseq_dir"] + "{pool}" + config["settings_extra"]["relative_barcodes_path"]
+        counts = SAMPLES.loc["{pool}", "Counts"],
+        barcodes = SAMPLES.loc["{pool}", "Barcodes"]
     output:
         figure = report(config["outputs"]["output_dir"] + "{pool}/Scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "../report_captions/Scrublet.rst", subcategory = "{pool}"),
         umap = report(config["outputs"]["output_dir"] + "{pool}/Scrublet_{pctl}/UMAP.png", category = "Scrublet", caption = "../report_captions/Scrublet.rst", subcategory = "{pool}"),
@@ -691,13 +709,13 @@ def get_scrublet_input(wildcards):
 
 rule combine_results:
     input:
-        demuxlet = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/popscle/demuxlet/demuxletOUT.best" if "popscle" in METHODS else [],
-        souporcell = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/souporcell/clusters.tsv" if "souporcell" in METHODS else [],
-        souporcell_assignments = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/souporcell/genotype_correlations/Genotype_ID_key.txt" if "souporcell" in METHODS else [],
-        doubletfinder = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/DoubletFinder/DoubletFinder_doublets_singlets.tsv" if "DoubletFinder" in METHODS else [],
-        scdblfinder = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/scDblFinder/scDblFinder_doublets_singlets.tsv" if "scDblFinder" in METHODS else [],
-        doubletdetection = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/DoubletDetection/DoubletDetection_doublets_singlets.tsv" if "DoubletDetection" in METHODS else [],
-        scds = lambda wildcards: config["outputs"]["output_dir"] + "" + wildcards.pool + "/scds/scds_doublets_singlets.tsv" if "scds" in METHODS else [],
+        demuxlet = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best" if "popscle" in METHODS else [],
+        souporcell = config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv" if "souporcell" in METHODS else [],
+        souporcell_assignments = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt" if "souporcell" in METHODS else [],
+        doubletfinder = config["outputs"]["output_dir"] + "{pool}/DoubletFinder/DoubletFinder_doublets_singlets.tsv" if "DoubletFinder" in METHODS else [],
+        scdblfinder = config["outputs"]["output_dir"] + "{pool}/scDblFinder/scDblFinder_doublets_singlets.tsv" if "scDblFinder" in METHODS else [],
+        doubletdetection =  config["outputs"]["output_dir"] + "{pool}/DoubletDetection/DoubletDetection_doublets_singlets.tsv" if "DoubletDetection" in METHODS else [],
+        scds = config["outputs"]["output_dir"] + "{pool}/scds/scds_doublets_singlets.tsv" if "scds" in METHODS else [],
         scrublet = get_scrublet_input,
     output:
         summary = config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv"
