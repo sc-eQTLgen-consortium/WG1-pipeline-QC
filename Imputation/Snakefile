@@ -9,7 +9,6 @@ from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
 from pathlib import Path
 
-
 # Import custom functions
 from mods import prepareArguments
 
@@ -26,369 +25,324 @@ psam_names = {f.stem for f in Path(input_dict["plink_dir"]).iterdir() if f.suffi
 
 basename = list(pgen_names.intersection(pvar_names).intersection(psam_names))[0]
 
-
-pgen = prepareArguments.getPGEN(input_dict["plink_dir"], basename)
-pvar = prepareArguments.getPVAR(input_dict["plink_dir"], basename)
-psam = prepareArguments.getPSAM(input_dict["plink_dir"], basename)
-
+pgen = prepareArguments.getPGEN(input_dict["plink_dir"],basename)
+pvar = prepareArguments.getPVAR(input_dict["plink_dir"],basename)
+psam = prepareArguments.getPSAM(input_dict["plink_dir"],basename)
 
 ### Check that actaully found the correct files and logger.info the files being used
-if not None in [pgen,pvar,psam]:
-    ### Add in checks for pvar file ###
-    ### Add in checks for pvar file ###
-    def check_if_string_in_file(file_name, string_to_search):
-        # Open the file in read only mode
-        with open(file_name) as read_obj:
-            lines = []
-            # Read all lines in the file one by one
-            for line in read_obj:
-                # For each line, check if line contains the string
-                if line.startswith(string_to_search):
-                    lines.append(True)
-            return(lines)
-
-
-    result = check_if_string_in_file(pvar, 'chr')
-
-    if not True in result:
-
-
-        ### Add in checks for psam file ###
-        psam_df = pd.read_csv(psam, sep = "\t")
-
-
-        ## Check if column names are correct
-        if (pd.Series(['#FID', 'IID', 'PAT', 'MAT', 'SEX', 'Provided_Ancestry','genotyping_platform', 'array_available', 'wgs_available','wes_available', 'age', 'age_range', 'Study', 'smoking_status', 'hormonal_contraception_use_currently', 'menopause',  'pregnancy_status']).isin(psam_df.columns).all()):
-
-            ### Check that PAT is numeric 
-            if (is_numeric_dtype(psam_df['PAT'])):
-
-                ### Check that MAT is numeric 
-                if (is_numeric_dtype(psam_df['MAT'])):
-
-                    ### Check that SEX is 0, 1 or 2
-                    if (psam_df['SEX'].isin(pd.Series([0, 1, 2])).all()):
-
-                        ### Check that ancestry is 'AFR', 'AMR', 'EAS', 'EUR', 'SAS' or NA
-                        if (psam_df['Provided_Ancestry'].isin(pd.Series(['AFR', 'AMR', 'EAS', 'EUR', 'SAS'])).sum() + psam_df['Provided_Ancestry'].isnull().sum() == len(psam_df['Provided_Ancestry'])):
-                                
-                            ### Check that array_available is Y or N
-                            if (psam_df['array_available'].isin(pd.Series(['Y', 'N'])).all()):
-
-                                ### Check that wgs_available is Y or N
-                                if (psam_df['wgs_available'].isin(pd.Series(['Y', 'N'])).all()):
-    
-                                    ### Check that wes_available is Y or N
-                                    if (psam_df['wes_available'].isin(pd.Series(['Y', 'N'])).all()):
-
-                                        ### Check that age is numeric
-                                        if (is_numeric_dtype(psam_df['age'])):
-
-                                            ### Check that age_range is numeric
-                                            if (is_numeric_dtype(psam_df['age_range'])):
-
-                                                ### Check that study is not none/na
-                                                if not (psam_df['Study'].isna().any() or psam_df['Study'].isnull().any()):
-
-                                                    ### Check that smoking_status is 'yes' 'no' 'past' or NA
-                                                    if (psam_df['smoking_status'].isin(pd.Series(['yes', 'no', 'past'])).sum() + psam_df['smoking_status'].isnull().sum() == len(psam_df['smoking_status'])):
-
-                                                        ### Check that hormonal_contraception_use_currently is 'yes' 'no' or NA
-                                                        if (psam_df['hormonal_contraception_use_currently'].isin(pd.Series(['yes', 'no'])).sum() + psam_df['hormonal_contraception_use_currently'].isnull().sum() == len(psam_df['hormonal_contraception_use_currently'])):
-
-
-                                                            ### Check that hormonal_contraception_use_currently is NA for all males
-                                                            if (psam_df.loc[psam_df['SEX'] == 1].hormonal_contraception_use_currently.isna().all()):
-
-
-                                                                ### Check that menopause is 'pre', 'menopause', 'post' or NA
-                                                                if (psam_df['menopause'].isin(pd.Series(['pre', 'menopause', 'post'])).sum() + psam_df['menopause'].isnull().sum() == len(psam_df['menopause'])):
-
-
-                                                                    ### Check that menopause is NA for all males
-                                                                    if (psam_df.loc[psam_df['SEX'] == 1].menopause.isna().all()):
-
-
-                                                                        ### Check that pregnancy_status is 'yes' 'no' or NA
-                                                                        if (psam_df['pregnancy_status'].isin(pd.Series(['yes', 'no'])).sum() + psam_df['pregnancy_status'].isnull().sum() == len(psam_df['pregnancy_status'])):
-
-
-                                                                            ### Check that pregnancy_status is NA for all males
-                                                                            if (psam_df.loc[psam_df['SEX'] == 1].pregnancy_status.isna().all()):
-
-
-                                                                                ### Check for underscores in the FID and IID columns - if there are, update and make new files
-                                                                                if (psam_df['#FID'].astype(str).str.contains("_").any() or psam_df['IID'].astype(str).str.contains("_").any()):
-                                                                                    if not os.path.exists(os.path.join(output_dict["output_dir"], "updated_input", "input.psam")) or not os.path.exists(os.path.join(output_dict["output_dir"], "updated_input/input.pvar")) or not os.path.exists(os.path.join(output_dict["output_dir"], "updated_input/input.pgen")):
-                                                                                        ### Provide messaging on the coluymns with underscores
-                                                                                        if (psam_df['#FID'].str.contains("_").any()):
-                                                                                            logger.info("Your family ids in the psam (FID column) contain '_'.\
-                                                                                            Underscores are not allowed in the FID column due to plink operations.\n\
-                                                                                            Updating to dashes ('-').")
-                                                                                        if (psam_df['IID'].str.contains("_").any()):
-                                                                                            logger.info("Your individual ids in the psam (IID column) contain '_'.\
-                                                                                            Underscores are not allowed in the IID column due to plink operations.\n\
-                                                                                            Updating to dashes ('-').")
-
-                                                                                        ## Replace underscores with dashes
-                                                                                        psam_df['#FID'] = psam_df['#FID'].str.replace('_','-')
-                                                                                        psam_df['IID'] = psam_df['IID'].str.replace('_','-')
-
-
-
-                                                                                        os.mkdir(os.path.join(output_dict["output_dir"], "updated_input/"))
-
-                                                                                        psam_df.to_csv(os.path.join(output_dict["output_dir"], "updated_input/input.psam"), na_rep = "NA", sep = "\t", index = False)
-
-                                                                                        copy_pgen = "cp " + pgen + " " + os.path.join(output_dict["output_dir"], "updated_input", "input.pgen")
-                                                                                        copy_pvar = "cp " + pvar + " " + os.path.join(output_dict["output_dir"], "updated_input", "input.pvar")
-                                                                                        process_pgen = subprocess.Popen(copy_pgen.split(), stdout=subprocess.PIPE)
-                                                                                        process_pvar = subprocess.Popen(copy_pvar.split(), stdout=subprocess.PIPE)
-                                                                                        output, error = process_pgen.communicate()
-                                                                                        output, error = process_pvar.communicate()
-
-                                                                                    psam = os.path.join(output_dict["output_dir"], "updated_input", "input.psam")
-                                                                                    pgen = os.path.join(output_dict["output_dir"], "updated_input", "input.pgen")
-                                                                                    pvar =  os.path.join(output_dict["output_dir"], "updated_input", "input.pvar")
-
-                                                                                logger.info("Using these files from the plink directory " + input_dict["plink_dir"] + " as input:")
-                                                                                logger.info("The pgen file: " + pgen)
-                                                                                logger.info("The pvar file: " + pvar)
-                                                                                logger.info("The psam file: " + psam + "\n")
-
-
-                                                                                ### Check reference direceotyr
-                                                                                vcf_dir = prepareArguments.getVCFdir(input_dict["ref_dir"])
-                                                                                fasta = prepareArguments.getFASTA(input_dict["ref_dir"])
-                                                                                genetic_map = prepareArguments.getMAP(input_dict["ref_dir"])
-                                                                                phasing_dir = prepareArguments.getPHASINGdir(input_dict["ref_dir"])
-                                                                                impute_dir = prepareArguments.getIMPUTATIONdir(input_dict["ref_dir"])
-
-                                                                                ### Check that was able to find all the required reference files
-                                                                                if all(v is None for v in [vcf_dir, fasta, genetic_map, phasing_dir, impute_dir]):
-                                                                                    logger.info("Could not find the required reference files in " + input_dict["ref_dir"] + "\nPlease check that you have the correct directory.")
-                                                                                elif None not in [vcf_dir, fasta, genetic_map, phasing_dir, impute_dir]:
-                                                                                    logger.info("Found all the required refernce files in " + input_dict["ref_dir"] + "\n")
-
-
-
-                                                                                    ### Define dictionaries ###
-                                                                                    plink_gender_ancestry_QC_dict = config["plink_gender_ancestry_QC"]
-                                                                                    imputation_dict = config["imputation"]
-
-
-
-                                                                                    # Import individual rules
-                                                                                    include: "includes/plink_gender_ancestry_QC.smk"
-                                                                                    include: "includes/urmo_imputation_hg38.smk"
-
-
-
-                                                                                    ## Define the chromosomes to be used downstream (post-gcta)
-                                                                                    chromosomes = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22]
-
-
-
-                                                                                    plinkQC_files = []
-                                                                                    impute_files = []
-                                                                                    if os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv") and os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv"):
-                                                                                        ancestry_check = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv", sep = "\t")
-                                                                                        sex_check = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv", sep = "\t")
-                                                                                        if ancestry_check["UPDATE/REMOVE/KEEP"].count() == len(ancestry_check) and pd.Series(ancestry_check["UPDATE/REMOVE/KEEP"]).isin(['UPDATE', 'REMOVE', 'KEEP']).all() and sex_check["UPDATE/REMOVE/KEEP"].count() == len(sex_check) and pd.Series(sex_check["UPDATE/REMOVE/KEEP"]).isin(['UPDATE', 'REMOVE', 'KEEP']).all():
-                                                                                            if not os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_mafs.tsv"):
-                                                                                                ##### First, need to provide users summary of the ancestries and get interactive allele frequency selections ###
-                                                                                                ### if there are any individuals chosen to remove, remove them from the psam
-                                                                                                psam_df_local = psam_df
-
-                                                                                                ### if htere are any individuals chosen to update the ancestry, update them
-                                                                                                if (ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE").any():
-                                                                                                    ids2update = ancestry_check['IID'][ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE"].values
-                                                                                                    updates = pd.DataFrame(ancestry_check['PCA_Assignment'][ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE"])
-                                                                                                    updates.index = ids2update
-                                                                                                    updates.columns = ['Provided_Ancestry']
-                                                                                                    psam_df_local.index = psam_df_local.IID.values
-                                                                                                    psam_df_local.update(updates)
-
-                                                                                                psam_df_local.to_csv(output_dict["output_dir"] + "/pca_sex_checks/updated_psam.psam", sep = "\t", na_rep = "NA", index = False)
-
-                                                                                                ### identify the ancestries in total and provide user input for maf selection
-                                                                                                uniq_ancestries = psam_df_local['Provided_Ancestry'].unique()
-                                                                                                
-                                                                                                maf_df = pd.DataFrame(columns = ['Ancestry', 'MAF'])
-                                                                                                i = 0
-                                                                                                for pop in uniq_ancestries:
-                                                                                                    impute_prompt = input("You have " + str(len(psam_df_local[psam_df_local['Provided_Ancestry'].str.contains(pop)])) + " individuals from " + pop + " ancestry.\nWould you like to impute for this ancestral population? (yes/no)\n").lower()
-                                                                                                
-                                                                                                    if impute_prompt == 'yes' or impute_prompt == 'y':
-                                                                                                        maf_prompt = float(input("\nWhat minor allele frequency filtering would you like to use for pre-imputation processing for the " + pop + " ancestry group.\nA value of 0.05 removes SNPs with < 5% minor alleles from the analysis.\nFor no filtering use 0.\n(0-1)\n"))
-
-                                                                                                        maf_df.loc[i]=[pop,maf_prompt]
-
-                                                                                                    else:
-                                                                                                        logger.info("Your response indicated that you don't want to impute individuals from " + pop + " ancestry.\nMoving to next ancestrys (if applicable).")
-
-                                                                                                    i=+1
-
-                                                                                                maf_df.to_csv(output_dict["output_dir"] + "/pca_sex_checks/ancestry_mafs.tsv", sep = "\t", na_rep = "NA")
-
-                                                                                            
-                                                                                            maf_df = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/ancestry_mafs.tsv", sep = "\t")
-                                                                                            ancestry_subsets = maf_df['Ancestry'].values
-
-                                                                                            ### Choose MAF for each group ###
-                                                                                            plinkQC_files.append(output_dict["output_dir"] + "/update_sex_ancestry/update_sex.pgen")
-
-                                                                                            plinkQC_files.append(expand(output_dict["output_dir"] + "/subset_ancestry/{ancestry}_individuals.psam", ancestry = ancestry_subsets))
-                                                                                            impute_files.append(expand(output_dict["output_dir"] + "/minimac_imputed/{ancestry}_chr{chr}.dose.vcf.gz", ancestry = ancestry_subsets, chr = chromosomes))
-                                                                                            impute_files.append(output_dict["output_dir"] + "/genotype_donor_annotation/genotype_donor_annotation.tsv")
-                                                                                            impute_files.append(expand(output_dict["output_dir"] + "/vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi", ancestry = ancestry_subsets))
-                                                                                            impute_files.append(output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf")
-                                                                                            impute_files.append(output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf")
-                                                                                            impute_files.append(output_dict["output_dir"] + "/metrics/Number_SNPs.png")
-                                                                                            impute_files.append(output_dict["output_dir"] + "/metrics/ancestry_summary.png")
-                                                                                            impute_files.append(output_dict["output_dir"] + "/metrics/sex_summary.png")
-
-                                                                                        else:
-
-                                                                                            missing_sex = set(sex_check['IID'].astype(str)[[not elem for elem in list(sex_check["UPDATE/REMOVE/KEEP"].isin(pd.Series(['UPDATE', 'REMOVE', 'KEEP'])))]])
-                                                                                            missing_sex_string = "\n".join(missing_sex)
-
-                                                                                            missing_ancestry = set(ancestry_check['IID'].astype(str)[[not elem for elem in list(ancestry_check["UPDATE/REMOVE/KEEP"].isin(pd.Series(['UPDATE', 'REMOVE', 'KEEP'])))]])
-                                                                                            missing_ancestry_string = "\n".join(missing_ancestry)
-
-                                                                                            if len(missing_sex) > 0 and len(missing_ancestry) > 0:
-                                                                                                logger.info("\nERROR: The UPDATE/REMOVE/KEEP column in the pca_sex_checks/ancestry_update_remove.tsv and the pca_sex_checks/check_sex_update_remove.tsv file are not completed.\n\nSpecifically, these individuals do not have appropriate inputs for the UPDATE/REMOVE/KEEP column in the 'check_sex_update_remove.tsv' file:\n" + missing_sex_string + "\nSpecifically, these individuals do not have appropriate inputs for the UPDATE/REMOVE/KEEP column in the 'ancestry_update_remove.tsv' file: " + missing_ancestry_string + "\n\nPlease fill in these selections for the pipeline to continue.\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.\n\n")
-                                                                                            
-                                                                                            elif len(missing_sex) > 0:
-                                                                                                logger.info("\nERROR: The UPDATE/REMOVE/KEEP column in the pca_sex_checks/check_sex_update_remove.tsv file is not completed.\n\nSpecifically, these individuals do not have appropriate inputs for the UPDATE/REMOVE/KEEP column in the 'check_sex_update_remove.tsv' file:\n" + missing_sex_string + "\nPlease fill in these selections for the pipeline to continue.\n\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.\n\n")
-                                                                                            
-                                                                                            elif len(missing_ancestry) > 0:
-                                                                                                logger.info("\nERROR: The UPDATE/REMOVE/KEEP column in the pca_sex_checks/check_sex_update_remove.tsv file is not completed.\n\nSpecifically, these individuals do not have appropriate inputs for the UPDATE/REMOVE/KEEP column in the 'ancestry_update_remove.tsv' file:\n" + missing_ancestry_string + "\nPlease fill in these selections for the pipeline to continue.\n\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.\n\n")
-                                                                                            
-                                                                                            else:
-                                                                                                logger.info("\nERROR: The UPDATE/REMOVE/KEEP column in the pca_sex_checks/ancestry_update_remove.tsv and/or the pca_sex_checks/check_sex_update_remove.tsv file are not completed.\n\nWe were unable to identify the exact individuals that contained the issue.\n\nPlease fill in these selections for the pipeline to continue.\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.")
-                                                                                    else:
-                                                                                        plinkQC_files.append(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv")
-
-                                                                                    rule all:
-                                                                                        input:
-                                                                                            plinkQC_files,
-                                                                                            impute_files
-
-                                                                                else:
-                                                                                    if vcf_dir is None:
-                                                                                        logger.info("Could not find directory containing the reference vcf (searching for 30x-GRCh38_NoSamplesSorted.vcf.gz.tbi) in " + input_dict["ref_dir"])
-                                                                                    if fasta is None:
-                                                                                        logger.info("Could not find the reference fasta (searching for Homo_sapiens.GRCh38.dna.primary_assembly.fa) in " + input_dict["ref_dir"])
-                                                                                    if genetic_map is None:
-                                                                                        logger.info("Could not find directory containing the reference genetic map (searching for genetic_map_hg38_withX.txt.gz) in " + input_dict["ref_dir"])
-                                                                                    if phasing_dir is None:
-                                                                                        logger.info("Could not find directory containing the reference phasing files (searching for chr10.bcf) in " + input_dict["ref_dir"])
-                                                                                    if impute_dir is None:
-                                                                                        logger.info("Could not find directory containing the reference phasing files (searching for chr10.m3vcf.gz) in " + input_dict["ref_dir"])
-                                                                                    logger.info("Exiting.")
-
-                                                                            else:
-                                                                                logger.info("There is a conflict between you SEX and your pregnancy_status columns.\n\
-                                                                                All males (coded by 1 in SEX) must be NA for pregnancy_status.\n\
-                                                                                Please fix this before running the pipeline.\n\
-                                                                                Exiting.")
-                                                                        
-                                                                        else:
-                                                                            logger.info("Your pregnancy_status column does not have just 'yes', 'no', or NA.\n\
-                                                                            Please make sure all values in this column are 'yes', 'no' or NA.\n\
-                                                                            Exiting.")
-
-                                                                    else:
-                                                                        logger.info("There is a conflict between you SEX and your menopause columns.\n\
-                                                                        All males (coded by 1 in SEX) must be NA for menopause.\n\
-                                                                        Please fix this before running the pipeline.\n\
-                                                                        Exiting.")
-
-                                                                else:
-                                                                    logger.info("Your menopause column does not have just 'pre', 'menopause', 'post', or NA.\n\
-                                                                    Please make sure all values in this column are 'pre', 'menopause', 'post' or NA.\n\
-                                                                    Exiting.")
-
-                                                            else:
-                                                               logger.info("There is a conflict between you SEX and your hormonal_contraception_use_currently columns.\n\
-                                                                All males (coded by 1 in SEX) must be NA for hormonal_contraception_use_currently.\n\
-                                                                Please fix this before running the pipeline.\n\
-                                                                Exiting.")
-
-                                                        else:
-                                                            logger.info("Your hormonal_contraception_use_currently column does not have just 'yes', 'no', or NA.\n\
-                                                            Please make sure all values in this column are 'yes', 'no', or NA.\n\
-                                                            Exiting.")
-
-                                                    else:
-                                                        logger.info("Your smoking_status column does not have just 'yes', 'no', 'past' or NA.\n\
-                                                        Please make sure all values in this column are 'yes', 'no', 'past' or NA.\n\
-                                                        Exiting.")
-
-                                                else:
-                                                    logger.info("Your study column is missing entires. NA values are not allowed in this column.\n\
-                                                    Please make sure that all contents of the study column have a string entry.\n\
-                                                    Exiting.")
-
-                                            else:
-                                                logger.info("Your age_range column is not numeric, please make sure there are only numeric values in this column.\n\
-                                                Exiting.")
-
-                                        else:
-                                            logger.info("Your age column is not numeric, please make sure there are only numeric values in this column.\n\
-                                            Exiting.")
-
-                                    else:
-                                        logger.info("Your wes_available column does not have just 'Y' or 'N'.\n\
-                                        Please make sure all values in this column are 'Y' or 'N'.\n\
-                                        Exiting.")
-
-                                else:
-                                    logger.info("Your wgs_available column does not have just 'Y' or 'N'.\n\
-                                    Please make sure all values in this column are 'Y' or 'N'.\n\
-                                    Exiting.")
-
-                            else:
-                                logger.info("Your array_available column does not have just 'Y' or 'N'.\n\
-                                Please make sure all values in this column are 'Y' or 'N'.\n\
-                                Exiting.")
-
-                        else:
-                            logger.info("Your Provided_Ancestry column does not contain just 'AFR', 'AMR', 'EAS', 'EUR', 'SAS' or NA.\n\
-                            Please make sure all values in this column are 'AFR', 'AMR', 'EAS', 'EUR', 'SAS' or NA.\n\
-                            Exiting.")
-
-                    else:
-                        logger.info("Your SEX column does not have just 0, 1 or 2, please make sure all values in this column are 0 (unknown), 1 (male) or 2 (female).\n\
-                        Exiting.")
-
-                else: 
-                    logger.info("Your MAT column is not numeric, please make sure there are only numeric values in this column.\n\
-                    Exiting.")
-
-            else:
-                logger.info("Your PAT column is not numeric, please make sure there are only numeric values in this column.\n\
-                Exiting.") 
-
-        else:
-            names =  ['#FID', 'IID', 'PAT', 'MAT', 'SEX', 'Provided_Ancestry','genotyping_platform', 'array_available', 'wgs_available','wes_available', 'age', 'age_range', 'Study', 'smoking_status', 'hormonal_contraception_use_currently', 'menopause',  'pregnancy_status']
-            missing_names = set(pd.Series(names)) - set(psam_df.columns)
-            missing_names_string = "\n".join(missing_names)
-            
-            logger.info("The column names of your psam file are not correct.\n\
+if None in [pgen, pvar, psam]:
+    logger.info("Could not find the pgen, pvar and/or psam file(s). Please check that " + input_dict["plink_dir"] + " contains the pgen, pvar and psam files.\n\n Exiting.")
+    exit()
+
+
+### Add in checks for pvar file ###
+### Add in checks for pvar file ###
+def check_if_string_in_file(file_name, string_to_search):
+    # Open the file in read only mode
+    with open(file_name) as read_obj:
+        lines = []
+        # Read all lines in the file one by one
+        for line in read_obj:
+            # For each line, check if line contains the string
+            if line.startswith(string_to_search):
+                lines.append(True)
+        return (lines)
+
+
+result = check_if_string_in_file(pvar,'chr')
+
+if True in result:
+    logger.info("Looks like your chromsome encoding uses chr before the chromosome. For this pipeline, the chromosme encoding should not use chr. Please remove the 'chr' from your pvar file and try again. Exiting.")
+    exit()
+
+### Add in checks for psam file ###
+psam_df = pd.read_csv(psam,sep="\t")
+
+## Check if column names are correct
+if not (pd.Series(['#FID', 'IID', 'PAT', 'MAT', 'SEX', 'Provided_Ancestry', 'genotyping_platform', 'array_available', 'wgs_available', 'wes_available', 'age', 'age_range', 'Study', 'smoking_status', 'hormonal_contraception_use_currently', 'menopause', 'pregnancy_status']).isin(psam_df.columns).all()):
+    names = ['#FID', 'IID', 'PAT', 'MAT', 'SEX', 'Provided_Ancestry', 'genotyping_platform', 'array_available', 'wgs_available', 'wes_available', 'age', 'age_range', 'Study', 'smoking_status', 'hormonal_contraception_use_currently', 'menopause', 'pregnancy_status']
+    missing_names = set(pd.Series(names)) - set(psam_df.columns)
+    missing_names_string = "\n".join(missing_names)
+
+    logger.info("The column names of your psam file are not correct.\n\
             The columns that you are missing or whose spelling does not match the required input is/are:\n" + missing_names_string + "\n\
             They should be: '#FID', 'IID', 'PAT', 'MAT', 'SEX', 'Provided_Ancestry','genotyping_platform', 'array_available', 'wgs_available','wes_available', 'age', 'age_range', 'Study', 'smoking_status', 'hormonal_contraception_use_currently', 'menopause',  'pregnancy_status'.\n\
             If the names look the same, check that the file is tab separated, without any spaces or other weird characters.\n\n\
             Exiting.")
+    exit()
 
+### Check that PAT is numeric
+if not (is_numeric_dtype(psam_df['PAT'])):
+    logger.info("Your PAT column is not numeric, please make sure there are only numeric values in this column.\n\
+                Exiting.")
+    exit()
 
+### Check that MAT is numeric
+if not (is_numeric_dtype(psam_df['MAT'])):
+    logger.info("Your MAT column is not numeric, please make sure there are only numeric values in this column.\n\
+    Exiting.")
+    exit()
 
+### Check that SEX is 0, 1 or 2
+if not (psam_df['SEX'].isin(pd.Series([0, 1, 2])).all()):
+    logger.info("Your SEX column does not have just 0, 1 or 2, please make sure all values in this column are 0 (unknown), 1 (male) or 2 (female).\n\
+    Exiting.")
+    exit()
+
+### Check that ancestry is 'AFR', 'AMR', 'EAS', 'EUR', 'SAS' or NA
+if not (psam_df['Provided_Ancestry'].isin(pd.Series(['AFR', 'AMR', 'EAS', 'EUR', 'SAS'])).sum() + psam_df['Provided_Ancestry'].isnull().sum() == len(psam_df['Provided_Ancestry'])):
+    logger.info("Your Provided_Ancestry column does not contain just 'AFR', 'AMR', 'EAS', 'EUR', 'SAS' or NA.\n\
+    Please make sure all values in this column are 'AFR', 'AMR', 'EAS', 'EUR', 'SAS' or NA.\n\
+    Exiting.")
+    exit()
+
+### Check that array_available is Y or N
+if not (psam_df['array_available'].isin(pd.Series(['Y', 'N'])).all()):
+    logger.info("Your array_available column does not have just 'Y' or 'N'.\n\
+    Please make sure all values in this column are 'Y' or 'N'.\n\
+    Exiting.")
+    exit()
+
+### Check that wgs_available is Y or N
+if not (psam_df['wgs_available'].isin(pd.Series(['Y', 'N'])).all()):
+    logger.info("Your wgs_available column does not have just 'Y' or 'N'.\n\
+    Please make sure all values in this column are 'Y' or 'N'.\n\
+    Exiting.")
+    exit()
+
+### Check that wes_available is Y or N
+if not (psam_df['wes_available'].isin(pd.Series(['Y', 'N'])).all()):
+    logger.info("Your wes_available column does not have just 'Y' or 'N'.\n\
+    Please make sure all values in this column are 'Y' or 'N'.\n\
+    Exiting.")
+    exit()
+
+### Check that age is numeric
+if not (is_numeric_dtype(psam_df['age'])):
+    logger.info("Your age column is not numeric, please make sure there are only numeric values in this column.\n\
+    Exiting.")
+    exit()
+
+### Check that age_range is numeric
+if not (is_numeric_dtype(psam_df['age_range'])):
+    logger.info("Your age_range column is not numeric, please make sure there are only numeric values in this column.\n\
+    Exiting.")
+    exit()
+
+### Check that study is not none/na
+if psam_df['Study'].isna().any() or psam_df['Study'].isnull().any():
+    logger.info("Your study column is missing entires. NA values are not allowed in this column.\n\
+    Please make sure that all contents of the study column have a string entry.\n\
+    Exiting.")
+    exit()
+
+### Check that smoking_status is 'yes' 'no' 'past' or NA
+if not (psam_df['smoking_status'].isin(pd.Series(['yes', 'no', 'past'])).sum() + psam_df['smoking_status'].isnull().sum() == len(psam_df['smoking_status'])):
+    logger.info("Your smoking_status column does not have just 'yes', 'no', 'past' or NA.\n\
+    Please make sure all values in this column are 'yes', 'no', 'past' or NA.\n\
+    Exiting.")
+    exit()
+
+### Check that hormonal_contraception_use_currently is 'yes' 'no' or NA
+if not (psam_df['hormonal_contraception_use_currently'].isin(pd.Series(['yes', 'no'])).sum() + psam_df['hormonal_contraception_use_currently'].isnull().sum() == len(psam_df['hormonal_contraception_use_currently'])):
+    logger.info("Your hormonal_contraception_use_currently column does not have just 'yes', 'no', or NA.\n\
+            Please make sure all values in this column are 'yes', 'no', or NA.\n\
+            Exiting.")
+    exit()
+
+### Check that hormonal_contraception_use_currently is NA for all males
+if not (psam_df.loc[psam_df['SEX'] == 1].hormonal_contraception_use_currently.isna().all()):
+    logger.info("There is a conflict between you SEX and your hormonal_contraception_use_currently columns.\n\
+     All males (coded by 1 in SEX) must be NA for hormonal_contraception_use_currently.\n\
+     Please fix this before running the pipeline.\n\
+     Exiting.")
+    exit()
+
+### Check that menopause is 'pre', 'menopause', 'post' or NA
+if not (psam_df['menopause'].isin(pd.Series(['pre', 'menopause', 'post'])).sum() + psam_df['menopause'].isnull().sum() == len(psam_df['menopause'])):
+    logger.info("Your menopause column does not have just 'pre', 'menopause', 'post', or NA.\n\
+    Please make sure all values in this column are 'pre', 'menopause', 'post' or NA.\n\
+    Exiting.")
+    exit()
+
+### Check that menopause is NA for all males
+if not (psam_df.loc[psam_df['SEX'] == 1].menopause.isna().all()):
+    logger.info("There is a conflict between you SEX and your menopause columns.\n\
+     All males (coded by 1 in SEX) must be NA for menopause.\n\
+     Please fix this before running the pipeline.\n\
+     Exiting.")
+    exit()
+
+### Check that pregnancy_status is 'yes' 'no' or NA
+if not (psam_df['pregnancy_status'].isin(pd.Series(['yes', 'no'])).sum() + psam_df['pregnancy_status'].isnull().sum() == len(psam_df['pregnancy_status'])):
+    logger.info("Your pregnancy_status column does not have just 'yes', 'no', or NA.\n\
+    Please make sure all values in this column are 'yes', 'no' or NA.\n\
+    Exiting.")
+    exit()
+
+### Check that pregnancy_status is NA for all males
+if not (psam_df.loc[psam_df['SEX'] == 1].pregnancy_status.isna().all()):
+    logger.info("There is a conflict between you SEX and your pregnancy_status columns.\n\
+    All males (coded by 1 in SEX) must be NA for pregnancy_status.\n\
+    Please fix this before running the pipeline.\n\
+    Exiting.")
+    exit()
+
+### Check for underscores in the FID and IID columns - if there are, update and make new files
+if not (psam_df['#FID'].astype(str).str.contains("_").any() or psam_df['IID'].astype(str).str.contains("_").any()):
+    if not os.path.exists(os.path.join(output_dict["output_dir"],"updated_input","input.psam")) or not os.path.exists(os.path.join(output_dict["output_dir"],"updated_input/input.pvar")) or not os.path.exists(os.path.join(output_dict["output_dir"],"updated_input/input.pgen")):
+        ### Provide messaging on the coluymns with underscores
+        if (psam_df['#FID'].str.contains("_").any()):
+            logger.info("Your family ids in the psam (FID column) contain '_'.\
+            Underscores are not allowed in the FID column due to plink operations.\n\
+            Updating to dashes ('-').")
+        if (psam_df['IID'].str.contains("_").any()):
+            logger.info("Your individual ids in the psam (IID column) contain '_'.\
+            Underscores are not allowed in the IID column due to plink operations.\n\
+            Updating to dashes ('-').")
+
+        ## Replace underscores with dashes
+        psam_df['#FID'] = psam_df['#FID'].str.replace('_','-')
+        psam_df['IID'] = psam_df['IID'].str.replace('_','-')
+
+        os.mkdir(os.path.join(output_dict["output_dir"],"updated_input/"))
+
+        psam_df.to_csv(os.path.join(output_dict["output_dir"],"updated_input/input.psam"),na_rep="NA",sep="\t",index=False)
+
+        copy_pgen = "cp " + pgen + " " + os.path.join(output_dict["output_dir"],"updated_input","input.pgen")
+        copy_pvar = "cp " + pvar + " " + os.path.join(output_dict["output_dir"],"updated_input","input.pvar")
+        process_pgen = subprocess.Popen(copy_pgen.split(),stdout=subprocess.PIPE)
+        process_pvar = subprocess.Popen(copy_pvar.split(),stdout=subprocess.PIPE)
+        output, error = process_pgen.communicate()
+        output, error = process_pvar.communicate()
+
+    psam = os.path.join(output_dict["output_dir"],"updated_input","input.psam")
+    pgen = os.path.join(output_dict["output_dir"],"updated_input","input.pgen")
+    pvar = os.path.join(output_dict["output_dir"],"updated_input","input.pvar")
+
+logger.info("Using these files from the plink directory " + input_dict["plink_dir"] + " as input:")
+logger.info("The pgen file: " + pgen)
+logger.info("The pvar file: " + pvar)
+logger.info("The psam file: " + psam + "\n")
+
+### Check reference direceotyr
+vcf_dir = prepareArguments.getVCFdir(input_dict["ref_dir"])
+fasta = prepareArguments.getFASTA(input_dict["ref_dir"])
+genetic_map = prepareArguments.getMAP(input_dict["ref_dir"])
+phasing_dir = prepareArguments.getPHASINGdir(input_dict["ref_dir"])
+impute_dir = prepareArguments.getIMPUTATIONdir(input_dict["ref_dir"])
+
+### Check that was able to find all the required reference files
+if all(v is None for v in [vcf_dir, fasta, genetic_map, phasing_dir, impute_dir]):
+    logger.info("Could not find the required reference files in " + input_dict["ref_dir"] + "\nPlease check that you have the correct directory.")
+elif None not in [vcf_dir, fasta, genetic_map, phasing_dir, impute_dir]:
+    logger.info("Found all the required refernce files in " + input_dict["ref_dir"] + "\n")
+
+    ### Define dictionaries ###
+    plink_gender_ancestry_QC_dict = config["plink_gender_ancestry_QC"]
+    imputation_dict = config["imputation"]
+
+    # Import individual rules
+    include: "includes/plink_gender_ancestry_QC.smk"
+    include: "includes/urmo_imputation_hg38.smk"
+
+    ## Define the chromosomes to be used downstream (post-gcta)
+    chromosomes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+
+    plinkQC_files = []
+    impute_files = []
+    if os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv") and os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv"):
+        ancestry_check = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv",sep="\t")
+        sex_check = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/check_sex_update_remove.tsv",sep="\t")
+        if ancestry_check["UPDATE/REMOVE/KEEP"].count() == len(ancestry_check) and pd.Series(ancestry_check["UPDATE/REMOVE/KEEP"]).isin(['UPDATE', 'REMOVE', 'KEEP']).all() and sex_check["UPDATE/REMOVE/KEEP"].count() == len(sex_check) and pd.Series(sex_check["UPDATE/REMOVE/KEEP"]).isin(['UPDATE', 'REMOVE', 'KEEP']).all():
+            if not os.path.exists(output_dict["output_dir"] + "/pca_sex_checks/ancestry_mafs.tsv"):
+                ##### First, need to provide users summary of the ancestries and get interactive allele frequency selections ###
+                ### if there are any individuals chosen to remove, remove them from the psam
+                psam_df_local = psam_df
+
+                ### if htere are any individuals chosen to update the ancestry, update them
+                if (ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE").any():
+                    ids2update = ancestry_check['IID'][ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE"].values
+                    updates = pd.DataFrame(ancestry_check['PCA_Assignment'][ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE"])
+                    updates.index = ids2update
+                    updates.columns = ['Provided_Ancestry']
+                    psam_df_local.index = psam_df_local.IID.values
+                    psam_df_local.update(updates)
+
+                psam_df_local.to_csv(output_dict["output_dir"] + "/pca_sex_checks/updated_psam.psam",sep="\t",na_rep="NA",index=False)
+
+                ### identify the ancestries in total and provide user input for maf selection
+                uniq_ancestries = psam_df_local['Provided_Ancestry'].unique()
+
+                maf_df = pd.DataFrame(columns=['Ancestry', 'MAF'])
+                i = 0
+                for pop in uniq_ancestries:
+                    impute_prompt = input("You have " + str(len(psam_df_local[psam_df_local['Provided_Ancestry'].str.contains(pop)])) + " individuals from " + pop + " ancestry.\nWould you like to impute for this ancestral population? (yes/no)\n").lower()
+
+                    if impute_prompt == 'yes' or impute_prompt == 'y':
+                        maf_prompt = float(input("\nWhat minor allele frequency filtering would you like to use for pre-imputation processing for the " + pop + " ancestry group.\nA value of 0.05 removes SNPs with < 5% minor alleles from the analysis.\nFor no filtering use 0.\n(0-1)\n"))
+
+                        maf_df.loc[i] = [pop, maf_prompt]
+
+                    else:
+                        logger.info("Your response indicated that you don't want to impute individuals from " + pop + " ancestry.\nMoving to next ancestrys (if applicable).")
+
+                    i = +1
+
+                maf_df.to_csv(output_dict["output_dir"] + "/pca_sex_checks/ancestry_mafs.tsv",sep="\t",na_rep="NA")
+
+            maf_df = pd.read_csv(output_dict["output_dir"] + "/pca_sex_checks/ancestry_mafs.tsv",sep="\t")
+            ancestry_subsets = maf_df['Ancestry'].values
+
+            ### Choose MAF for each group ###
+            plinkQC_files.append(output_dict["output_dir"] + "/update_sex_ancestry/update_sex.pgen")
+
+            plinkQC_files.append(expand(output_dict["output_dir"] + "/subset_ancestry/{ancestry}_individuals.psam",ancestry=ancestry_subsets))
+            impute_files.append(expand(output_dict["output_dir"] + "/minimac_imputed/{ancestry}_chr{chr}.dose.vcf.gz",ancestry=ancestry_subsets,chr=chromosomes))
+            impute_files.append(output_dict["output_dir"] + "/genotype_donor_annotation/genotype_donor_annotation.tsv")
+            impute_files.append(expand(output_dict["output_dir"] + "/vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi",ancestry=ancestry_subsets))
+            impute_files.append(output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf")
+            impute_files.append(output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf")
+            impute_files.append(output_dict["output_dir"] + "/metrics/Number_SNPs.png")
+            impute_files.append(output_dict["output_dir"] + "/metrics/ancestry_summary.png")
+            impute_files.append(output_dict["output_dir"] + "/metrics/sex_summary.png")
+
+        else:
+
+            missing_sex = set(sex_check['IID'].astype(str)[[not elem for elem in list(sex_check["UPDATE/REMOVE/KEEP"].isin(pd.Series(['UPDATE', 'REMOVE', 'KEEP'])))]])
+            missing_sex_string = "\n".join(missing_sex)
+
+            missing_ancestry = set(ancestry_check['IID'].astype(str)[[not elem for elem in list(ancestry_check["UPDATE/REMOVE/KEEP"].isin(pd.Series(['UPDATE', 'REMOVE', 'KEEP'])))]])
+            missing_ancestry_string = "\n".join(missing_ancestry)
+
+            if len(missing_sex) > 0 and len(missing_ancestry) > 0:
+                logger.info("\nERROR: The UPDATE/REMOVE/KEEP column in the pca_sex_checks/ancestry_update_remove.tsv and the pca_sex_checks/check_sex_update_remove.tsv file are not completed.\n\nSpecifically, these individuals do not have appropriate inputs for the UPDATE/REMOVE/KEEP column in the 'check_sex_update_remove.tsv' file:\n" + missing_sex_string + "\nSpecifically, these individuals do not have appropriate inputs for the UPDATE/REMOVE/KEEP column in the 'ancestry_update_remove.tsv' file: " + missing_ancestry_string + "\n\nPlease fill in these selections for the pipeline to continue.\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.\n\n")
+
+            elif len(missing_sex) > 0:
+                logger.info("\nERROR: The UPDATE/REMOVE/KEEP column in the pca_sex_checks/check_sex_update_remove.tsv file is not completed.\n\nSpecifically, these individuals do not have appropriate inputs for the UPDATE/REMOVE/KEEP column in the 'check_sex_update_remove.tsv' file:\n" + missing_sex_string + "\nPlease fill in these selections for the pipeline to continue.\n\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.\n\n")
+
+            elif len(missing_ancestry) > 0:
+                logger.info("\nERROR: The UPDATE/REMOVE/KEEP column in the pca_sex_checks/check_sex_update_remove.tsv file is not completed.\n\nSpecifically, these individuals do not have appropriate inputs for the UPDATE/REMOVE/KEEP column in the 'ancestry_update_remove.tsv' file:\n" + missing_ancestry_string + "\nPlease fill in these selections for the pipeline to continue.\n\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.\n\n")
+
+            else:
+                logger.info("\nERROR: The UPDATE/REMOVE/KEEP column in the pca_sex_checks/ancestry_update_remove.tsv and/or the pca_sex_checks/check_sex_update_remove.tsv file are not completed.\n\nWe were unable to identify the exact individuals that contained the issue.\n\nPlease fill in these selections for the pipeline to continue.\nPlease see https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/wiki/1---SNP-Genotype-Imputation#running-the-pipeline---final-qc-and-vcf-production for more details.")
     else:
-        logger.info("Looks like your chromsome encoding uses chr before the chromosome. For this pipeline, the chromosme encoding should not use chr. Please remove the 'chr' from your pvar file and try again. Exiting.")
+        plinkQC_files.append(output_dict["output_dir"] + "/pca_sex_checks/ancestry_update_remove.tsv")
+
+    rule all:
+        input:
+            plinkQC_files,
+            impute_files
 
 else:
-    logger.info("Could not find the pgen, pvar and/or psam file(s). Please check that " + input_dict["plink_dir"] + " contains the pgen, pvar and psam files.\n\n Exiting.")
-
-
-
+    if vcf_dir is None:
+        logger.info("Could not find directory containing the reference vcf (searching for 30x-GRCh38_NoSamplesSorted.vcf.gz.tbi) in " + input_dict["ref_dir"])
+    if fasta is None:
+        logger.info("Could not find the reference fasta (searching for Homo_sapiens.GRCh38.dna.primary_assembly.fa) in " + input_dict["ref_dir"])
+    if genetic_map is None:
+        logger.info("Could not find directory containing the reference genetic map (searching for genetic_map_hg38_withX.txt.gz) in " + input_dict["ref_dir"])
+    if phasing_dir is None:
+        logger.info("Could not find directory containing the reference phasing files (searching for chr10.bcf) in " + input_dict["ref_dir"])
+    if impute_dir is None:
+        logger.info("Could not find directory containing the reference phasing files (searching for chr10.m3vcf.gz) in " + input_dict["ref_dir"])
+    logger.info("Exiting.")
