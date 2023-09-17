@@ -2,19 +2,23 @@
 ##############################################################################################################
 ##### The following arguments need to be changed by the user to indicating file locations on your system #####
 ##############################################################################################################
-inputs:
+refs:
   ref_dir: /path/to/provided/ref/dir ### This is the path to the directory containing the imputation references provided for the SNP processing and imputation
+
+inputs:
+  bind_path: /path/to/bind/to/mount ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
-  plink_dir: /path/to/input_plink/dir ### path to directory that contains plink2 pgen, pvar and psam files for pipeline on hg19
-  bind_paths: /paths/to/bind ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2} 
-  
+  pgen_path: /path/to/input_plink/pgen ###
+  pvar_path: /path/to/input_plink/pvar ###
+  psam_path: /path/to/input_plink/psam ###
+
 outputs:
   output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
 
 
-#########################################################################################################
-##### The following arguments are parameters that may be changed if needed depending on the dataset but can often #####
-#########################################################################################################
+##############################################################################################################
+##### The following arguments are common parameters that may need to be changed depending on the dataset #####
+##############################################################################################################
 ##### These are the options that will be used for plink QC steps #####
 plink_gender_ancestry_QC:
   ### Following options for removing individuals missing too many snps with `plink --bfile <bfile> --make-bed --mind <mind> --out <out> --noweb`
@@ -112,3 +116,12 @@ imputation:
 
   genotype_donor_annotation_memory: 5
   genotype_donor_annotation_threads: 1
+
+############################################################################################################################################
+##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####
+############################################################################################################################################
+refs_extra:
+  relative_vcf_path: "30x-GRCh38_NoSamplesSorted.vcf.gz.tbi"
+  relative_fasta_path: "ref_genome_QC/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+  relative_map_path: "genetic_map_hg38_withX.txt.gz"
+  relative_imputation_path: "chr10.m3vcf.gz"
