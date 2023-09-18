@@ -1,7 +1,5 @@
-
 #!/usr/bin/env python
-shell.executable('bash')
-
+CHROMOSOMES = [i for i in range(1, 23)]
 
 
 # Converts BIM to BED and converts the BED file via CrossMap.
@@ -9,116 +7,132 @@ shell.executable('bash')
 # Then replaces the BIM with CrossMap's output.
 rule crossmap:
     input:
-        pgen = output_dict["output_dir"] + "/subset_ancestry/{ancestry}_subset.pgen",
-        psam = output_dict["output_dir"] + "/subset_ancestry/{ancestry}_subset.psam",
-        pvar = output_dict["output_dir"] + "/subset_ancestry/{ancestry}_subset.pvar"
+        pgen = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.pgen",
+        pvar = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.pvar",
+        psam = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.psam",
     output:
-        bed = output_dict["output_dir"] + "/crossmapped/{ancestry}_crossmapped_plink.bed",
-        bim = output_dict["output_dir"] + "/crossmapped/{ancestry}_crossmapped_plink.bim",
-        fam = output_dict["output_dir"] + "/crossmapped/{ancestry}_crossmapped_plink.fam",
-        inbed = output_dict["output_dir"] + "/crossmapped/{ancestry}_crossmap_input.bed",
-        outbed = output_dict["output_dir"] + "/crossmapped/{ancestry}_crossmap_output.bed",
-        excluded_ids = output_dict["output_dir"] + "/crossmapped/{ancestry}_excluded_ids.txt"
+        bed = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bed",
+        bim = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bim",
+        fam = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.fam",
+        inbed = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmap_input.bed",
+        outbed = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmap_output.bed",
+        excluded_ids = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_excluded_ids.txt"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["crossmap_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["crossmap_memory"]
-    threads:
-        imputation_dict["crossmap_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["crossmap_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["crossmap_memory"]
+    threads: config["imputation"]["crossmap_threads"]
     params:
-        bind = input_dict["bind_paths"],
-        sif = input_dict["singularity_image"],
-        in_plink = output_dict["output_dir"] + "/subset_ancestry/{ancestry}_subset",
-        out = output_dict["output_dir"] + "/crossmapped/{ancestry}_crossmapped_plink",
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
+        out = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink",
         chain_file = "/opt/GRCh37_to_GRCh38.chain"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print $1,$2,$2+1,$3,$4,$5}}' {input.pvar} > {output.inbed}
         singularity exec --bind {params.bind} {params.sif} CrossMap.py bed {params.chain_file} {output.inbed} {output.outbed}
         singularity exec --bind {params.bind} {params.sif} awk '{{print $4}}' {output.outbed}.unmap > {output.excluded_ids}
-        singularity exec --bind {params.bind} {params.sif} plink2 --pfile {params.in_plink} --exclude {output.excluded_ids} --make-bed --output-chr MT --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 \
+            --threads {threads} \
+            --pgen {input.pgen} \
+            --pvar {input.pvar} \
+            --psam {input.psam} \
+            --exclude {output.excluded_ids} \
+            --make-bed \
+            --output-chr MT \
+            --out {params.out}
         singularity exec --bind {params.bind} {params.sif} awk -F'\t' 'BEGIN {{OFS=FS}} {{print $1,$4,0,$2,$6,$5}}' {output.outbed} > {output.bim}
         """
 
 
 rule sort_bed:
     input:
-        pgen = output_dict["output_dir"] + "/crossmapped/{ancestry}_crossmapped_plink.bed",
-        psam = output_dict["output_dir"] + "/crossmapped/{ancestry}_crossmapped_plink.bim",
-        pvar = output_dict["output_dir"] + "/crossmapped/{ancestry}_crossmapped_plink.fam"
+        bed = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bed",
+        bim = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bim",
+        fam = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.fam"
     output:
-        bed = output_dict["output_dir"] + "/crossmapped_sorted/{ancestry}_crossmapped_sorted.bed",
-        bim = output_dict["output_dir"] + "/crossmapped_sorted/{ancestry}_crossmapped_sorted.bim",
-        fam = output_dict["output_dir"] + "/crossmapped_sorted/{ancestry}_crossmapped_sorted.fam"
+        bed = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.bed",
+        bim = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.bim",
+        fam = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.fam"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["sort_bed_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["sort_bed_memory"]
-    threads:
-        imputation_dict["sort_bed_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["sort_bed_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["sort_bed_memory"]
+    threads: config["imputation"]["sort_bed_threads"]
     params:
-        bind = input_dict["bind_paths"],
-        sif = input_dict["singularity_image"],
-        infile = output_dict["output_dir"] + "/crossmapped/{ancestry}_crossmapped_plink",
-        out = output_dict["output_dir"] + "/crossmapped_sorted/{ancestry}_crossmapped_sorted"
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
+        out = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.infile} --make-bed --max-alleles 2 --output-chr MT --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 \
+            --threads {threads} \
+            --bed {input.bed} \
+            --bim {input.bim} \
+            --fam {input.fam} \
+            --make-bed \
+            --max-alleles 2 \
+            --output-chr MT \
+            --out {params.out}
         """
 
 
 rule split_by_chr1:
     input:
-        bed = output_dict["output_dir"] + "/crossmapped_sorted/{ancestry}_crossmapped_sorted.bed",
-        bim = output_dict["output_dir"] + "/crossmapped_sorted/{ancestry}_crossmapped_sorted.bim",
-        fam = output_dict["output_dir"] + "/crossmapped_sorted/{ancestry}_crossmapped_sorted.fam"
+        bed = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.bed",
+        bim = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.bim",
+        fam = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.fam"
     output:
-        bed = output_dict["output_dir"] + "/split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted.bed",
-        bim = output_dict["output_dir"] + "/split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted.bim",
-        fam = output_dict["output_dir"] + "/split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted.fam"
+        bed = config["outputs"]["output_dir"] + "split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted.bed",
+        bim = config["outputs"]["output_dir"] + "split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted.bim",
+        fam = config["outputs"]["output_dir"] + "split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted.fam"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["split_by_chr1_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["split_by_chr1_memory"]
-    threads:
-        imputation_dict["split_by_chr1_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_chr1_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_chr1_memory"]
+    threads: config["imputation"]["split_by_chr1_threads"]
     params:
-        bind = input_dict["bind_paths"],
-        sif = input_dict["singularity_image"],
-        infile = output_dict["output_dir"] + "/crossmapped_sorted/{ancestry}_crossmapped_sorted",
-        out = output_dict["output_dir"] + "/split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted"
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
+        out = config["outputs"]["output_dir"] + "split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.infile} --chr {wildcards.chr} --make-bed --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 \
+            --threads {threads} \
+            --bed {input.bed} \
+            --bim {input.bim} \
+            --fam {input.fam} \
+            --chr {wildcards.chr} \
+            --make-bed \
+            --out {params.out}
         """
 
 
 rule harmonize_hg38:
     input:
-        bed = output_dict["output_dir"] + "/split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted.bed",
-        bim = output_dict["output_dir"] + "/split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted.bim",
-        fam = output_dict["output_dir"] + "/split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted.fam",
-        vcf = vcf_dir + "/30x-GRCh38_NoSamplesSorted.vcf.gz",
-        index = vcf_dir + "/30x-GRCh38_NoSamplesSorted.vcf.gz.tbi"
+        bed = config["outputs"]["output_dir"] + "split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted.bed",
+        bim = config["outputs"]["output_dir"] + "split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted.bim",
+        fam = config["outputs"]["output_dir"] + "split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted.fam",
+        ref_vcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"],
+        ref_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"] + ".tbi"
     output:
-        bed = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_chr_{chr}.bed",
-        bim = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_chr_{chr}.bim",
-        fam = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_chr_{chr}.fam"
+        bed = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_chr_{chr}.bed",
+        bim = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_chr_{chr}.bim",
+        fam = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_chr_{chr}.fam"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["harmonize_hg38_memory"],
-        java_mem = lambda wildcards, attempt: attempt * imputation_dict["harmonize_hg38_java_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["harmonize_hg38_memory"]
-    threads:
-        imputation_dict["harmonize_hg38_threads"]
+        java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_hg38_java_memory"],
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_hg38_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_hg38_memory"]
+    threads: config["imputation"]["harmonize_hg38_threads"]
     params:
-        bind = input_dict["bind_paths"],
-        sif = input_dict["singularity_image"],
-        infile = output_dict["output_dir"] + "/split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted",
-        out = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_chr_{chr}",
-        jar = "/opt/GenotypeHarmonizer-1.4.23/GenotypeHarmonizer.jar"
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
+        jar = "/opt/GenotypeHarmonizer-1.4.23/GenotypeHarmonizer.jar",
+        infile = config["outputs"]["output_dir"] + "split_by_chr1/{ancestry}_chr_{chr}_crossmapped_sorted",
+        out = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_chr_{chr}",
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.java_mem}g -jar {params.jar}\
             --input {params.infile}\
             --inputType PLINK_BED\
-            --ref {input.vcf}\
+            --ref {input.ref_vcf}\
             --refType VCF\
             --update-id\
             --output {params.out}
@@ -127,217 +141,223 @@ rule harmonize_hg38:
 
 rule plink_to_vcf:
     input:
-        bed = lambda wildcards: expand(output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_chr_{chr}.bed", chr = chromosomes, ancestry = ancestry_subsets),
-        bim = lambda wildcards: expand(output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_chr_{chr}.bim", chr = chromosomes, ancestry = ancestry_subsets),
-        fam = lambda wildcards: expand(output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_chr_{chr}.fam", chr = chromosomes, ancestry = ancestry_subsets)
+        bed = lambda wildcards: expand(config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_chr_{chr}.bed", chr = CHROMOSOMES),
+        bim = lambda wildcards: expand(config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_chr_{chr}.bim", chr = CHROMOSOMES),
+        fam = lambda wildcards: expand(config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_chr_{chr}.fam", chr = CHROMOSOMES)
     output:
-        data_vcf_gz = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz",
-        index = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz.csi"
+        vcf = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz.csi"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["plink_to_vcf_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["plink_to_vcf_memory"]
-    threads:
-        imputation_dict["plink_to_vcf_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["plink_to_vcf_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["plink_to_vcf_memory"]
+    threads: config["imputation"]["plink_to_vcf_threads"]
     params:
-        bind = input_dict["bind_paths"],
-        sif = input_dict["singularity_image"],
-        infiles = lambda wildcards: expand(output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_chr_{chr}", chr = chromosomes, ancestry = ancestry_subsets),
-        mergelist = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_mergelist.txt",
-        out = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38"
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
+        infiles = lambda wildcards: expand(config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_chr_{chr}", chr = CHROMOSOMES),
+        mergelist = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_mergelist.txt",
+        chr_list = ",".join(CHROMOSOMES),
+        out = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_harmonised_hg38"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.infiles} | sed 's/ /\\n/g' > {params.mergelist}
-        singularity exec --bind {params.bind} {params.sif} plink2 --pmerge-list {params.mergelist} bfile --recode vcf id-paste=iid --chr 1-22 --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} plink2 \
+            --pmerge-list {params.mergelist} bfile \
+            --recode vcf id-paste=iid \
+            --chr {params.chr_list} \
+            --out {params.out}
 
         singularity exec --bind {params.bind} {params.sif} bgzip {params.out}.vcf
-        singularity exec --bind {params.bind} {params.sif} bcftools index {output.data_vcf_gz}
+        singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
         """
 
 
 rule vcf_fixref_hg38:
     input:
-        fasta = fasta,
-        vcf = vcf_dir + "/30x-GRCh38_NoSamplesSorted.vcf.gz",
-        index = vcf_dir + "/30x-GRCh38_NoSamplesSorted.vcf.gz.tbi",
-        data_vcf = output_dict["output_dir"] + "/harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz"
+        ref_fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
+        ref_vcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"],
+        ref_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"] + ".tbi",
+        vcf = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz.csi"
     output:
-        vcf = output_dict["output_dir"] + "/vcf_fixref_hg38/{ancestry}_fixref_hg38.vcf.gz",
-        index = output_dict["output_dir"] + "/vcf_fixref_hg38/{ancestry}_fixref_hg38.vcf.gz.csi"
+        vcf = config["outputs"]["output_dir"] + "vcf_fixref_hg38/{ancestry}_fixref_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + "vcf_fixref_hg38/{ancestry}_fixref_hg38.vcf.gz.csi"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["vcf_fixref_hg38_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["vcf_fixref_hg38_memory"]
-    threads:
-        imputation_dict["vcf_fixref_hg38_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["vcf_fixref_hg38_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["vcf_fixref_hg38_memory"]
+    threads: config["imputation"]["vcf_fixref_hg38_threads"]
     params:
-        bind = input_dict["bind_paths"],
-        sif = input_dict["singularity_image"]
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"]
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} bcftools +fixref {input.data_vcf} -- -f {input.fasta} -i {input.vcf} | \
-        singularity exec --bind {params.bind} {params.sif} bcftools norm --check-ref x -f {input.fasta} -Oz -o {output.vcf}
+        singularity exec --bind {params.bind} {params.sif} bcftools +fixref {input.vcf} -- -f {input.ref_fasta} -i {input.ref_vcf} | \
+            singularity exec --bind {params.bind} {params.sif} bcftools norm \
+                --check-ref x \
+                --fasta-ref {input.ref_fasta} \
+                -Oz \
+                --output {output.vcf}
 
-        #Index
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
         """
 
 
+# Add tags
+# Filter rare and non-HWE variants and those with abnormal alleles and duplicates
 rule filter_preimpute_vcf:
     input:
-        vcf = output_dict["output_dir"] + "/vcf_fixref_hg38/{ancestry}_fixref_hg38.vcf.gz"
+        vcf = config["outputs"]["output_dir"] + "vcf_fixref_hg38/{ancestry}_fixref_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + "vcf_fixref_hg38/{ancestry}_fixref_hg38.vcf.gz.csi"
     output:
-        tagged_vcf = output_dict["output_dir"] + "/filter_preimpute_vcf/{ancestry}_tagged.vcf.gz",
-        filtered_vcf = output_dict["output_dir"] + "/filter_preimpute_vcf/{ancestry}_filtered.vcf.gz",
-        filtered_index = output_dict["output_dir"] + "/filter_preimpute_vcf/{ancestry}_filtered.vcf.gz.csi"
+        tagged_vcf = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_tagged.vcf.gz",
+        filtered_vcf = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_filtered.vcf.gz",
+        filtered_index = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_filtered.vcf.gz.csi"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["filter_preimpute_vcf_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["filter_preimpute_vcf_memory"]
-    threads:
-        imputation_dict["filter_preimpute_vcf_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["filter_preimpute_vcf_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["filter_preimpute_vcf_memory"]
+    threads: config["imputation"]["filter_preimpute_vcf_threads"]
     params:
-        bind = input_dict["bind_paths"],
-        sif = input_dict["singularity_image"],
-        maf = lambda wildcards: float(maf_df["MAF"][maf_df.Ancestry == wildcards.ancestry].values),
-        missing = imputation_dict["snp_missing_pct"],
-        hwe = imputation_dict["snp_hwe"]
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
+        hwe = config["imputation"]["filter_preimpute_vcf_snp_hwe"],
+        missing = config["imputation"]["filter_preimpute_vcf_snp_missing_pct"],
+        maf = lambda wildcards: ancestry_maf_dict[wildcards.ancestry]
     shell:
         """
-        #Add tags
         singularity exec --bind {params.bind} {params.sif} bcftools +fill-tags {input.vcf} -Oz -o {output.tagged_vcf}
 
-        #Filter rare and non-HWE variants and those with abnormal alleles and duplicates
         singularity exec --bind {params.bind} {params.sif} bcftools filter -i 'INFO/HWE > {params.hwe} & F_MISSING < {params.missing} & MAF[0] > {params.maf}' {output.tagged_vcf} |\
-        singularity exec --bind {params.bind} {params.sif} bcftools filter -e 'REF="N" | REF="I" | REF="D"' |\
-        singularity exec --bind {params.bind} {params.sif} bcftools filter -e "ALT='.'" |\
-        singularity exec --bind {params.bind} {params.sif} bcftools norm -d all |\
-        singularity exec --bind {params.bind} {params.sif} bcftools norm -m+any |\
-        singularity exec --bind {params.bind} {params.sif} bcftools view -m2 -M2 -Oz -o {output.filtered_vcf}
+            singularity exec --bind {params.bind} {params.sif} bcftools filter -e 'REF="N" | REF="I" | REF="D"' |\
+                singularity exec --bind {params.bind} {params.sif} bcftools filter -e "ALT='.'" |\
+                    singularity exec --bind {params.bind} {params.sif} bcftools norm -d all |\
+                        singularity exec --bind {params.bind} {params.sif} bcftools norm -m+any |\
+                            singularity exec --bind {params.bind} {params.sif} bcftools view -m2 -M2 -Oz -o {output.filtered_vcf}
 
-        #Index the output file
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.filtered_vcf}
         """
 
 
 rule het:
     input:
-        vcf = output_dict["output_dir"] + "/filter_preimpute_vcf/{ancestry}_filtered.vcf.gz",
+        vcf = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_filtered.vcf.gz",
+        index = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_filtered.vcf.gz.csi"
     output:
-        tmp_vcf = temp(output_dict["output_dir"] + "/het/{ancestry}_filtered_temp.vcf"),
-        inds = output_dict["output_dir"] + "/het/{ancestry}_het_failed.inds",
-        het = output_dict["output_dir"] + "/het/{ancestry}_het.het",
-        passed = output_dict["output_dir"] + "/het/{ancestry}_het_passed.inds",
-        passed_list = output_dict["output_dir"] + "/het/{ancestry}_het_passed.txt"
+        tmp_vcf = temp(config["outputs"]["output_dir"] + "het/{ancestry}_filtered_temp.vcf"),
+        het = config["outputs"]["output_dir"] + "het/{ancestry}_het.het",
+        failed_inds = config["outputs"]["output_dir"] + "het/{ancestry}_het_failed.inds",
+        passed_inds = config["outputs"]["output_dir"] + "het/{ancestry}_het_passed.inds",
+        passed_list = config["outputs"]["output_dir"] + "het/{ancestry}_het_passed.txt"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["het_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["het_memory"]
-    threads: imputation_dict["het_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["het_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["het_memory"]
+    threads: config["imputation"]["het_threads"]
     params:
-        het_base = output_dict["output_dir"] + "/het/{ancestry}_het",
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R",
-        bind = input_dict["bind_paths"],
-        hwe = output_dict["output_dir"] + "/hwe/{ancestry}_hwe",
-        out = output_dict["output_dir"] + "/het/{ancestry}_het",
-        sif = input_dict["singularity_image"],
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
+        out = config["outputs"]["output_dir"] + "het/{ancestry}_het",
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} gunzip -c {input.vcf} | sed 's/^##fileformat=VCFv4.3/##fileformat=VCFv4.2/' > {output.tmp_vcf}
-        singularity exec --bind {params.bind} {params.sif} vcftools --vcf {output.tmp_vcf} --het --out {params.het_base}
-        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {output.het} {output.inds} {output.passed} {output.passed_list}
+        singularity exec --bind {params.bind} {params.sif} vcftools \
+            --vcf {output.tmp_vcf} \
+            --het \
+            --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
+            --input {output.het} \
+            --out {params.out}
         """
 
 
 rule het_filter:
     input:
-        passed_list = output_dict["output_dir"] + "/het/{ancestry}_het_passed.txt",
-        vcf = output_dict["output_dir"] + "/filter_preimpute_vcf/{ancestry}_filtered.vcf.gz"
+        passed_list = config["outputs"]["output_dir"] + "het/{ancestry}_het_passed.txt",
+        vcf = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_filtered.vcf.gz",
+        index = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_filtered.vcf.gz.csi"
     output:
-        vcf = output_dict["output_dir"] + "/het_filter/{ancestry}_het_filtered.vcf.gz",
-        index = output_dict["output_dir"] + "/het_filter/{ancestry}_het_filtered.vcf.gz.csi"
+        vcf = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz",
+        index = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz.csi"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["het_filter_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["het_filter_memory"]
-    threads: imputation_dict["het_filter_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["het_filter_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["het_filter_memory"]
+    threads: config["imputation"]["het_filter_threads"]
     params:
-        bind = input_dict["bind_paths"],
-        hwe = output_dict["output_dir"] + "/hwe/{ancestry}_hwe",
-        out = output_dict["output_dir"] + "/het_filter/{ancestry}_het_filter",
-        sif = input_dict["singularity_image"]
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"]
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools view -S {input.passed_list} {input.vcf} -Oz -o {output.vcf}
-
-        #Index the output file
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
         """
 
 
 rule calculate_missingness:
     input:
-        filtered_vcf = output_dict["output_dir"] + "/het_filter/{ancestry}_het_filtered.vcf.gz",
-        filtered_index = output_dict["output_dir"] + "/het_filter/{ancestry}_het_filtered.vcf.gz.csi"
+        vcf = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz",
+        index = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz.csi"
     output:
-        tmp_vcf = temp(output_dict["output_dir"] + "/filter_preimpute_vcf/{ancestry}_het_filtered.vcf"),
-        miss = output_dict["output_dir"] + "/filter_preimpute_vcf/{ancestry}_genotypes.imiss",
-        individuals = output_dict["output_dir"] + "/genotype_donor_annotation/{ancestry}_individuals.tsv"
+        tmp_vcf = temp(config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_het_filtered.vcf"),
+        miss = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_genotypes.imiss",
+        individuals = config["outputs"]["output_dir"] + "genotype_donor_annotation/{ancestry}_individuals.tsv"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["calculate_missingness_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["calculate_missingness_memory"]
-    threads:
-        imputation_dict["calculate_missingness_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["calculate_missingness_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["calculate_missingness_memory"]
+    threads: config["imputation"]["calculate_missingness_threads"]
     params:
-        bind = input_dict["bind_paths"],
-        sif = input_dict["singularity_image"],
-        out = output_dict["output_dir"] + "/filter_preimpute_vcf/{ancestry}_genotypes"
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
+        out = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_genotypes"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} gunzip -c {input.filtered_vcf} | sed 's/^##fileformat=VCFv4.3/##fileformat=VCFv4.2/' > {output.tmp_vcf}
-
+        singularity exec --bind {params.bind} {params.sif} gunzip -c {input.vcf} | sed 's/^##fileformat=VCFv4.3/##fileformat=VCFv4.2/' > {output.tmp_vcf}
         singularity exec --bind {params.bind} {params.sif} vcftools --gzvcf {output.tmp_vcf} --missing-indv --out {params.out}
-
-        singularity exec --bind {params.bind} {params.sif} bcftools query -l {input.filtered_vcf} >> {output.individuals}
+        singularity exec --bind {params.bind} {params.sif} bcftools query -l {input.vcf} >> {output.individuals}
         """
 
 
 rule split_by_chr2:
     input:
-        filtered_vcf = output_dict["output_dir"] + "/het_filter/{ancestry}_het_filtered.vcf.gz",
-        filtered_index = output_dict["output_dir"] + "/het_filter/{ancestry}_het_filtered.vcf.gz.csi"
+        vcf = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz",
+        index = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz.csi"
     output:
-        vcf = output_dict["output_dir"] + "/split_by_chr2/{ancestry}_chr_{chr}.vcf.gz",
-        index = output_dict["output_dir"] + "/split_by_chr2/{ancestry}_chr_{chr}.vcf.gz.csi"
+        vcf = config["outputs"]["output_dir"] + "split_by_chr2/{ancestry}_chr_{chr}.vcf.gz",
+        index = config["outputs"]["output_dir"] + "split_by_chr2/{ancestry}_chr_{chr}.vcf.gz.csi"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["split_by_chr2_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["split_by_chr2_memory"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_chr2_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_chr2_memory"]
     threads:
-        imputation_dict["split_by_chr2_threads"]
+        config["imputation"]["split_by_chr2_threads"]
     params:
-        bind = input_dict["bind_paths"],
-        sif = input_dict["singularity_image"]
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"]
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} bcftools view -r {wildcards.chr} {input.filtered_vcf} -Oz -o {output.vcf}
+        singularity exec --bind {params.bind} {params.sif} bcftools view -r {wildcards.chr} {input.vcf} -Oz -o {output.vcf}
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
         """
 
 
 rule eagle_prephasing:
     input:
-        vcf = output_dict["output_dir"] + "/split_by_chr2/{ancestry}_chr_{chr}.vcf.gz",
-        map_file = genetic_map,
-        phasing_file = phasing_dir + "/chr{chr}.bcf"
+        vcf = config["outputs"]["output_dir"] + "split_by_chr2/{ancestry}_chr_{chr}.vcf.gz",
+        map_file = config["refs"]["ref_dir"] + config["refs_extra"]["relative_map_path"],
+        phasing_bcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"] + "ls",
+        phasing_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"] + "chr{chr}.bcf.csi"
     output:
-        vcf = output_dict["output_dir"] + "/eagle_prephasing/{ancestry}_chr{chr}_phased.vcf.gz"
+        vcf = config["outputs"]["output_dir"] + "eagle_prephasing/{ancestry}_chr{chr}_phased.vcf.gz"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["eagle_prephasing_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["eagle_prephasing_memory"]
-    threads: imputation_dict["eagle_prephasing_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["eagle_prephasing_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["eagle_prephasing_memory"]
+    threads: config["imputation"]["eagle_prephasing_threads"]
     params:
-        bind = input_dict["bind_paths"],
-        sif = input_dict["singularity_image"],
-        out = output_dict["output_dir"] + "/eagle_prephasing/{ancestry}_chr{chr}_phased"
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
+        out = config["outputs"]["output_dir"] + "eagle_prephasing/{ancestry}_chr{chr}_phased"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} eagle --vcfTarget={input.vcf} \
-            --vcfRef={input.phasing_file} \
+        singularity exec --bind {params.bind} {params.sif} eagle \
+            --vcfTarget={input.vcf} \
+            --vcfRef={input.phasing_bcf} \
             --geneticMapFile={input.map_file} \
             --chrom={wildcards.chr} \
             --outPrefix={params.out} \
@@ -347,24 +367,24 @@ rule eagle_prephasing:
 
 rule minimac_imputation:
     input:
-        vcf = output_dict["output_dir"] + "/eagle_prephasing/{ancestry}_chr{chr}_phased.vcf.gz",
-        impute_file = impute_dir + "/chr{chr}.m3vcf.gz"
+        impute_file = config["refs"]["ref_dir"] + config["refs_extra"]["relative_imputation_dir"] + "chr{chr}.m3vcf.gz",
+        vcf = config["outputs"]["output_dir"] + "eagle_prephasing/{ancestry}_chr{chr}_phased.vcf.gz"
     output:
-        output_dict["output_dir"] + "/minimac_imputed/{ancestry}_chr{chr}.dose.vcf.gz"
+        dose = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr{chr}.dose.vcf.gz"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["minimac_imputation_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["minimac_imputation_memory"]
-    threads:
-        imputation_dict["minimac_imputation_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["minimac_imputation_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["minimac_imputation_memory"]
+    threads: config["imputation"]["minimac_imputation_threads"]
     params:
-        bind = input_dict["bind_paths"],
-        sif = input_dict["singularity_image"],
-        out = output_dict["output_dir"] + "/minimac_imputed/{ancestry}_chr{chr}",
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
         minimac4 = "/opt/bin/minimac4",
-        chunk_length = imputation_dict["chunk_length"]
+        out = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr{chr}",
+        chunk_length = config["imputation"]["minimac_chunk_length"]
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} {params.minimac4} --refHaps {input.impute_file} \
+        singularity exec --bind {params.bind} {params.sif} {params.minimac4} \
+            --refHaps {input.impute_file} \
             --haps {input.vcf} \
             --prefix {params.out} \
             --format GT,DS,GP \
@@ -376,77 +396,76 @@ rule minimac_imputation:
 
 rule combine_vcfs_ancestry:
     input:
-        vcfs = lambda wildcards: expand(output_dict["output_dir"] + "/minimac_imputed/{ancestry}_chr{chr}.dose.vcf.gz", chr = chromosomes, ancestry = ancestry_subsets)
+        vcfs = expand(config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr{chr}.dose.vcf.gz", chr = CHROMOSOMES, ancestry = ANCESTRIES)
     output:
-        combined = output_dict["output_dir"] + "/vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz",
-        ind = output_dict["output_dir"] + "/vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi"
+        vcf = config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["combine_vcfs_ancestry_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["combine_vcfs_ancestry_memory"]
-    threads: imputation_dict["combine_vcfs_ancestry_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["combine_vcfs_ancestry_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["combine_vcfs_ancestry_memory"]
+    threads: config["imputation"]["combine_vcfs_ancestry_threads"]
     params:
-        sif = input_dict["singularity_image"],
-        bind = input_dict["bind_paths"],
-        files_begin = output_dict["output_dir"] + "/minimac_imputed/{ancestry}_chr*.dose.vcf.gz"
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_paths"],
+        files_begin = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr*.dose.vcf.gz"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} bcftools concat -Oz {params.files_begin} > {output.combined}
-        singularity exec --bind {params.bind} {params.sif} bcftools index {output.combined}
+        singularity exec --bind {params.bind} {params.sif} bcftools concat -Oz {params.files_begin} > {output.vcf}
+        singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
         """
 
 
 rule combine_vcfs_all:
     input:
-        vcfs = lambda wildcards: expand(output_dict["output_dir"] + "/vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz", ancestry = ancestry_subsets)
+        vcfs = expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz", ancestry = ANCESTRIES),
+        indices = expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi", ancestry = ANCESTRIES)
     output:
-        combined = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38.vcf.gz",
-        ind = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38.vcf.gz.csi"
+        vcf = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38.vcf.gz.csi"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["combine_vcfs_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["combine_vcfs_memory"]
-    threads: imputation_dict["combine_vcfs_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["combine_vcfs_all_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["combine_vcfs_all_memory"]
+    threads: config["imputation"]["combine_vcfs_all_threads"]
     params:
-        sif = input_dict["singularity_image"],
-        bind = input_dict["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_paths"],
     shell:
         """
         if [[ $(ls -l {input.vcfs} | wc -l) > 1 ]]
         then
-            singularity exec --bind {params.bind} {params.sif} bcftools merge -Oz {input.vcfs} > {output.combined}
+            singularity exec --bind {params.bind} {params.sif} bcftools merge -Oz {input.vcfs} > {output.vcf}
+            singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
         else
-            cp {input.vcfs} {output.combined}
+            cp {input.vcfs} {output.vcf}
+            cp {input.indices} {output.index}
         fi
-        singularity exec --bind {params.bind} {params.sif} bcftools index {output.combined}
         """
 
-
+# Add all the info fields
+# Filter the Imputed SNP Genotype by Minor Allele Frequency (MAF) and INFO scores
 rule filter4demultiplexing:
     input:
-        output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38.vcf.gz"
+        vcf = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38.vcf.gz.csi"
     output:
-        info_filled = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_info_filled.vcf.gz",
-        qc_filtered = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05.vcf.gz",
-        location_filtered = temp(output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons.recode.vcf"),
-        complete_cases = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf"
+        info_filled = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_info_filled.vcf.gz",
+        qc_filtered = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05.vcf.gz",
+        location_filtered = temp(config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons.recode.vcf"),
+        complete_cases = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["filter4demultiplexing_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["filter4demultiplexing_memory"]
-    threads: imputation_dict["filter4demultiplexing_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["filter4demultiplexing_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["filter4demultiplexing_memory"]
+    threads: config["imputation"]["filter4demultiplexing_threads"]
     params:
-        sif = input_dict["singularity_image"],
-        bind = input_dict["bind_paths"],
-        out = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons",
-        complete_out = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases",
-        bed = "/opt/hg38exonsUCSC.bed"
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
+        bed = "/opt/hg38exonsUCSC.bed",
+        out = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons",
+        complete_out = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases",
     shell:
         """
-        ##### Add all the info fields
         singularity exec --bind {params.bind} {params.sif} bcftools +fill-tags -Oz --output {output.info_filled} {input}
-
-        ##### Filter the Imputed SNP Genotype by Minor Allele Frequency (MAF) and INFO scores #####
         singularity exec --bind {params.bind} {params.sif} bcftools filter --include 'MAF>=0.05 & R2>=0.3' -Oz --output {output.qc_filtered} {output.info_filled}
-
-
         singularity exec --bind {params.bind} {params.sif} vcftools \
             --gzvcf {output.qc_filtered} \
             --max-alleles 2 \
@@ -455,27 +474,32 @@ rule filter4demultiplexing:
             --recode \
             --recode-INFO-all \
             --out {params.out}
-
-        singularity exec --bind {params.bind} {params.sif} vcftools --recode --recode-INFO-all --vcf {output.location_filtered} --max-missing 1 --out {params.complete_out}
+        singularity exec --bind {params.bind} {params.sif} vcftools \
+            --recode \
+            --recode-INFO-all \
+            --vcf {output.location_filtered} \
+            --max-missing 1 \
+            --out {params.complete_out}
         """
 
 
 rule sort4demultiplexing:
     input:
-        complete_cases = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf"
+        complete_cases = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf"
     output:
-        complete_cases_sorted = output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
+        complete_cases_sorted = config["outputs"]["output_dir"] + "vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["sort4demultiplexing_memory"],
-        java_mem = lambda wildcards, attempt: attempt * imputation_dict["sort4demultiplexing_java_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["sort4demultiplexing_memory"]
-    threads: imputation_dict["sort4demultiplexing_threads"]
+        java_mem = lambda wildcards, attempt: attempt * config["imputation"]["sort4demultiplexing_java_memory"],
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["sort4demultiplexing_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["sort4demultiplexing_memory"]
+    threads: config["imputation"]["sort4demultiplexing_threads"]
     params:
-        sif = input_dict["singularity_image"],
-        bind = input_dict["bind_paths"]
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_paths"],
+        jar = "/opt/picard/build/libs/picard.jar"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.java_mem}g -Xms{resources.java_mem}g -jar /opt/picard/build/libs/picard.jar SortVcf \
+        singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.java_mem}g -Xms{resources.java_mem}g -jar {params.jar} SortVcf \
             I={input.complete_cases} \
             O={output.complete_cases_sorted}
         """
@@ -483,46 +507,48 @@ rule sort4demultiplexing:
 
 rule count_snps:
     input:
-        info_filled = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_info_filled.vcf.gz",
-        qc_filtered = output_dict["output_dir"] + "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05.vcf.gz",
-        complete_cases_sorted = output_dict["output_dir"] + "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
+        info_filled = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_info_filled.vcf.gz",
+        qc_filtered = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05.vcf.gz",
+        complete_cases_sorted = config["outputs"]["output_dir"] + "vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
     output:
-        report(output_dict["output_dir"] + "/metrics/Number_SNPs.png", category = "SNP Numbers", caption = "../report_captions/counts_snps.rst")
+        number_snps = report(config["outputs"]["output_dir"] + "metrics/Number_SNPs.png", category = "SNP Numbers", caption = "../report_captions/counts_snps.rst")
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["count_snps_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["count_snps_memory"]
-    threads: imputation_dict["count_snps_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["count_snps_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["count_snps_memory"]
+    threads: config["imputation"]["count_snps_threads"]
     params:
-        sif = input_dict["singularity_image"],
-        bind = input_dict["bind_paths"],
-        basedir = output_dict["output_dir"],
-        outdir = output_dict["output_dir"] + "/metrics/",
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/SNP_numbers.R"
+        bind=config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
+        script="/opt/WG1-pipeline-QC/Imputation/scripts/SNP_numbers.R",
+        basedir = config["outputs"]["output_dir"],
+        outdir = config["outputs"]["output_dir"] + "metrics/",
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.basedir} {params.outdir}
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
+            --indir {params.basedir} \
+            --out {params.outdir}
         """
 
 
 
 rule genotype_donor_annotation:
     input:
-        individuals = lambda wildcards: expand(output_dict["output_dir"] + "/genotype_donor_annotation/{ancestry}_individuals.tsv", ancestry = ancestry_subsets),
-        updated_psam = output_dict["output_dir"] + "/update_sex_ancestry/update_sex.psam"
+        individuals = expand(config["outputs"]["output_dir"] + "genotype_donor_annotation/{ancestry}_individuals.tsv", ancestry = ANCESTRIES),
+        psam = config["outputs"]["output_dir"] + "pca_sex_checks/sex_ancestry_updated.psam"
     output:
-        out_temp = temp(output_dict["output_dir"] + "/genotype_donor_annotation/genotype_donor_annotation_temp.tsv"),
-        combined_individuals = output_dict["output_dir"] + "/genotype_donor_annotation/combined_individuals.tsv",
-        final = output_dict["output_dir"] + "/genotype_donor_annotation/genotype_donor_annotation.tsv",
+        out_temp = temp(config["outputs"]["output_dir"] + "genotype_donor_annotation/genotype_donor_annotation_temp.tsv"),
+        combined_individuals = config["outputs"]["output_dir"] + "genotype_donor_annotation/combined_individuals.tsv",
+        final = config["outputs"]["output_dir"] + "genotype_donor_annotation/genotype_donor_annotation.tsv",
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["genotype_donor_annotation_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * imputation_dict["genotype_donor_annotation_memory"]
-    threads: imputation_dict["genotype_donor_annotation_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["genotype_donor_annotation_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["genotype_donor_annotation_memory"]
+    threads: config["imputation"]["genotype_donor_annotation_threads"]
     params:
-        bind = input_dict["bind_paths"],
-        sif = input_dict["singularity_image"],
+        bind = config["inputs"]["bind_paths"],
+        sif = config["inputs"]["singularity_image"],
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} cut -f2,5- {input.updated_psam} | awk 'NR<2{{print $0;next}}{{print $0| "sort -k1,1"}}' > {output.out_temp}
+        singularity exec --bind {params.bind} {params.sif} cut -f2,5- {input.psam} | awk 'NR<2{{print $0;next}}{{print $0| "sort -k1,1"}}' > {output.out_temp}
         singularity exec --bind {params.bind} {params.sif} cat {input.individuals} >> {output.combined_individuals}
         singularity exec --bind {params.bind} {params.sif} sed -i '1 i\IID' {output.combined_individuals}
         singularity exec --bind {params.bind} {params.sif} awk -F"\t" 'NR==FNR {{a[$1]; next}} $1 in a' {output.combined_individuals} {output.out_temp} | awk 'BEGIN{{FS=OFS="\t"}}{{sub("1","M",$2);print}}' | awk 'BEGIN{{FS=OFS="\t"}}{{sub("2","F",$2);print}}' > {output.final}

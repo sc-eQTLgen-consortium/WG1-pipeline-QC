@@ -6,26 +6,32 @@
 # description: Removing individuals who deviate ±3 SD fromthe samples' heterozygosity 
 # rate mean
 
-
-# Import libraries --------------------------------------------------------
-
-# Primary
-
-library("tidyverse")
-library("magrittr")
+.libPaths("/usr/local/lib/R/site-library")
+suppressMessages(suppressWarnings(library(argparse)))
 
 # Manage arguments --------------------------------------------------------
 
-args <- commandArgs(TRUE)
-input <- args[1]
-output_fail <- args[2]
-output_pass <- args[3]
-output_pass_inds <- args[4]
+# create parser object
+parser <- ArgumentParser()
 
+# specify our desired options
+# by default ArgumentParser will add an help option
+parser$add_argument("-i", "--input", required=TRUE, type="character", help="")
+parser$add_argument("-o", "--out", required=FALSE, type="character", help="")
+
+# get command line options, if help option encountered print help and exit, 
+# otherwise if options not found on command line then set defaults, 
+args <- parser$parse_args()
+
+
+# Import libraries --------------------------------------------------------
+
+suppressMessages(suppressWarnings(library(tidyverse)))
+suppressMessages(suppressWarnings(library(magrittr)))
 
 # Read data ---------------------------------------------------------------
 
-het <- read_delim(input, delim = "\t")
+het <- read_delim(args$input, delim = "\t")
 
 
 if (nrow(het) >= 3){
@@ -40,12 +46,12 @@ if (nrow(het) >= 3){
 
 	# Write results -----------------------------------------------------------
 
-	write.table(het_fail, output_fail, row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
-	write.table(het_pass, output_pass, row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
-	write.table(het_pass$INDV, output_pass_inds, row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
+	write.table(het_fail, paste0(args$out, "_failed.inds"), row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
+	write.table(het_pass, paste0(args$out, "_passed.inds"), row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
+	write.table(het_pass$INDV, paste0(args$out, "_passed.txt"), row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
 
 } else {
-	write.table(het$INDV, output_pass_inds, row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
-	system(paste0("touch ", output_fail))
-	system(paste0("touch ", output_pass))
+	write.table(het$INDV, paste0(args$out, "_passed.txt"), row.names = FALSE, sep = "\t", quote = FALSE, col.names = FALSE)
+	system(paste0("touch ", paste0(args$out, "_failed.inds")))
+	system(paste0("touch ", paste0(args$out, "_passed.inds")))
 }
