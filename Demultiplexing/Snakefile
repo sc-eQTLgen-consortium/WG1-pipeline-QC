@@ -39,14 +39,13 @@ else:
     logger.info("\nERROR: the 'sc_data_type' variable in the configuration file is not recognised. Please use 'single-cell' or 'single-nucleus'.\n\n Exiting.")
     quit()
 
-# Remove trailing /.
+# Add trailing /.
+if not config["refs"]["ref_dir"].endswith("/"):
+    config["refs"]["ref_dir"] += "/"
 if not config["inputs"]["individual_list_dir"].endswith("/"):
     config["inputs"]["individual_list_dir"] += "/"
 if not config["outputs"]["output_dir"].endswith("/"):
     config["outputs"]["output_dir"] += "/"
-
-if not config["refs_extra"]["relative_fasta_path"].startswith("/"):
-    config["refs_extra"]["relative_fasta_path"] = "/" + config["refs_extra"]["relative_fasta_path"]
 
 #####################
 ######## ALL ########
