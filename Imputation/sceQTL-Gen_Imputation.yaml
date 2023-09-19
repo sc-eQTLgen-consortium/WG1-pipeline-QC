@@ -8,15 +8,38 @@ refs:
 inputs:
   bind_path: /path/to/bind/to/mount ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
-  plink_path: /path/to/input_plink/dir/ ### path to directory that contains plink2 pgen, pvar and psam files for pipeline on hg19 (including filename without extension)
+  genotype_path: /path/to/input_plink/dir/ ### path to directory that contains the genotype input files for pipeline on hg19. Include the filename without extension; accepted are .vcf.gz files or plink2 pgen, pvar and psam. In the cases of a splitted input use CHR to replace the chromosome.
 
 outputs:
   output_dir: /path/to/parent/out/dir/ ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
 
+settings:
+    is_wgs: False
 
 ##############################################################################################################
 ##### The following arguments are common parameters that may need to be changed depending on the dataset #####
 ##############################################################################################################
+##### These are the options that will be used for plink QC steps #####
+pre_processing:
+  split_vcf_by_chr_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  split_vcf_by_chr_threads: 1 ### Number of threads to use
+
+  normalise_by_chr_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  normalise_by_chr_threads: 1 ### Number of threads to use
+
+  wgs_filter_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  wgs_filter_threads: 1 ### Number of threads to use
+
+  combine_vcfs_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  combine_vcfs_threads: 1 ### Number of threads to use
+
+  vcf_to_pgen_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  vcf_to_pgen_threads: 1 ### Number of threads to use
+
+  combine_plink_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  combine_plink_threads: 1 ### Number of threads to use
+
+
 ##### These are the options that will be used for plink QC steps #####
 plink_gender_ancestry_QC:
   ### Following options for removing individuals missing too many snps with `plink2 --pfile <pfile> --make-pgen --mind <mind> --out <out>`
@@ -141,3 +164,22 @@ refs_extra:
   relative_map_path: "phasing/genetic_map/genetic_map_hg38_withX.txt.gz"
   relative_phasing_dir: "phasing/phasing_reference/"
   relative_imputation_dir: "imputation/"
+
+wgs_filter:
+  genotype_quality: 20 ### The genotype quality threshold
+  allelic_balance_lower: 0.2 ### The allelic balance lower-bound threshold
+  allelic_balance_upper: 0.8 ### The allelic balance upper-bound threshold
+  inbreeding_coefficient: -0.3 ### The inbreeding coefficient threshold
+  no_snv_vqsr_check: True ### Add this flag to turn off the VQSR of SNV's
+  vqsr_snv: 99.8 ### The variant_quality_score_recalibration threshold
+  no_indel_vqsr_check: True ### Add this flag to turn off the VQSR of indel's
+  vqsr_indel: 99.95 ### The variant_quality_score_recalibration threshold
+  keep_multialleic: True ### Add this flag to remove multiallelic variants
+  keep_non_pass_snv: True ### Add this flag to remove SNV's without PASS label
+  keep_non_pass_indel: True ### Add this flag to remove indel's without PASS label
+  keep_low_complexity: True ### Add this flag to keep low complexity variants
+  minor_allele_frequency: 0.01 ### The minor allele frequency threshold
+  call_rate: 0.99 ### The call rate threshold
+  hardy_weinberg_equilibrium: 1e-6 ### The hardy weinberg equilibrium threshold
+  filtered_depth: 10 ### The filtered depth threshold
+  keep_info_column: True ### Add this flag to keep the INFO column

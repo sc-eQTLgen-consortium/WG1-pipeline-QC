@@ -3,9 +3,9 @@
 
 rule indiv_missingness:
     input:
-        pgen = config["inputs"]["plink_path"] + ".pgen",
-        pvar = config["inputs"]["plink_path"] + ".pvar",
-        psam = config["inputs"]["plink_path"] + ".psam",
+        pgen = plink_gender_ancestry_data + ".pgen",
+        pvar = plink_gender_ancestry_data + ".pvar",
+        psam = plink_gender_ancestry_data + ".psam",
     output:
         bed = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pgen",
         bim = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pvar",
@@ -15,10 +15,11 @@ rule indiv_missingness:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["indiv_missingness_memory"]
     threads: config["plink_gender_ancestry_QC"]["indiv_missingness_threads"]
     params:
-       bind = config["inputs"]["bind_paths"],
+       bind = config["inputs"]["bind_path"],
        sif = config["inputs"]["singularity_image"],
        out = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness",
        mind = config["plink_gender_ancestry_QC"]["indiv_missingness_mind"]
+    log: config["outputs"]["output_dir"] + "logs/indiv_missingness.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -53,9 +54,10 @@ rule check_sex:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["check_sex_memory"]
     threads: config["plink_gender_ancestry_QC"]["check_sex_threads"]
     params:
-        bind = config["inputs"]["bind_paths"],
+        bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "check_sex/check_sex",
+    log: config["outputs"]["output_dir"] + "logs/check_sex.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -85,10 +87,7 @@ rule common_snps:
     input:
         pgen = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pgen",
         pvar = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pvar",
-        psam = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.psam",
-        pgen_1000g = "/opt/1000G/all_phase3_filtered.pgen",
-        pvar_1000g = "/opt/1000G/all_phase3_filtered.pvar",
-        psam_1000g = "/opt/1000G/all_phase3_filtered.psam",
+        psam = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.psam"
     output:
         snps_data = config["outputs"]["output_dir"] + "common_snps/snps_data.tsv",
         snps_1000g = config["outputs"]["output_dir"] + "common_snps/snps_1000g.tsv",
@@ -103,14 +102,18 @@ rule common_snps:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["common_snps_memory"]
     threads: config["plink_gender_ancestry_QC"]["common_snps_threads"]
     params:
-        bind = config["inputs"]["bind_paths"],
+        bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
+        pgen_1000g = "/opt/1000G/all_phase3_filtered.pgen",
+        pvar_1000g = "/opt/1000G/all_phase3_filtered.pvar",
+        psam_1000g = "/opt/1000G/all_phase3_filtered.psam",
         out = config["outputs"]["output_dir"] + "common_snps/subset_data",
         out_1000g = config["outputs"]["output_dir"] + "common_snps/subset_1000g"
+    log: config["outputs"]["output_dir"] + "logs/common_snps.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.pvar} {input.pvar_1000g} > {output.snps_1000g}
-        singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.pvar_1000g} {input.pvar} > {output.snps_data}
+        singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.pvar} {params.pvar_1000g} > {output.snps_1000g}
+        singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {params.pvar_1000g} {input.pvar} > {output.snps_data}
         singularity exec --bind {params.bind} {params.sif} plink2 \
             --threads {threads} \
             --pgen {input.pgen} \
@@ -121,9 +124,9 @@ rule common_snps:
             --out {params.out}
         singularity exec --bind {params.bind} {params.sif} plink2 \
             --threads {threads} \
-            --pgen {input.pgen_1000g} \
-            --pvar {input.pvar_1000g} \
-            --psam {input.psam_1000g} \
+            --pgen {params.pgen_1000g} \
+            --pvar {params.pvar_1000g} \
+            --psam {params.psam_1000g} \
             --extract {output.snps_1000g} \
             --make-pgen \
             --out {params.out_1000g}
@@ -157,10 +160,11 @@ rule prune_1000g:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["prune_1000g_memory"]
     threads: config["plink_gender_ancestry_QC"]["prune_1000g_threads"]
     params:
-        bind = config["inputs"]["bind_paths"],
+        bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out_1000g = config["outputs"]["output_dir"] + "common_snps/subset_pruned_1000g",
         out = config["outputs"]["output_dir"] + "common_snps/subset_pruned_data"
+    log: config["outputs"]["output_dir"] + "logs/prune_1000g.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -224,9 +228,10 @@ rule final_pruning:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["final_pruning_memory"]
     threads: config["plink_gender_ancestry_QC"]["final_pruning_threads"]
     params:
-        bind = config["inputs"]["bind_paths"],
+        bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "common_snps/final_subset_pruned_data"
+    log: config["outputs"]["output_dir"] + "logs/final_pruning.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -256,9 +261,10 @@ rule pca_1000g:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_1000g_memory"]
     threads: config["plink_gender_ancestry_QC"]["pca_1000g_threads"]
     params:
-        bind = config["inputs"]["bind_paths"],
+        bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs"
+    log: config["outputs"]["output_dir"] + "logs/pca_1000g.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -293,10 +299,11 @@ rule pca_project:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_project_memory"]
     threads: config["plink_gender_ancestry_QC"]["pca_project_threads"]
     params:
-        bind = config["inputs"]["bind_paths"],
+        bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "pca_projection/final_subset_pruned_data_pcs",
         out_1000g = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs_projected"
+    log: config["outputs"]["output_dir"] + "logs/pca_project.log"
     shell:
         """
         export OMP_NUM_THREADS={threads}
@@ -321,26 +328,28 @@ rule pca_project:
        """
 
 
+# TODO sure this is the right PSAM?
 rule pca_projection_assign:
     input:
         projected_scores = config["outputs"]["output_dir"] + "pca_projection/final_subset_pruned_data_pcs.sscore",
         projected_1000g_scores = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs_projected.sscore",
-        psam = config["inputs"]["plink_path"] + ".psam",
+        psam = plink_gender_ancestry_data + ".psam",
         psam_1000g = config["outputs"]["output_dir"] + "common_snps/subset_1000g.psam",
         sexcheck = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv",
     output:
         anc_fig = report(config["outputs"]["output_dir"] + "pca_sex_checks/Ancestry_PCAs.png", category = "Ancestry", caption = "../report_captions/ancestry_pca.rst"),
-        pca_sexcheck = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv",
+        pca_sex_check = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv",
         pca_anc_check = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_projection_assign_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_projection_assign_memory"]
     threads: config["plink_gender_ancestry_QC"]["pca_projection_assign_threads"]
     params:
-        bind = config["inputs"]["bind_paths"],
+        bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Imputation/scripts/PCA_Projection_Plotting.R",
         out = config["outputs"]["output_dir"] + "pca_sex_checks/",
+    log: config["outputs"]["output_dir"] + "logs/pca_projection_assign.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
@@ -356,7 +365,7 @@ rule pca_projection_assign:
 rule summary_ancestry_sex:
     input:
         sexcheck = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv",
-        pca_sexcheck = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv",
+        pca_sex_check = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv",
         psam = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.psam",
         pca_anc_check = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv"
     output:
@@ -367,15 +376,16 @@ rule summary_ancestry_sex:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["summary_ancestry_sex_memory"]
     threads: config["plink_gender_ancestry_QC"]["summary_ancestry_sex_threads"]
     params:
-        bind = config["inputs"]["bind_paths"],
+        bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Imputation/scripts/sex_ancestry_summaries.R",
         out = config["outputs"]["output_dir"] + "metrics/",
+    log: config["outputs"]["output_dir"] + "logs/summary_ancestry_sex.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
             --sex_check {input.sexcheck} \
-            --sex_decisions {input.pca_sexcheck} \
+            --sex_decisions {input.pca_sex_check} \
             --psam {input.psam} \
             --ancestry_decisions {input.pca_anc_check} \
             --out {params.out}
@@ -384,7 +394,7 @@ rule summary_ancestry_sex:
 
 rule separate_indivs:
     input:
-        pca_sexcheck = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv",
+        pca_sex_check = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv",
         pca_anc_check = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv"
     output:
         update_sex = config["outputs"]["output_dir"] + "separate_indivs/sex_update_indivs.tsv",
@@ -395,14 +405,15 @@ rule separate_indivs:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["separate_indivs_memory"]
     threads: config["plink_gender_ancestry_QC"]["separate_indivs_threads"]
     params:
-        bind = config["inputs"]["bind_paths"],
+        bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
+    log: config["outputs"]["output_dir"] + "logs/separate_indivs.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} grep "UPDATE" {input.pca_sexcheck} | \
+        singularity exec --bind {params.bind} {params.sif} grep "UPDATE" {input.pca_sex_check} | \
             singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2,$4)}}' | \
                 singularity exec --bind {params.bind} {params.sif} sed 's/SNPSEX/SEX/g' > {output.update_sex}
-        singularity exec --bind {params.bind} {params.sif} grep "REMOVE" {input.pca_sexcheck} | \
+        singularity exec --bind {params.bind} {params.sif} grep "REMOVE" {input.pca_sex_check} | \
             singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}'> {output.remove_indiv_temp}
         singularity exec --bind {params.bind} {params.sif} grep "REMOVE" {input.pca_anc_check} | \
             singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}' >> {output.remove_indiv_temp}
@@ -426,9 +437,10 @@ rule update_sex_ancestry:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["update_sex_ancestry_memory"]
     threads: config["plink_gender_ancestry_QC"]["update_sex_ancestry_threads"]
     params:
-        bind = config["inputs"]["bind_paths"],
+        bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "update_sex_ancestry/sex_ancestry_updated"
+    log: config["outputs"]["output_dir"] + "logs/update_sex_ancestry.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -457,10 +469,11 @@ rule subset_ancestry:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["subset_ancestry_memory"]
     threads: config["plink_gender_ancestry_QC"]["subset_ancestry_threads"]
     params:
-        bind = config["inputs"]["bind_paths"],
+        bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         infile = config["outputs"]["output_dir"] + "update_sex_ancestry/sex_ancestry_updated",
         out = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset"
+    log: config["outputs"]["output_dir"] + "logs/subset_ancestry.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} grep {wildcards.ancestry} {input.psam} > {output.keep}

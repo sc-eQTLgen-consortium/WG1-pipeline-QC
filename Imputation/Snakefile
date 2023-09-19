@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import os
 
+CHROMOSOMES = [str(chr) for chr in range(1, 23)]
+
 # Add trailing /.
 if not config["refs"]["ref_dir"].endswith("/"):
     config["refs"]["ref_dir"] += "/"
@@ -13,157 +15,241 @@ if not config["refs_extra"]["relative_phasing_dir"].endswith("/"):
 if not config["refs_extra"]["relative_imputation_dir"].endswith("/"):
     config["refs_extra"]["relative_imputation_dir"] += "/"
 
-# Check if input files exist.
-for plink_file_extension in [".pgen", ".pvar", ".psam"]:
-    if not os.path.exists(config["inputs"]["plink_path"]):
-        logger.info("Could not find the {} file. Please check that the file exists.\n\n Exiting.".format(config["inputs"]["plink_path"] + plink_file_extension))
-        exit()
-logger.info("Using these files as input:")
-logger.info("The pgen file: " + config["inputs"]["plink_path"] + ".pgen")
-logger.info("The pvar file: " + config["inputs"]["plink_path"] + ".pvar")
-logger.info("The psam file: " + config["inputs"]["plink_path"] + ".psam\n")
+# Check if the input files exist.
+input_option = []
 
-# Check if reference files exist.
-for ref_path in ["relative_vcf_path", "relative_fasta_path", "relative_map_path", "relative_imputation_path"]:
+# By default we assume that the input has to be converted to a single PLINK file (i.e. single VCF, VCF per chromosomes, or PLINK per chromosomes).
+plink_gender_ancestry_data = config["outputs"]["output_dir"] + "plink_gender_ancestry_input/data"
+if config["settings"]["is_wgs"]:
+    # If the input data is WGS we need to filter it first.
+    plink_gender_ancestry_data = config["outputs"]["output_dir"] + "wgs_filtered_vcf_to_pgen/data"
+
+# Option 1: single VCF file.
+if "CHR" not in config["inputs"]["genotype_path"] and os.path.exists(config["inputs"]["genotype_path"] + ".vcf.gz") and os.path.exists(config["inputs"]["genotype_path"] + ".vcf.gz.tbi"):
+    logger.info("Found a single VCF file as input:")
+    logger.info("\tThe VCF file: {}.vcf.gz".format(config["inputs"]["genotype_path"]))
+    logger.info("\tThe VCF index: {}.vcf.gz.tbi\n".format(config["inputs"]["genotype_path"]))
+    input_option.append("single VCF")
+
+# Option 2: single plink file.
+if "CHR" not in config["inputs"]["genotype_path"] and os.path.exists(config["inputs"]["genotype_path"] + ".pgen") and os.path.exists(config["inputs"]["genotype_path"] + ".pvar") and os.path.exists(config["inputs"]["genotype_path"] + ".psam"):
+    logger.info("Found a single PLINK file as input:")
+    logger.info("\tThe pgen file: {}.pgen".format(config["inputs"]["genotype_path"]))
+    logger.info("\tThe pvar file: {}.pvar".format(config["inputs"]["genotype_path"]))
+    logger.info("\tThe psam file: {}.psam\n".format(config["inputs"]["genotype_path"]))
+    input_option.append("single PLINK")
+
+    # If the input is a single PLINK file and not WGS (should never happen) we can skip te pre-processing steps.
+    if not config["settings"]["is_wgs"]:
+        plink_gender_ancestry_data = config["inputs"]["genotype_path"]
+
+# Option 3: VCF file per chromosome.
+if "CHR" in config["inputs"]["genotype_path"] and len(config["inputs"]["genotype_path"].split("CHR")) == 2:
+    chr_found = []
+    for chr in CHROMOSOMES:
+        if os.path.exists(config["inputs"]["genotype_path"].replace("CHR", chr) + ".vcf.gz") and os.path.exists(config["inputs"]["genotype_path"].replace("CHR", chr) + ".vcf.gz.tbi"):
+            chr_found.append(chr)
+
+    if chr_found == CHROMOSOMES:
+        logger.info("Found a VCF file per chromosomes as input:")
+        logger.info("\tThe VCF file: {}.vcf.gz".format(config["inputs"]["genotype_path"]))
+        logger.info("\tThe VCF index: {}.vcf.gz.tbi\n".format(config["inputs"]["genotype_path"]))
+        input_option.append("VCF per chromosome")
+
+# Option 4: PLINK file per chromosome.
+if "CHR" in config["inputs"]["genotype_path"] and len(config["inputs"]["genotype_path"].split("CHR")) == 2:
+    chr_found = []
+    for chr in CHROMOSOMES:
+        if os.path.exists(config["inputs"]["genotype_path"].replace("CHR", chr) + ".pgen") and os.path.exists(config["inputs"]["genotype_path"].replace("CHR", chr) + ".pvar") and os.path.exists(config["inputs"]["genotype_path"].replace("CHR", chr) + ".psam"):
+            chr_found.append(chr)
+
+    if chr_found == CHROMOSOMES:
+        logger.info("Found a PLINK file per chromosomes as input:")
+        logger.info("\tThe pgen file: {}.pgen".format(config["inputs"]["genotype_path"]))
+        logger.info("\tThe pvar file: {}.pvar".format(config["inputs"]["genotype_path"]))
+        logger.info("\tThe psam file: {}.psam\n".format(config["inputs"]["genotype_path"]))
+        input_option.append("PLINK per chromosome")
+
+# Check if there is exactly one valid input option.
+if len(input_option) == 0:
+    logger.info("Error, no valid genotype input found for {}.\n\nExiting.".format(config["inputs"]["genotype_path"]))
+    exit("WrongGenotypeInput")
+if len(input_option) > 1:
+    logger.info("Error, too many valid genotype inputs found for {}. The following options where valid: {}.\n\nExiting.".format(config["inputs"]["genotype_path"], ", ".join(input_option)))
+    exit("WrongGenotypeInput")
+
+# Check if the input is in VCF if WGS is true.
+if config["settings"]["is_wgs"] and "PLINK" in input_option[0]:
+    logger.info("Error, a VCF input is required for WGS filtering.\n\nExiting.")
+    exit("WrongWGSFilteringInputFile")
+
+# Check if the reference files exist.
+for ref_path in ["relative_vcf_path", "relative_fasta_path", "relative_map_path"]:
     if not os.path.exists(config["refs"]["ref_dir"] + config["refs_extra"][ref_path]):
-        logger.info("Could not find the {} file. Please check that the file exists.\n\n Exiting.".format(config["refs"]["ref_dir"] + config["refs_extra"][ref_path]))
-        exit()
-for chr in range (1, 23):
+        logger.info("Could not find the {} file. Please check that the file exists.\n\nExiting.".format(config["refs"]["ref_dir"] + config["refs_extra"][ref_path]))
+        exit("MissingReferenceFile")
+for chr in CHROMOSOMES:
     phasing_bcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"] + "chr{}.bcf".format(chr)
     phasing_bcf_index = phasing_bcf + ".csi"
-    if not os.path.exists(phasing_bcf_index) or not os.path.exists(phasing_bcf_index.index):
-        logger.info("Could not find the {}(.csi) file. Please check that the file exists.\n\n Exiting.".format(phasing_bcf_index))
-        exit()
+    if not os.path.exists(phasing_bcf_index) or not os.path.exists(phasing_bcf_index):
+        logger.info("Could not find the {}(.csi) file. Please check that the file exists.\n\nExiting.".format(phasing_bcf_index))
+        exit("MissingPhasingFile")
 
     imputation_file = config["refs"]["ref_dir"] + config["refs_extra"]["relative_imputation_dir"] + "chr{}.m3vcf.gz".format(chr)
     if not os.path.exists(imputation_file):
-        logger.info("Could not find the {} file. Please check that the file exists.\n\n Exiting.".format(imputation_file))
-        exit()
-logger.info("Found all the required reference files in " + config["refs"]["ref_dir"] + "\n")
+        logger.info("Could not find the {} file. Please check that the file exists.\n\nExiting.".format(imputation_file))
+        exit("MissingImputationFile")
 
-# Check if the CHR column in the PVAR file contains the word 'chr'.
-chr_in_pvar = False
-with open(config["inputs"]["pvar_path"]) as f:
-    for line in f:
-        if "chr" in line:
-            chr_in_pvar = True
-            break
-f.close()
-if chr_in_pvar:
-    logger.info("Looks like your chromosome encoding uses chr before the chromosome. For this pipeline, the chromosome encoding should not use chr. Please remove the 'chr' from your pvar file and try again. Exiting.")
-    exit()
+logger.info("Found all the required reference files:")
+logger.info("\tThe VCF file: {}".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"]))
+logger.info("\tThe fasta file: {}".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"]))
+logger.info("\tThe map file: {}".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_map_path"]))
+logger.info("\tThe phasing files: {}chrCHR.bcf".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"]))
+logger.info("\tThe imputation files: {}chrCHR.m3vcf.gz\n".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_imputation_dir"]))
 
-required_columns = {
-    '#FID': (False, False, {}),
-    'IID': (False, False, {}),
-    'PAT': (True, False, {}),
-    'MAT': (True, False, {}),
-    'SEX': (True, False, {1: "male", 2: "female", 0: "unknown"}),
-    'Provided_Ancestry': (False, True, {"AFR": "African",
-                                        "AMR": "Ad Mixed American",
-                                        "EAS": "East Asian",
-                                        "EUR": "European",
-                                        "SAS": "South Asian",
-                                        "NA": "unknown"}),
-    'genotyping_platform': (False, True, {}),
-    'array_available': (False, True, {"Y": "yes", "N": "no"}),
-    'wgs_available': (False, True, {"Y": "yes", "N": "no"}),
-    'wes_available': (False, True, {"Y": "yes", "N": "no"}),
-    'age': (True, True, {}),
-    'age_range': (False, True, {}),
-    'Study': (False, False, {}),
-    'smoking_status': (False, True, {"yes": "smokes at time of sample collection",
-                                     "past": "smoked in the past but not at time of sample collection",
-                                     "no": "never smoked",
-                                     "NA": "unknown smoking status"}),
-    'hormonal_contraception_use_currently': (False, True, {"yes": "currently using hormonal contraception",
-                                                           "no": "not currently using hormonal contraception",
-                                                           "NA": "unknown status of contraception use or male"}),
-    'menopause': (False, True, {"pre": "have not yet gone through menopause",
-                                "menopause": "currently going through menopause",
-                                "post": "completed menopause",
-                                "NA": "unknown menopause status or male"}),
-    'pregnancy_status': (False, True, {"yes": "pregnant at time of sample collection",
-                                       "no": "not pregnant at time of sample collection",
-                                       "NA": "unknown pregnancy status or male"})
-}
 
-# Validate the input PSAM file.
-psam_df = pd.read_csv(config["inputs"]["plink_path"] + ".psam", sep="\t")
-psam_df.fillna("NA", inplace=True)
-missing_columns = [column for column in required_columns.keys() if not column in psam_df.columns]
-if len(missing_columns) > 0:
-    logger.info("The column names of your psam file are not correct.\n\
-            The columns that you are missing or whose spelling does not match the required input is/are:\n{}\n\
-            They should be: '#FID', 'IID', 'PAT', 'MAT', 'SEX', 'Provided_Ancestry','genotyping_platform', 'array_available', 'wgs_available','wes_available', 'age', 'age_range', 'Study', 'smoking_status', 'hormonal_contraception_use_currently', 'menopause',  'pregnancy_status'.\n\
-            If the names look the same, check that the file is tab separated, without any spaces or other weird characters.\n\n\
-            Exiting.".format("\n".join(missing_columns)))
-    exit()
+# TODO: add this back in somewhere
+# # Check if the CHR column in the PVAR file contains the word 'chr'.
+# chr_in_pvar = False
+# with open(config["inputs"]["pvar_path"]) as f:
+#     for line in f:
+#         if "chr" in line:
+#             chr_in_pvar = True
+#             break
+# f.close()
+# if chr_in_pvar:
+#     logger.info("Looks like your chromosome encoding uses chr before the chromosome. For this pipeline, the chromosome encoding should not use chr. Please remove the 'chr' from your pvar file and try again. Exiting.")
+#     exit()
 
-### Check for underscores in the FID and IID columns - if there are, update and make new files
-for column, column_description in [("#FID", "family ids"), ("IID", "individual ids")]:
-    if psam_df[column].str.contains("_").any():
-        logger.info("Your {} in the psam ({} column) contain '_'.\
-        Underscores are not allowed in this column due to plink operations.\n\
-        Updating to dashes ('-').".format(column_description, column))
-        exit()
 
-# Check if the other columns are valid as well.
-for column, (is_numeric, na_allowed, valid_values) in required_columns.items():
-    # Check if numeric if need be. Some columns can have NA so then we need to only check the non NA rows.
-    if is_numeric:
-        values = psam_df[column]
-        if na_allowed:
-            values = psam_df.loc[psam_df[column] != "NA", column]
-        for value in values:
-            if not value.isnumeric():
-                logger.info("Your {} column is not numeric, please make sure there are only numeric values in this column.\n\
-                Exiting.".format(column))
-                exit()
+# Check if the input PSAM is valid.
+if os.path.exists(plink_gender_ancestry_data + ".psam"):
+    required_columns = {
+        '#FID': (False, False, {}),
+        'IID': (False, False, {}),
+        'PAT': (True, False, {}),
+        'MAT': (True, False, {}),
+        'SEX': (True, False, {1: "male", 2: "female", 0: "unknown"}),
+        'Provided_Ancestry': (False, True, {"AFR": "African",
+                                            "AMR": "Ad Mixed American",
+                                            "EAS": "East Asian",
+                                            "EUR": "European",
+                                            "SAS": "South Asian",
+                                            "NA": "unknown"}),
+        'genotyping_platform': (False, True, {}),
+        'array_available': (False, True, {"Y": "yes", "N": "no"}),
+        'wgs_available': (False, True, {"Y": "yes", "N": "no"}),
+        'wes_available': (False, True, {"Y": "yes", "N": "no"}),
+        'age': (True, True, {}),
+        'age_range': (False, True, {}),
+        'Study': (False, False, {}),
+        'smoking_status': (False, True, {"yes": "smokes at time of sample collection",
+                                         "past": "smoked in the past but not at time of sample collection",
+                                         "no": "never smoked",
+                                         "NA": "unknown smoking status"}),
+        'hormonal_contraception_use_currently': (False, True, {"yes": "currently using hormonal contraception",
+                                                               "no": "not currently using hormonal contraception",
+                                                               "NA": "unknown status of contraception use or male"}),
+        'menopause': (False, True, {"pre": "have not yet gone through menopause",
+                                    "menopause": "currently going through menopause",
+                                    "post": "completed menopause",
+                                    "NA": "unknown menopause status or male"}),
+        'pregnancy_status': (False, True, {"yes": "pregnant at time of sample collection",
+                                           "no": "not pregnant at time of sample collection",
+                                           "NA": "unknown pregnancy status or male"})
+    }
 
-    # TODO; empty string is allowed?
-    # Check if there are None or NA in the column.
-    if not na_allowed and "NA" in psam_df[column]:
-        logger.info("Your {} column is missing entires. NA values are not allowed in this column.\n\
-        Please make sure that all contents of the study column have a string entry.\n\
-        Exiting.".format(column))
-        exit()
+    logger.info("Validating input PSAM:")
+    psam_df = pd.read_csv(plink_gender_ancestry_data + ".psam", sep="\t")
+    psam_df.fillna("NA", inplace=True)
+    psam_is_valid = True
 
-    # Check if the values correspond with the accepted input values.
-    if valid_values and not psam_df[column].isin(valid_values.keys()).all():
-        logger.info("Your {} column does not have just {}, please make sure all values in this column are {}.\n\
-        Exiting.".format(column, ", ".join(valid_values), ", ".join(["{} ({})".format(key, value) for key, value in valid_values.items()])))
-        exit()
+    missing_columns = [column for column in required_columns.keys() if not column in psam_df.columns]
+    if len(missing_columns) > 0:
+        logger.info("\tThe column names of your psam file are not correct.\n"
+                    "The columns that you are missing or whose spelling does not match the required input is/are:\n{}.\n"
+                    "They should be: '#FID', 'IID', 'PAT', 'MAT', 'SEX', 'Provided_Ancestry','genotyping_platform', 'array_available', 'wgs_available','wes_available', 'age', 'age_range', 'Study', 'smoking_status', 'hormonal_contraception_use_currently', 'menopause',  'pregnancy_status'.\n"
+                    "If the names look the same, check that the file is tab separated, without any spaces or other weird characters.".format("\n".join(missing_columns)))
+        psam_is_valid = False
 
-# TODO: Not checking for np.nan, expecting all values to be non NA.
-# Check that the female columns are all NA for the males.
-for female_column in ["hormonal_contraception_use_currently", "menopause", "pregnancy_status"]:
-    if not (psam_df.loc[psam_df["SEX"] == 1, female_column] == "NA").all():
-        logger.info("There is a conflict between you SEX and your {} columns.\n\
-         All males (coded by 1 in SEX) must be NA for hormonal_contraception_use_currently.\n\
-         Please fix this before running the pipeline.\n\
-         Exiting.".format(female_column))
-        exit()
+    ### Check for underscores in the FID and IID columns - if there are, update and make new files
+    for column, column_description in [("#FID", "family ids"), ("IID", "individual ids")]:
+        if psam_df[column].str.contains("_").any():
+            logger.info("\tYour {} in the psam ({} column) contain '_'. Underscores are not allowed in this column due to plink operations.\n"
+                        "Updating to dashes ('-').".format(column_description, column))
+            psam_is_valid = False
+
+    # Check if the other columns are valid as well.
+    for column, (is_numeric, na_allowed, valid_values) in required_columns.items():
+        # Check if numeric if need be. Some columns can have NA so then we need to only check the non NA rows.
+        if is_numeric:
+            values = psam_df[column]
+            if na_allowed:
+                values = psam_df.loc[psam_df[column] != "NA", column]
+            for value in values:
+                if not str(value).replace(".", "").isnumeric():
+                    logger.info("\tYour {} column is not numeric, please make sure there are only numeric values in this column.".format(column))
+                    psam_is_valid = False
+                    break
+
+        # TODO; empty string is allowed?
+        # Check if there are None or NA in the column.
+        if not na_allowed and "NA" in psam_df[column]:
+            logger.info("\tYour {} column is missing entires. NA values are not allowed in this column.\n"
+                        "Please make sure that all contents of the study column have a string entry.".format(column))
+            psam_is_valid = False
+
+        # Check if the values correspond with the accepted input values.
+        if valid_values and not psam_df[column].isin(valid_values.keys()).all():
+            logger.info("\tYour {} column does not have just {}, please make sure all values in this column are {}.".format(column, ", ".join([str(x) for x in valid_values]), ", ".join(["{} ({})".format(key, value) for key, value in valid_values.items()])))
+            psam_is_valid = False
+
+    # TODO: Not checking for np.nan, expecting all values to be non NA.
+    # Check that the female columns are all NA for the males.
+    for female_column in ["hormonal_contraception_use_currently", "menopause", "pregnancy_status"]:
+        if not (psam_df.loc[psam_df["SEX"] == 1, female_column] == "NA").all():
+            logger.info("\tThere is a conflict between you SEX and your {} columns.\n"
+                        "All males (coded by 1 in SEX) must be NA for hormonal_contraception_use_currently.\n"
+                        "Please fix this before running the pipeline.".format(female_column))
+            psam_is_valid = False
+
+    if psam_is_valid:
+        logger.info("\tValid.\n")
+    else:
+        logger.info("\n\nExiting.")
+        exit("InvalidPSAM")
 
 #####################
 ######## ALL ########
 #####################
 input_files = []
 
-# Process the ancestry column in the psam.
-# ancestry_update_remove.tsv is created by the pca_projection_assign rule.
+# Add the endpoints for pre_processing.
+input_files.append(plink_gender_ancestry_data + ".pgen")
+input_files.append(plink_gender_ancestry_data + ".pvar")
+input_files.append(plink_gender_ancestry_data + ".psam")
+
+# Define manual selection paths.
 ancestry_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv"
+sex_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv"
+ancestry_maf_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_mafs.tsv"
+
+# Add the manual selection files created by rule pca_projection_assign.
+input_files.append(ancestry_man_select_path)
+input_files.append(sex_man_select_path)
+
+# Process the ancestry column in the psam.
 ancestry_updated_psam_path = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_updated.psam"
-maf_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_mafs.tsv"
 ancestry_updated_psam_df = None
+ANCESTRIES = []
+ANCESTRY_MAF_DICT = {}
 if os.path.exists(ancestry_man_select_path):
     # Check if the processed psam already exists (happens if you do multiple dry_runs).
     if not os.path.exists(ancestry_updated_psam_path):
         ancestry_check = pd.read_csv(ancestry_man_select_path, sep="\t")
         if not ancestry_check.loc[ancestry_check["UPDATE/REMOVE/KEEP"].isin(['UPDATE', 'REMOVE', 'KEEP']), "UPDATE/REMOVE/KEEP"].count() == len(ancestry_check):
-            logger.info("Your UPDATE/REMOVE/KEEP column in ancestry_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\
-            Exiting.")
-            exit()
+            logger.info("Your UPDATE/REMOVE/KEEP column in ancestry_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
+            exit("WrongAncestryUpdateFile")
 
         # if there are any individuals chosen to remove, remove them from the psam.
         ancestry_updated_psam_df = psam_df.loc[psam_df["UPDATE/REMOVE/KEEP"] != "REMOVE", :].copy()
@@ -178,52 +264,50 @@ if os.path.exists(ancestry_man_select_path):
     else:
         # If the user wants to recreate it, it should just remove the existing file.
         logger.info("Warning, updated_psam.psam already exists, using existing file")
-        ancestry_updated_psam_df = pd.read_csv(ancestry_updated_psam_path,sep="\t", index_col=None, header=0)
+        ancestry_updated_psam_df = pd.read_csv(ancestry_updated_psam_path, sep="\t", index_col=None, header=0)
 
-# If the ancestry have been updated we can ask the user for the MAF values.
-ancestry_maf_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_mafs.tsv"
-ancestry_maf_dict = {}
-ANCESTRIES = []
-if ancestry_updated_psam_df is not None:
+    # If the ancestry have been updated we can ask the user for the MAF values.
     ancestry_counts = ancestry_updated_psam_df["Provided_Ancestry"].counts()
-    if os.path.exists(ancestry_maf_select_path):
+    if os.path.exists(ancestry_maf_man_select_path):
         # File already exists, check if the input is valid.
-        maf_df = pd.read_csv(config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_mafs.tsv", sep="\t", index_col=None, header=0)
+        maf_df = pd.read_csv(ancestry_maf_man_select_path, sep="\t", index_col=None, header=0)
 
-        ancestries = []
         for _, row in maf_df.iterrows():
             if row["MAF"] == "NA":
                 logger.info("You indicated that you don't want to impute {:,} individuals from {} ancestry.".format(ancestry_counts[row["Ancestry"]], row["Ancestry"]))
             elif not value.isnumeric():
-                logger.info("Your MAF column in ancestry_mafs.tsv is not NA nor numeric, please make sure there are only numeric values in this column.\n\
-                Exiting.".format(column))
-                exit()
+                logger.info("Your MAF column in ancestry_mafs.tsv is not NA nor numeric, please make sure there are only numeric values in this column.\n\nExiting.".format(column))
+                exit("WrongMAFFile")
             else:
                 logger.info("You indicated that you want to impute {:,} individuals from {} ancestry with MAF {}.".format(ancestry_counts[row["Ancestry"]], row["Ancestry"], row["MAF"]))
-                ancestries.append(row["Ancestry"])
+                ANCESTRIES.append(row["Ancestry"])
 
         maf_df["MAF"] = maf_df["MAF"].astype(float)
-        ancestry_maf_dict = dict(zip(maf_df["Ancestry"], maf_df["MAF"]))
-        ANCESTRIES = maf_df["Ancestry"]
+        ANCESTRY_MAF_DICT = dict(zip(maf_df["Ancestry"], maf_df["MAF"]))
+
+        # Add the endpoints for plink_gender_ancestry_QC.
+        input_files.append(expand(config["outputs"]["output_dir"] + "/subset_ancestry/{ancestry}_subset.pgen", ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "/subset_ancestry/{ancestry}_subset.pvar", ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "/subset_ancestry/{ancestry}_subset.psam", ancestry=ANCESTRIES))
     else:
         # Generate the MAF selection file.
-        pd.DataFrame({'Ancestry': [ancestry for ancestry in ancestry_counts.index], 'MAF': np.nan}).to_csv(ancestry_maf_select_path, sep="\t", index=False)
+        pd.DataFrame({'Ancestry': [ancestry for ancestry in ancestry_counts.index], 'MAF': np.nan}).to_csv(ancestry_maf_man_select_path, sep="\t", index=False)
 
 # Update the sex column in the psam (rule update_sex_ancestry does this for some reason).
 # sex_update_remove.tsv is created by the pca_projection_assign rule.
-sex_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv"
 sex_ancestry_updated_psam_path = config["outputs"]["output_dir"] + "pca_sex_checks/sex_ancestry_updated.psam"
 if ancestry_updated_psam_df is not None and os.path.exists(sex_man_select_path) and not os.path.exists(sex_ancestry_updated_psam_path):
     sex_check = pd.read_csv(sex_man_select_path, sep="\t")
     if sex_check.loc[sex_check["UPDATE/REMOVE/KEEP"].isin(['UPDATE', 'REMOVE', 'KEEP']), "UPDATE/REMOVE/KEEP"].count() == len(sex_check):
-        logger.info("Your UPDATE/REMOVE/KEEP column in sex_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\
-        Exiting.")
-        exit()
+        logger.info("Your UPDATE/REMOVE/KEEP column in sex_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
+        exit("WrongSexUpdateRemove")
 
-    # endpoint for rule calculate_missingness.
+    # Add the endpoints for rule summary_ancestry_sex.
+    input_files.append(config["outputs"]["output_dir"] + "metrics/sex_summary.png")
+    input_files.append(config["outputs"]["output_dir"] + "metrics/ancestry_summary.png")
+
+    # Add the endpoints for urmo_imputation_hg38 (rule calculate_missingness + rule count_snps).
     input_files.append(config["outputs"]["output_dir"] + "genotype_donor_annotation/genotype_donor_annotation.tsv")
-
-    # endpoint for rule count_snps.
     input_files.append(config["outputs"]["output_dir"] + "metrics/Number_SNPs.png")
 
 
@@ -236,5 +320,6 @@ rule all:
 ############################
 
 # Import individual rules
+include: "includes/pre_processing.smk"
 include: "includes/plink_gender_ancestry_QC.smk"
 include: "includes/urmo_imputation_hg38.smk"
