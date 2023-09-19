@@ -219,16 +219,16 @@ rule popscle_bam_filter:
     shell:
         """
         mkdir -p {params.out_dir} && \
-        singularity exec --bind {params.bind} {params.sif} bedtools merge \
-            -i {input.vcf} | singularity exec \
-                --bind {params.bind} {params.sif} samtools view \
-                    --target-file \
-                    - \
-                    --tag-file {params.tag_group}:<(zcat {input.barcodes}) \
-                    --output {output.bam} \
-                    --write-index \
-                    --threads {threads} \
-                    {input.bam}
+            singularity exec --bind {params.bind} {params.sif} bedtools merge \
+                -i {input.vcf} | singularity exec \
+                    --bind {params.bind} {params.sif} samtools view \
+                        --target-file \
+                        - \
+                        --tag-file {params.tag_group}:<(zcat {input.barcodes}) \
+                        --output {output.bam} \
+                        --write-index \
+                        --threads {threads} \
+                        {input.bam}
         """
 
 
@@ -572,6 +572,7 @@ rule DoubletDetection:
         voter_thresh = lambda wildcards: doubletdetection_params_dict["voter_thresh"][wildcards.pool],
         step = doubletdetection_params_dict["step"],
         out = config["outputs"]["output_dir"] + "{pool}/DoubletDetection/"
+    log: config["outputs"]["output_dir"] + "logs/DoubletDetection.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \
