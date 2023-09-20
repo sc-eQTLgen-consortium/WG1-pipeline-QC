@@ -302,6 +302,17 @@ if ancestry_updated_psam_df is not None and os.path.exists(sex_man_select_path) 
         logger.info("Your UPDATE/REMOVE/KEEP column in sex_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
         exit("WrongSexUpdateRemove")
 
+    # Add the endpoints for harmonize_hg38. This forces rule split_by_chr_for_harmonize to be executed, splitting the VCF
+    # per chromosome before running GenotypeHarmonizer.jar. This needed because WGS files are often too big to be run in one go.
+    if config["settings"]["is_wgs"]:
+        input_files.append(expand(config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}.bed", ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}.bim", ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}.fam", ancestry=ANCESTRIES))
+    else:
+        input_files.append(expand(config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}.bed", ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}.bim", ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}.fam", ancestry=ANCESTRIES))
+
     # Add the endpoints for rule summary_ancestry_sex.
     input_files.append(config["outputs"]["output_dir"] + "metrics/sex_summary.png")
     input_files.append(config["outputs"]["output_dir"] + "metrics/ancestry_summary.png")

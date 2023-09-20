@@ -99,9 +99,6 @@ imputation:
   sort_bed_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   sort_bed_threads: 1 ### Number of threads to use
 
-  split_by_chr1_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  split_by_chr1_threads: 1 ### Number of threads to use
-
   harmonize_hg38_java_memory: 25 ### Memory passed to java for GenotypeHarmonizer.jar in GB. 25GB is typically sufficient but if you are getting java memory issues with this rule, increase the java memory (and make sure you have enough memory allocated to the job to cover it)
   harmonize_hg38_memory: 10 ### Amount of gigs that will be used for memory and disk space per thread
   harmonize_hg38_threads: 5 ### Number of threads to use
@@ -126,8 +123,8 @@ imputation:
   calculate_missingness_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   calculate_missingness_threads: 1 ### Number of threads to use
 
-  split_by_chr2_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  split_by_chr2_threads: 1 ### Number of threads to use
+  split_by_chr_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  split_by_chr_threads: 1 ### Number of threads to use
 
   eagle_prephasing_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
   eagle_prephasing_threads: 8 ### Number of threads to use
