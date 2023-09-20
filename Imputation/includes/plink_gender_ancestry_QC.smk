@@ -143,18 +143,18 @@ rule prune_1000g:
         pvar = config["outputs"]["output_dir"] + "common_snps/subset_data.pvar",
         psam = config["outputs"]["output_dir"] + "common_snps/subset_data.psam",
     output:
-        prune_out_1000g = config["outputs"]["output_dir"] + "common_snps/subset_pruned_1000g.prune.out",
-        pgen_1000g = config["outputs"]["output_dir"] + "common_snps/subset_pruned_1000g.pgen",
-        pvar_1000g = config["outputs"]["output_dir"] + "common_snps/subset_pruned_1000g.pvar",
-        psam_1000g = config["outputs"]["output_dir"] + "common_snps/subset_pruned_1000g.psam",
-        data_1000g_key = config["outputs"]["output_dir"] + "common_snps/subset_pruned_data_1000g_key.txt",
-        prune_out = config["outputs"]["output_dir"] + "common_snps/subset_data.prune.out",
-        pgen = config["outputs"]["output_dir"] + "common_snps/subset_pruned_data.pgen",
-        pvar = config["outputs"]["output_dir"] + "common_snps/subset_pruned_data.pvar",
-        psam = config["outputs"]["output_dir"] + "common_snps/subset_pruned_data.psam",
-        pvar_old = config["outputs"]["output_dir"] + "common_snps/subset_pruned_data_original.pvar",
-        SNPs2keep = config["outputs"]["output_dir"] + "common_snps/SNPs2keep.txt",
-        pvar_temp = config["outputs"]["output_dir"] + "common_snps/subset_pruned_data_temp.pvar"
+        prune_out_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.prune.out",
+        pgen_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pgen",
+        pvar_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pvar",
+        psam_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.psam",
+        data_1000g_key = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data_1000g_key.txt",
+        prune_out = config["outputs"]["output_dir"] + "prune_1000g/subset_data.prune.out",
+        pgen = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.pgen",
+        pvar = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.pvar",
+        psam = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.psam",
+        pvar_old = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data_original.pvar",
+        SNPs2keep = config["outputs"]["output_dir"] + "prune_1000g/SNPs2keep.txt",
+        pvar_temp = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data_temp.pvar"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["prune_1000g_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["prune_1000g_memory"]
@@ -162,8 +162,8 @@ rule prune_1000g:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        out_1000g = config["outputs"]["output_dir"] + "common_snps/subset_pruned_1000g",
-        out = config["outputs"]["output_dir"] + "common_snps/subset_pruned_data"
+        out_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g",
+        out = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data"
     log: config["outputs"]["output_dir"] + "logs/prune_1000g.log"
     shell:
         """
@@ -216,13 +216,13 @@ rule prune_1000g:
 ### put in contingency for duplicated snps - remove from both 1000G and your dataset
 rule final_pruning: 
     input:
-        pgen = config["outputs"]["output_dir"] + "common_snps/subset_pruned_data.pgen",
-        pvar = config["outputs"]["output_dir"] + "common_snps/subset_pruned_data.pvar",
-        psam = config["outputs"]["output_dir"] + "common_snps/subset_pruned_data.psam",
+        pgen = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.pgen",
+        pvar = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.pvar",
+        psam = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.psam",
     output:
-        pgen = config["outputs"]["output_dir"] + "common_snps/final_subset_pruned_data.pgen",
-        pvar = config["outputs"]["output_dir"] + "common_snps/final_subset_pruned_data.pvar",
-        psam = config["outputs"]["output_dir"] + "common_snps/final_subset_pruned_data.psam",
+        pgen = config["outputs"]["output_dir"] + "final_pruning/final_subset_pruned_data.pgen",
+        pvar = config["outputs"]["output_dir"] + "final_pruning/final_subset_pruned_data.pvar",
+        psam = config["outputs"]["output_dir"] + "final_pruning/final_subset_pruned_data.psam",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["final_pruning_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["final_pruning_memory"]
@@ -230,7 +230,7 @@ rule final_pruning:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        out = config["outputs"]["output_dir"] + "common_snps/final_subset_pruned_data"
+        out = config["outputs"]["output_dir"] + "final_pruning/final_subset_pruned_data"
     log: config["outputs"]["output_dir"] + "logs/final_pruning.log"
     shell:
         """
@@ -248,9 +248,9 @@ rule final_pruning:
 ### use PCA from plink for PCA and projection
 rule pca_1000g:
     input:
-        pgen_1000g = config["outputs"]["output_dir"] + "common_snps/subset_pruned_1000g.pgen",
-        pvar_1000g = config["outputs"]["output_dir"] + "common_snps/subset_pruned_1000g.pvar",
-        psam_1000g = config["outputs"]["output_dir"] + "common_snps/subset_pruned_1000g.psam"
+        pgen_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pgen",
+        pvar_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pvar",
+        psam_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.psam"
     output:
         frq = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.acount",
         eig_all = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.eigenvec.allele",
@@ -283,14 +283,14 @@ rule pca_1000g:
 ### use plink pca results to plot with R ###
 rule pca_project:
     input:
-        pgen = config["outputs"]["output_dir"] + "common_snps/final_subset_pruned_data.pgen",
-        pvar = config["outputs"]["output_dir"] + "common_snps/final_subset_pruned_data.pvar",
-        psam = config["outputs"]["output_dir"] + "common_snps/final_subset_pruned_data.psam",
+        pgen = config["outputs"]["output_dir"] + "final_pruning/final_subset_pruned_data.pgen",
+        pvar = config["outputs"]["output_dir"] + "final_pruning/final_subset_pruned_data.pvar",
+        psam = config["outputs"]["output_dir"] + "final_pruning/final_subset_pruned_data.psam",
         frq = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.acount",
         eig_all = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.eigenvec.allele",
-        pgen_1000g = config["outputs"]["output_dir"] + "common_snps/subset_pruned_1000g.pgen",
-        pvar_1000g = config["outputs"]["output_dir"] + "common_snps/subset_pruned_1000g.pvar",
-        psam_1000g = config["outputs"]["output_dir"] + "common_snps/subset_pruned_1000g.psam"
+        pgen_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pgen",
+        pvar_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pvar",
+        psam_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.psam"
     output:
         projected_scores = config["outputs"]["output_dir"] + "pca_projection/final_subset_pruned_data_pcs.sscore",
         projected_1000g_scores = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs_projected.sscore"

@@ -317,18 +317,15 @@ if ancestry_updated_psam_df is not None and os.path.exists(sex_man_select_path) 
     input_files.append(config["outputs"]["output_dir"] + "metrics/sex_summary.png")
     input_files.append(config["outputs"]["output_dir"] + "metrics/ancestry_summary.png")
 
-    # Add the endpoints for urmo_imputation_hg38 (rule calculate_missingness + rule count_snps).
+    # Add the endpoints for rule combine_vcfs_ancestry.
     input_files.append(config["outputs"]["output_dir"] + "genotype_donor_annotation/genotype_donor_annotation.tsv")
-    input_files.append(config["outputs"]["output_dir"] + "metrics/Number_SNPs.png")
+    input_files.append(expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz", ancestry=ANCESTRIES))
+    input_files.append(expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi", ancestry=ANCESTRIES))
 
 
 rule all:
     input:
         input_files
-
-############################
-######## IMPUTATION ########
-############################
 
 # Import individual rules
 include: "includes/pre_processing.smk"

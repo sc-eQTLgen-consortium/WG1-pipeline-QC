@@ -10,7 +10,7 @@ inputs:
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
   samplesheet_filepath: /path/to/sample/metadata/file.tsv ### tab separated file that has a header. Each line has a pool name used for the scRNA-seq directories and the number of individuals in each pool
   sample_file_paths: /path/to/scRNAseq/parent/directory ###
-  vcf: /path/to/individual_genotypes.vcf ### the path to the genotype file that has just SNPs that are within exons and with a minor allele frequency > 0.05 (5%) in this sample
+  vcf: [] ### the path to the genotype file(s) per ancestry
   individual_list_dir: /path/to/individual_list/directory/ ### Directory that has a different file for each pool. Each file contains a list of the individuals IDs that are in the pool separated by line (match the genotype individual IDs)
 
 outputs: 
@@ -24,6 +24,20 @@ settings:
 ##############################################################################################################
 ##### The following arguments are common parameters that may need to be changed depending on the dataset #####
 ##############################################################################################################
+demultiplex_preprocessing:
+  combine_vcfs_all_memory: 2 ### Amount of gigs that will be used for memory and disk space per thread
+  combine_vcfs_all_threads: 2 ### Number of threads to use
+
+  filter4demultiplexing_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  filter4demultiplexing_threads: 4 ### Number of threads to use
+
+  sort4demultiplexing_java_memory: 10 ### Memory passed to java for picard.jar in GB.
+  sort4demultiplexing_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  sort4demultiplexing_threads: 5 ### Number of threads to use
+
+  count_snps_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
+  count_snps_threads: 2 ### Number of threads to use
+
 popscle:
   popscle_bam_filter_memory: 10 ### This is the number of gigs that will be used for memory when subsetting the bam file.
   popscle_bam_filter_threads : 4 ### This is the number of threads that will be used for memory when subsetting the bam file.

@@ -120,6 +120,9 @@ imputation:
   het_filter_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   het_filter_threads: 1 ### Number of threads to use
 
+  genotype_donor_annotation_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  genotype_donor_annotation_threads: 1 ### Number of threads to use
+
   calculate_missingness_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   calculate_missingness_threads: 1 ### Number of threads to use
 
@@ -135,22 +138,6 @@ imputation:
 
   combine_vcfs_ancestry_memory: 2 ### Amount of gigs that will be used for memory and disk space per thread
   combine_vcfs_ancestry_threads: 2 ### Number of threads to use
-
-  combine_vcfs_all_memory: 2 ### Amount of gigs that will be used for memory and disk space per thread
-  combine_vcfs_all_threads: 2 ### Number of threads to use
-
-  filter4demultiplexing_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  filter4demultiplexing_threads: 4 ### Number of threads to use
-  
-  sort4demultiplexing_java_memory: 10 ### Memory passed to java for picard.jar in GB.
-  sort4demultiplexing_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  sort4demultiplexing_threads: 5 ### Number of threads to use
-
-  count_snps_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
-  count_snps_threads: 2 ### Number of threads to use
-
-  genotype_donor_annotation_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  genotype_donor_annotation_threads: 1 ### Number of threads to use
 
 ############################################################################################################################################
 ##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####

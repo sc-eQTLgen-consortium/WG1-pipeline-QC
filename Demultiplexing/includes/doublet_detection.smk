@@ -5,7 +5,7 @@
 #####################################
 rule DoubletFinder:
     input:
-        counts = SAMPLES.loc["{pool}", "Counts"]
+        counts = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "Counts"]
     output:
         doublets = config["outputs"]["output_dir"] + "{pool}/DoubletFinder/DoubletFinder_doublets_singlets.tsv",
         summary = config["outputs"]["output_dir"] + "{pool}/DoubletFinder/DoubletFinder_doublet_summary.tsv"
@@ -35,7 +35,7 @@ rule DoubletFinder:
 #####################################
 rule scDblFinder:
     input:
-        counts = SAMPLES.loc["{pool}", "Counts"]
+        counts = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "Counts"]
     output:
         doublets = config["outputs"]["output_dir"] + "{pool}/scDblFinder/scDblFinder_doublets_singlets.tsv",
         summary = config["outputs"]["output_dir"] + "{pool}/scDblFinder/scDblFinder_doublet_summary.tsv"
@@ -76,18 +76,18 @@ else:
     doubletdetection_params_dict = {
         "log": "default_run_variables.txt",
         "step": "default",
-        "n_iterations": {pool: config["doubletdetection_extra"]["n_iterations"] for pool in SAMPLES["Pool"]},
-        "phenograph": {pool: config["doubletdetection_extra"]["phenograph"] for pool in SAMPLES["Pool"]},
-        "standard_scaling": {pool: config["doubletdetection_extra"]["standard_scaling"] for pool in SAMPLES["Pool"]},
-        "p_thresh": {pool: config["doubletdetection_extra"]["p_thresh"] for pool in SAMPLES["Pool"]},
-        "voter_thresh": {pool: config["doubletdetection_extra"]["voter_thresh"] for pool in SAMPLES["Pool"]}
+        "n_iterations": {pool: config["doubletdetection_extra"]["n_iterations"] for pool in SAMPLES},
+        "phenograph": {pool: config["doubletdetection_extra"]["phenograph"] for pool in SAMPLES},
+        "standard_scaling": {pool: config["doubletdetection_extra"]["standard_scaling"] for pool in SAMPLES},
+        "p_thresh": {pool: config["doubletdetection_extra"]["p_thresh"] for pool in SAMPLES},
+        "voter_thresh": {pool: config["doubletdetection_extra"]["voter_thresh"] for pool in SAMPLES}
     }
 
 
 rule DoubletDetection:
     input:
-        counts = SAMPLES.loc["{pool}", "Counts"],
-        barcodes = SAMPLES.loc["{pool}", "Barcodes"],
+        counts = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "Counts"],
+        barcodes = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "Barcodes"],
     output:
         doublets = config["outputs"]["output_dir"] + "{pool}/DoubletDetection/DoubletDetection_doublets_singlets.tsv",
         figure = report(config["outputs"]["output_dir"] + "{pool}/DoubletDetection/convergence_test.pdf", category = "DoubletDetection", subcategory = "{pool}", caption = "../report_captions/DoubletDetection.rst"),
@@ -135,7 +135,7 @@ rule DoubletDetection:
 ##############################
 rule scds:
     input:
-        counts = SAMPLES.loc["{pool}", "Counts"]
+        counts = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "Counts"]
     output:
         doublets = config["outputs"]["output_dir"] + "{pool}/scds/scds_doublets_singlets.tsv",
         summary = config["outputs"]["output_dir"] + "{pool}/scds/scds_doublet_summary.tsv"
@@ -171,13 +171,13 @@ else:
     logger.info("Running Scrublet with default settings since 'run_scrublet_manual' is set to False.")
     scrublet_params_dict = {
         "step": "default",
-        "scrublet_doublet_threshold": {pool: None for pool in SAMPLES["Pool"]}
+        "scrublet_doublet_threshold": {pool: None for pool in SAMPLES}
     }
 
 rule Scrublet:
     input:
-        counts = SAMPLES.loc["{pool}", "Counts"],
-        barcodes = SAMPLES.loc["{pool}", "Barcodes"]
+        counts = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "Counts"],
+        barcodes = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "Barcodes"]
     output:
         figure = report(config["outputs"]["output_dir"] + "{pool}/Scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "../report_captions/Scrublet.rst", subcategory = "{pool}"),
         umap = report(config["outputs"]["output_dir"] + "{pool}/Scrublet_{pctl}/UMAP.png", category = "Scrublet", caption = "../report_captions/Scrublet.rst", subcategory = "{pool}"),

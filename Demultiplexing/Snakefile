@@ -1,23 +1,26 @@
 #!/usr/bin/env python
-import numpy as np
 import pandas as pd
 import os
 
 # Get the samples.
-SAMPLES = pd.read_csv(config["inputs"]["samplesheet_filepath"], sep="\t")
-SAMPLES = SAMPLES.iloc[:1, :] #TODO: remove
-SAMPLES.columns = ["Pool", "N"]
-SAMPLES["Pool"] = SAMPLES["Pool"].astype(str)
+SAMPLES_DF = pd.read_csv(config["inputs"]["samplesheet_filepath"], sep="\t")
+SAMPLES_DF = SAMPLES_DF.iloc[:1, :] #TODO: remove
+for column in ["Pool", "N"]:
+    if column not in SAMPLES_DF:
+        logger.info("\nERROR: column '{}' is missing in the samplesheet_filepath.\n\n Exiting.".format(column))
+        quit()
+SAMPLES_DF["Pool"] = SAMPLES_DF["Pool"].astype(str)
 
 # Get the file paths.
 FILE_PATHS = pd.read_csv(config["inputs"]["sample_file_paths"], sep="\t")
 FILE_PATHS = FILE_PATHS.iloc[:1, :] #TODO: remove
+FILE_PATHS["Pool"] = FILE_PATHS["Pool"].astype(str)
 for column in ["Pool", "Bam", "Counts", "Barcodes"]:
     if column not in FILE_PATHS:
         logger.info("\nERROR: column '{}' is missing in the sample_file_paths.\n\n Exiting.".format(column))
         quit()
-for pool in SAMPLES["Pool"]:
-    if not pool in FILE_PATHS["Pool"]:
+for pool in SAMPLES_DF["Pool"]:
+    if not pool in FILE_PATHS["Pool"].values:
         logger.info("\nERROR: pool '{}' is missing in the sample_file_paths.\n\n Exiting.".format(pool))
         quit()
 for _, row in FILE_PATHS.iterrows():
@@ -25,7 +28,9 @@ for _, row in FILE_PATHS.iterrows():
         if not os.path.exists(row[column]):
             logger.info("\nERROR: file '{}' for pool '{}' in the sample_file_paths does not exist.\n\n Exiting.".format(column, row["Pool"]))
             quit()
-SAMPLES = SAMPLES.merge(FILE_PATHS, on="Pool", how="left")
+SAMPLES_DF = SAMPLES_DF.merge(FILE_PATHS, on="Pool", how="left")
+SAMPLES = SAMPLES_DF["Pool"]
+SAMPLES_DF.set_index("Pool", inplace=True)
 
 # Find which methods to run.
 METHODS = []
@@ -38,6 +43,13 @@ elif config["settings"]["sc_data_type"] == "single-nucleus":
 else:
     logger.info("\nERROR: the 'sc_data_type' variable in the configuration file is not recognised. Please use 'single-cell' or 'single-nucleus'.\n\n Exiting.")
     quit()
+
+# Check if input vcf exists.
+if "popscle" in METHODS or "souporcell" in METHODS:
+    for vcf in config["inputs"]["vcf"]:
+        if not os.path.exists(vcf) or not os.path.exists(vcf + ".csi"):
+            logger.info("\nERROR: the VCF input file (index) does not exist.\n\n Exiting.")
+            quit()
 
 # Add trailing /.
 if not config["refs"]["ref_dir"].endswith("/"):
@@ -60,17 +72,19 @@ def get_all_input(wildcards):
     input_files = []
 
     if "popscle" in METHODS:
-        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best", pool=SAMPLES["Pool"]))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "count_snps/Number_SNPs.png"))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best", pool=SAMPLES))
 
     if "souporcell" in METHODS:
-        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv", pool=SAMPLES["Pool"]))
-        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt", pool=SAMPLES["Pool"]))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "count_snps/Number_SNPs.png"))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_summary.tsv", pool=SAMPLES))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt", pool=SAMPLES))
 
     if "DoubletFinder" in METHODS:
-        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/DoubletFinder/DoubletFinder_doublets_singlets.tsv", pool=SAMPLES["Pool"]))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/DoubletFinder/DoubletFinder_doublets_singlets.tsv", pool=SAMPLES))
 
     if "scDblFinder" in METHODS:
-        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/scDblFinder/scDblFinder_doublets_singlets.tsv", pool=SAMPLES["Pool"]))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/scDblFinder/scDblFinder_doublets_singlets.tsv", pool=SAMPLES))
 
     doubletdetection_passed = False
     if "DoubletDetection" in METHODS:
@@ -78,7 +92,7 @@ def get_all_input(wildcards):
             os.mkdir(config["outputs"]["output_dir"] + "manual_selections")
 
         man_select_path = config["outputs"]["output_dir"] + "manual_selections/DoubletDetection_manual_selection.tsv"
-        empty_select_df = pd.DataFrame({"Pool": SAMPLES["Pool"], "Result": np.nan})
+        empty_select_df = pd.DataFrame({"Pool": SAMPLES, "Result": "TBD"})
         if os.path.exists(man_select_path):
             logger.info("Read in the DoubletDetection manual selection file.")
             selection = pd.read_csv(man_select_path, sep="\t", index_col=None)
@@ -88,7 +102,7 @@ def get_all_input(wildcards):
                 selection["Result"] = selection["Result"].astype(str)
 
                 # Check if the pools still match.
-                if len(set(SAMPLES["Pool"]).intersection(set(selection["Pool"]))) != SAMPLES.shape[0]:
+                if len(set(SAMPLES).intersection(set(selection["Pool"]))) != SAMPLES.shape[0]:
                     logger.info("ERROR: the DoubletDetection_manual_selection.tsv does not contain the same pools as the samplesheet.")
                     exit()
 
@@ -114,11 +128,11 @@ def get_all_input(wildcards):
                         os.remove(fname)
             else:
                 logger.info("Running the default DoubletDetection rules since 'run_doubletdetection_manual' is set to False.")
-                doubletdetection_files = [config["outputs"]["output_dir"] + pool + "/DoubletDetection/DoubletDetection_doublets_singlets.tsv" for pool in SAMPLES["Pool"]]
+                doubletdetection_files = [config["outputs"]["output_dir"] + pool + "/DoubletDetection/DoubletDetection_doublets_singlets.tsv" for pool in SAMPLES]
             input_files.extend(doubletdetection_files)
 
     if "scds" in METHODS:
-        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/scds/scds_doublets_singlets.tsv", pool=SAMPLES["Pool"]))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/scds/scds_doublets_singlets.tsv", pool=SAMPLES))
 
     scrublet_passed = False
     if "Scrublet" in METHODS:
@@ -126,7 +140,7 @@ def get_all_input(wildcards):
             os.mkdir(config["outputs"]["output_dir"] + "manual_selections")
 
         man_select_path = config["outputs"]["output_dir"] + "manual_selections/Scrublet_percentile_manual_selection.tsv"
-        empty_select_df = pd.DataFrame({"Pool": SAMPLES["Pool"], "GeneVariabilityPctl": np.nan})
+        empty_select_df = pd.DataFrame({"Pool": SAMPLES, "GeneVariabilityPctl": "TBD"})
         if os.path.exists(man_select_path):
             # Find which thresholds were selected.
             logger.info("Read in the Scrublet manual selection file.")
@@ -137,7 +151,7 @@ def get_all_input(wildcards):
                 selection["GeneVariabilityPctl"] = selection["GeneVariabilityPctl"].astype(str)
 
                 # Check if the pools still match.
-                if len(set(SAMPLES["Pool"]).intersection(set(selection["Pool"]))) != SAMPLES.shape[0]:
+                if len(set(SAMPLES).intersection(set(selection["Pool"]))) != SAMPLES.shape[0]:
                     logger.info("ERROR: the Scrublet_percentile_manual_selection.tsv file does not contain the same pools as the sample sheet.")
                     exit()
 
@@ -182,11 +196,11 @@ def get_all_input(wildcards):
                         os.remove(fname)
             else:
                 logger.info("Running the default Scrublet rules since 'run_scrublet_manual' is set to False.")
-                scrublet_files = [config["outputs"]["output_dir"] + pool + "/Scrublet_" + str(pctl) + "/Scrublet_doublets_singlets.tsv" for pool in SAMPLES["Pool"] for pctl in config["scrublet"]["percentile"]]
+                scrublet_files = [config["outputs"]["output_dir"] + pool + "/Scrublet_" + str(pctl) + "/Scrublet_doublets_singlets.tsv" for pool in SAMPLES for pctl in config["scrublet"]["percentile"]]
             input_files.extend(scrublet_files)
 
     if ("DoubletDetection" not in METHODS or doubletdetection_passed) and ("Scrublet" not in METHODS or scrublet_passed):
-        return expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv", pool=SAMPLES["Pool"])
+        return expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv", pool=SAMPLES)
 
     return input_files
 

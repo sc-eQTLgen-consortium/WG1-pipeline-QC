@@ -1,15 +1,135 @@
 #!/usr/bin/env python
 
+#########################################
+############# PREPROCESSING #############
+#########################################
+
+
+# In case of multiple inputs
+rule combine_vcfs_all:
+    input:
+        vcfs = config["inputs"]["vcf"],
+        indices = [vcf + ".csi" for vcf in config["inputs"]["vcf"]]
+    output:
+        vcf = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38.vcf.gz.csi"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["combine_vcfs_all_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["combine_vcfs_all_memory"]
+    threads: config["demultiplex_preprocessing"]["combine_vcfs_all_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"],
+    log: config["outputs"]["output_dir"] + "logs/combine_vcfs_all.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} bcftools merge -Oz {input.vcfs} > {output.vcf}
+        singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
+        """
+
+# Add all the info fields
+# Filter the Imputed SNP Genotype by Minor Allele Frequency (MAF) and INFO scores #TODO should this be hard coded?
+rule filter4demultiplexing:
+    input:
+        vcf = config["inputs"]["vcf"][0] if len(config["inputs"]["vcf"]) == 1 else config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38.vcf.gz",
+        index = config["inputs"]["vcf"][0] + ".csi" if len(config["inputs"]["vcf"]) == 1 else config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38.vcf.gz.csi"
+    output:
+        info_filled = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_info_filled.vcf.gz",
+        qc_filtered = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05.vcf.gz",
+        location_filtered = temp(config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons.recode.vcf"),
+        complete_cases = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["filter4demultiplexing_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["filter4demultiplexing_memory"]
+    threads: config["demultiplex_preprocessing"]["filter4demultiplexing_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        bed = "/opt/hg38exonsUCSC.bed",
+        out = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons",
+        complete_out = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases",
+    log: config["outputs"]["output_dir"] + "logs/filter4demultiplexing.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} bcftools +fill-tags -Oz --output {output.info_filled} {input}
+        singularity exec --bind {params.bind} {params.sif} bcftools filter --include 'MAF>=0.05 & R2>=0.3' -Oz --output {output.qc_filtered} {output.info_filled}
+        singularity exec --bind {params.bind} {params.sif} vcftools \
+            --gzvcf {output.qc_filtered} \
+            --max-alleles 2 \
+            --remove-indels \
+            --bed {params.bed} \
+            --recode \
+            --recode-INFO-all \
+            --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} vcftools \
+            --recode \
+            --recode-INFO-all \
+            --vcf {output.location_filtered} \
+            --max-missing 1 \
+            --out {params.complete_out}
+        """
+
+
+rule sort4demultiplexing:
+    input:
+        complete_cases = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf"
+    output:
+        complete_cases_sorted = config["outputs"]["output_dir"] + "vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
+    resources:
+        java_mem = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["sort4demultiplexing_java_memory"],
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["sort4demultiplexing_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["sort4demultiplexing_memory"]
+    threads: config["demultiplex_preprocessing"]["sort4demultiplexing_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"],
+        jar = "/opt/picard/build/libs/picard.jar"
+    log: config["outputs"]["output_dir"] + "logs/sort4demultiplexing.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.java_mem}g -Xms{resources.java_mem}g -jar {params.jar} SortVcf \
+            I={input.complete_cases} \
+            O={output.complete_cases_sorted}
+        """
+
+
+rule count_snps:
+    input:
+        info_filled = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_info_filled.vcf.gz",
+        qc_filtered = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05.vcf.gz",
+        complete_cases_sorted = config["outputs"]["output_dir"] + "vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
+    output:
+        number_snps = report(config["outputs"]["output_dir"] + "count_snps/Number_SNPs.png", category = "SNP Numbers", caption = "../report_captions/counts_snps.rst")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["count_snps_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["count_snps_memory"]
+    threads: config["demultiplex_preprocessing"]["count_snps_threads"]
+    params:
+        bind=config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        script="/opt/WG1-pipeline-QC/Demultiplexing/scripts/SNP_numbers.R",
+        basedir = config["outputs"]["output_dir"],
+        outdir = config["outputs"]["output_dir"] + "metrics/",
+    log: config["outputs"]["output_dir"] + "logs/count_snps.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
+            --indir {params.basedir} \
+            --out {params.outdir}
+        """
+
+
+
 ###################################
 ############# POPSCLE #############
 ###################################
 rule popscle_bam_filter:
     input:
-        barcodes = SAMPLES.loc["{pool}", "Barcodes"],
-        vcf = config["inputs"]["vcf"],
-        bam = SAMPLES.loc["{pool}", "Bam"]
+        barcodes = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "Barcodes"],
+        vcf = config["outputs"]["output_dir"] + "vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf",
+        bam = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "Bam"]
     output:
-        bam = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/{pool}_snpfiltered_alignment.bam"
+        bam = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/snpfiltered_alignment.bam"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_bam_filter_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_bam_filter_memory"]
@@ -38,10 +158,10 @@ rule popscle_bam_filter:
 
 rule popscle_pileup:
     input:
-        bam = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/{pool}_snpfiltered_alignment.bam",
+        bam = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/snpfiltered_alignment.bam",
         sm_list = config["inputs"]["individual_list_dir"] + "{pool}.txt",
-        vcf = config["inputs"]["vcf"],
-        barcodes = SAMPLES.loc["{pool}", "Barcodes"],
+        vcf = config["outputs"]["output_dir"] + "vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf",
+        barcodes = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "Barcodes"],
     output:
         pileup = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup.var.gz",
     resources:
@@ -85,8 +205,8 @@ rule popscle_pileup:
 rule popscle_demuxlet:
     input:
         pileup = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup.var.gz",
-        vcf = config["inputs"]["vcf"],
-        group_list = SAMPLES.loc["{pool}", "Barcodes"],
+        vcf = config["outputs"]["output_dir"] + "vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf",
+        group_list = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "Barcodes"],
         sm_list = config["inputs"]["individual_list_dir"] + "{pool}.txt"
     output:
         out = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best"
@@ -145,14 +265,10 @@ rule popscle_demuxlet:
 ####################################
 rule souporcell:
     input:
-        bam = SAMPLES.loc["{pool}", "Bam"],
-        barcodes = SAMPLES.loc["{pool}", "Barcodes"],
+        bam = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "Bam"],
+        barcodes = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "Barcodes"],
         fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
-        vcf = config["inputs"]["vcf"]
-    resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_memory"]
-    threads: config["souporcell"]["souporcell_threads"]
+        vcf = config["outputs"]["output_dir"] + "vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf"
     output:
         ambient_rna = config["outputs"]["output_dir"] + "{pool}/souporcell/ambient_rna.txt",
         clustering = config["outputs"]["output_dir"] + "{pool}/souporcell/clustering.done",
@@ -160,11 +276,15 @@ rule souporcell:
         clusters = config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv",
         concensus = config["outputs"]["output_dir"] + "{pool}/souporcell/consensus.done",
         troublet = config["outputs"]["output_dir"] + "{pool}/souporcell/troublet.done"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_memory"]
+    threads: config["souporcell"]["souporcell_threads"]
     params:
         out = config["outputs"]["output_dir"] + "{pool}/souporcell/",
         sif = config["inputs"]["singularity_image"],
         bind = config["inputs"]["bind_path"],
-        clusters = lambda wildcards: SAMPLES_DICT[wildcards.pool],
+        clusters = lambda wildcards: SAMPLES_DF.loc[wildcards.pool, "N"],
         min_alt = config["souporcell_extra"]["min_alt"],
         min_ref = config["souporcell_extra"]["min_ref"],
         max_loci = config["souporcell_extra"]["max_loci"]
@@ -218,7 +338,7 @@ rule souporcell_summary:
 
 rule souporcell_pool_vcf:
     input:
-        vcf = config["inputs"]["vcf"],
+        vcf = config["outputs"]["output_dir"] + "vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf",
         cluster_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/cluster_genotypes.vcf"
     output:
         filtered_refs_temp = config["outputs"]["output_dir"] + "{pool}/souporcell/Individual_genotypes_subset.vcf",

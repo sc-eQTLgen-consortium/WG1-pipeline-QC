@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+import pandas as pd
+import os
+
 def get_scrublet_input(wildcards):
     """
     This function selection the correct run of Scrublet we want to use for the combine_results rule.
