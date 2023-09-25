@@ -1,4 +1,4 @@
-#!/usr/local/envs/py36/bin python3
+#!/usr/bin/env python
 import numpy as np
 import pandas as pd
 import os
@@ -129,7 +129,7 @@ if os.path.exists(plink_gender_ancestry_data + ".psam"):
         'IID': (False, False, {}),
         'PAT': (True, False, {}),
         'MAT': (True, False, {}),
-        'SEX': (True, False, {1: "male", 2: "female", 0: "unknown"}),
+        'SEX': (True, False, {"1": "male", "2": "female", "0": "unknown"}),
         'Provided_Ancestry': (False, True, {"AFR": "African",
                                             "AMR": "Ad Mixed American",
                                             "EAS": "East Asian",
@@ -160,7 +160,7 @@ if os.path.exists(plink_gender_ancestry_data + ".psam"):
     }
 
     logger.info("Validating input PSAM:")
-    psam_df = pd.read_csv(plink_gender_ancestry_data + ".psam", sep="\t")
+    psam_df = pd.read_csv(plink_gender_ancestry_data + ".psam", sep="\t", dtype=str)
     psam_df.fillna("NA", inplace=True)
     psam_is_valid = True
 
@@ -207,7 +207,7 @@ if os.path.exists(plink_gender_ancestry_data + ".psam"):
     # TODO: Not checking for np.nan, expecting all values to be non NA.
     # Check that the female columns are all NA for the males.
     for female_column in ["hormonal_contraception_use_currently", "menopause", "pregnancy_status"]:
-        if not (psam_df.loc[psam_df["SEX"] == 1, female_column] == "NA").all():
+        if not (psam_df.loc[psam_df["SEX"] == "1", female_column] == "NA").all():
             logger.info("\tThere is a conflict between you SEX and your {} columns.\n"
                         "All males (coded by 1 in SEX) must be NA for hormonal_contraception_use_currently.\n"
                         "Please fix this before running the pipeline.".format(female_column))

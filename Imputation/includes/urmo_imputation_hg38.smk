@@ -372,13 +372,36 @@ rule het_filter:
         """
 
 
+rule calculate_missingness:
+    input:
+        vcf = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz",
+        index = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz.csi"
+    output:
+        tmp_vcf = temp(config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_het_filtered.vcf"),
+        miss = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_genotypes.imiss",
+        individuals = config["outputs"]["output_dir"] + "genotype_donor_annotation/{ancestry}_individuals.tsv"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["calculate_missingness_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["calculate_missingness_memory"]
+    threads: config["imputation"]["calculate_missingness_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        out = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_genotypes"
+    log: config["outputs"]["output_dir"] + "logs/calculate_missingness.{ancestry}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} gunzip -c {input.vcf} | sed 's/^##fileformat=VCFv4.3/##fileformat=VCFv4.2/' > {output.tmp_vcf}
+        singularity exec --bind {params.bind} {params.sif} vcftools --gzvcf {output.tmp_vcf} --missing-indv --out {params.out}
+        singularity exec --bind {params.bind} {params.sif} bcftools query -l {input.vcf} >> {output.individuals}
+        """
+
+
 rule genotype_donor_annotation:
     input:
-        vcf = expand(config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz", ancestry = ANCESTRIES),
-        index = expand(config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz.csi", ancestry = ANCESTRIES),
+        individuals = expand(config["outputs"]["output_dir"] + "genotype_donor_annotation/{ancestry}_individuals.tsv", ancestry = ANCESTRIES),
         psam = config["outputs"]["output_dir"] + "pca_sex_checks/sex_ancestry_updated.psam"
     output:
-        individuals = config["outputs"]["output_dir"] + "genotype_donor_annotation/{ancestry}_individuals.tsv",
         out_temp = temp(config["outputs"]["output_dir"] + "genotype_donor_annotation/genotype_donor_annotation_temp.tsv"),
         combined_individuals = config["outputs"]["output_dir"] + "genotype_donor_annotation/combined_individuals.tsv",
         final = config["outputs"]["output_dir"] + "genotype_donor_annotation/genotype_donor_annotation.tsv",
@@ -392,9 +415,8 @@ rule genotype_donor_annotation:
     log: config["outputs"]["output_dir"] + "logs/genotype_donor_annotation.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} bcftools query -l {input.vcf} >> {output.individuals}
         singularity exec --bind {params.bind} {params.sif} cut -f2,5- {input.psam} | awk 'NR<2{{print $0;next}}{{print $0| "sort -k1,1"}}' > {output.out_temp}
-        singularity exec --bind {params.bind} {params.sif} cat {output.individuals} >> {output.combined_individuals}
+        singularity exec --bind {params.bind} {params.sif} cat {input.individuals} >> {output.combined_individuals}
         singularity exec --bind {params.bind} {params.sif} sed -i '1 i\IID' {output.combined_individuals}
         singularity exec --bind {params.bind} {params.sif} awk -F"\t" 'NR==FNR {{a[$1]; next}} $1 in a' {output.combined_individuals} {output.out_temp} | awk 'BEGIN{{FS=OFS="\t"}}{{sub("1","M",$2);print}}' | awk 'BEGIN{{FS=OFS="\t"}}{{sub("2","F",$2);print}}' > {output.final}
         singularity exec --bind {params.bind} {params.sif} sed -i 's/^IID\tSEX\tProvided_Ancestry/donor_id\tsex\tethnicity_super_population/g' {output.final}
@@ -402,7 +424,6 @@ rule genotype_donor_annotation:
         singularity exec --bind {params.bind} {params.sif} sed -i '1s/SangerImputationServer/imputation_method/g' {output.final}
         singularity exec --bind {params.bind} {params.sif} sed -i '1s/1000g_30x_GRCh38_ref/imputation_reference/g' {output.final}
         """
-
 
 rule split_by_chr:
     input:

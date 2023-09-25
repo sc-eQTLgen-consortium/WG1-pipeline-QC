@@ -120,11 +120,11 @@ imputation:
   het_filter_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   het_filter_threads: 1 ### Number of threads to use
 
-  genotype_donor_annotation_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  genotype_donor_annotation_threads: 1 ### Number of threads to use
-
   calculate_missingness_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   calculate_missingness_threads: 1 ### Number of threads to use
+
+  genotype_donor_annotation_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  genotype_donor_annotation_threads: 1 ### Number of threads to use
 
   split_by_chr_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   split_by_chr_threads: 1 ### Number of threads to use
