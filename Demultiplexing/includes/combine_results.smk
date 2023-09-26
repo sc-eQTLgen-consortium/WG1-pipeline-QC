@@ -41,7 +41,7 @@ rule combine_results:
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Combine_Results.R",
         souporcell_correlation_limit = config["souporcell"]["souporcell_genotype_correlation_threshold"],
         out = config["outputs"]["output_dir"] + "{pool}/CombinedResults/"
-    log: config["outputs"]["output_dir"] + "logs/combine_results.{pool}.log"
+    log: config["outputs"]["output_dir"] + "log/combine_results.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \

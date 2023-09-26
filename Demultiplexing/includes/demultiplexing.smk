@@ -20,7 +20,7 @@ rule combine_vcfs_all:
     params:
         sif = config["inputs"]["singularity_image"],
         bind = config["inputs"]["bind_path"],
-    log: config["outputs"]["output_dir"] + "logs/combine_vcfs_all.log"
+    log: config["outputs"]["output_dir"] + "log/combine_vcfs_all.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools merge -Oz {input.vcfs} > {output.vcf}
@@ -48,7 +48,7 @@ rule filter4demultiplexing:
         bed = "/opt/hg38exonsUCSC.bed",
         out = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons",
         complete_out = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases",
-    log: config["outputs"]["output_dir"] + "logs/filter4demultiplexing.log"
+    log: config["outputs"]["output_dir"] + "log/filter4demultiplexing.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools +fill-tags -Oz --output {output.info_filled} {input}
@@ -84,7 +84,7 @@ rule sort4demultiplexing:
         sif = config["inputs"]["singularity_image"],
         bind = config["inputs"]["bind_path"],
         jar = "/opt/picard/build/libs/picard.jar"
-    log: config["outputs"]["output_dir"] + "logs/sort4demultiplexing.log"
+    log: config["outputs"]["output_dir"] + "log/sort4demultiplexing.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.java_mem}g -Xms{resources.java_mem}g -jar {params.jar} SortVcf \
@@ -110,7 +110,7 @@ rule count_snps:
         script="/opt/WG1-pipeline-QC/Demultiplexing/scripts/SNP_numbers.R",
         basedir = config["outputs"]["output_dir"],
         outdir = config["outputs"]["output_dir"] + "metrics/",
-    log: config["outputs"]["output_dir"] + "logs/count_snps.log"
+    log: config["outputs"]["output_dir"] + "log/count_snps.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
@@ -139,7 +139,7 @@ rule popscle_bam_filter:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         tag_group = config["popscle"]["popscle_tag_group"]
-    log: config["outputs"]["output_dir"] + "logs/popscle_bam_filter.{pool}.log"
+    log: config["outputs"]["output_dir"] + "log/popscle_bam_filter.{pool}.log"
     shell:
         """
         mkdir -p {params.out_dir} && \
@@ -181,7 +181,7 @@ rule popscle_pileup:
         min_total = config["popscle_extra"]["min_total"],
         min_snp = config["popscle_extra"]["min_snp"],
         out = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup",
-    log: config["outputs"]["output_dir"] + "logs/popscle_pileup.{pool}.log"
+    log: config["outputs"]["output_dir"] + "log/popscle_pileup.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} popscle dsc-pileup \
@@ -233,7 +233,7 @@ rule popscle_demuxlet:
         min_total = config["popscle_extra"]["min_total"],
         min_snp = config["popscle_extra"]["min_snp"],
         out = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT"
-    log: config["outputs"]["output_dir"] + "logs/popscle_demuxlet.{pool}.log"
+    log: config["outputs"]["output_dir"] + "log/popscle_demuxlet.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} popscle demuxlet \
@@ -288,7 +288,7 @@ rule souporcell:
         min_alt = config["souporcell_extra"]["min_alt"],
         min_ref = config["souporcell_extra"]["min_ref"],
         max_loci = config["souporcell_extra"]["max_loci"]
-    log: config["outputs"]["output_dir"] + "logs/souporcell.{pool}.log"
+    log: config["outputs"]["output_dir"] + "log/souporcell.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} souporcell_pipeline.py \
@@ -319,7 +319,7 @@ rule souporcell_summary:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"]
-    log: config["outputs"]["output_dir"] + "logs/souporcell_summary.{pool}.log"
+    log: config["outputs"]["output_dir"] + "log/souporcell_summary.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} \
@@ -351,7 +351,7 @@ rule souporcell_pool_vcf:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         individuals = config["inputs"]["individual_list_dir"] + "/{pool}.txt"
-    log: config["outputs"]["output_dir"] + "logs/souporcell_pool_vcf.{pool}.log"
+    log: config["outputs"]["output_dir"] + "log/souporcell_pool_vcf.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bedtools intersect -a {input.vcf} -b {input.cluster_vcf} -f 1.0 -r -wa -header > {output.filtered_refs_temp} 2> {log}
@@ -376,7 +376,7 @@ rule souporcell_correlate_genotypes:
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Assign_Indiv_by_Geno.R",
         out = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations"
-    log: config["outputs"]["output_dir"] + "logs/souporcell_correlate_genotypes.{pool}.log"
+    log: config["outputs"]["output_dir"] + "log/souporcell_correlate_genotypes.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script}

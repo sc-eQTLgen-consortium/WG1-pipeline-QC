@@ -25,7 +25,7 @@ rule crossmap:
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink",
         chain_file = "/opt/GRCh37_to_GRCh38.chain"
-    log: config["outputs"]["output_dir"] + "logs/crossmap.{ancestry}.log"
+    log: config["outputs"]["output_dir"] + "log/crossmap.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print $1,$2,$2+1,$3,$4,$5}}' {input.pvar} > {output.inbed}
@@ -61,7 +61,7 @@ rule sort_bed:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted"
-    log: config["outputs"]["output_dir"] + "logs/sort_bed.{ancestry}.log"
+    log: config["outputs"]["output_dir"] + "log/sort_bed.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -98,7 +98,7 @@ rule harmonize_hg38:
         jar = "/opt/GenotypeHarmonizer-1.4.23/GenotypeHarmonizer.jar",
         infile = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted",
         out = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}",
-    log: config["outputs"]["output_dir"] + "logs/harmonize_hg38.{ancestry}.log"
+    log: config["outputs"]["output_dir"] + "log/harmonize_hg38.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.java_mem}g -jar {params.jar}\
@@ -128,7 +128,7 @@ rule plink_to_vcf:
         sif = config["inputs"]["singularity_image"],
         chr_list = ",".join(CHROMOSOMES),
         out = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_harmonised_hg38"
-    log: config["outputs"]["output_dir"] + "logs/plink_to_vcf.{ancestry}.log"
+    log: config["outputs"]["output_dir"] + "log/plink_to_vcf.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -165,7 +165,7 @@ rule split_by_chr_for_harmonize:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_crossmapped_sorted"
-    log: config["outputs"]["output_dir"] + "logs/split_by_chr_for_harmonize.{ancestry}.chr_{chr}.log"
+    log: config["outputs"]["output_dir"] + "log/split_by_chr_for_harmonize.{ancestry}.chr_{chr}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -201,7 +201,7 @@ rule harmonize_hg38_per_chr:
         jar = "/opt/GenotypeHarmonizer-1.4.23/GenotypeHarmonizer.jar",
         infile = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_crossmapped_sorted",
         out = config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_chr_{chr}",
-    log: config["outputs"]["output_dir"] + "logs/harmonize_hg38_per_chr.{ancestry}.chr_{chr}.log"
+    log: config["outputs"]["output_dir"] + "log/harmonize_hg38_per_chr.{ancestry}.chr_{chr}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.java_mem}g -jar {params.jar} \
@@ -233,7 +233,7 @@ rule plink_per_chr_to_vcf:
         mergelist = config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_mergelist.txt",
         chr_list = ",".join(CHROMOSOMES),
         out = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_harmonised_hg38"
-    log: config["outputs"]["output_dir"] + "logs/plink_to_vcf.{ancestry}.log"
+    log: config["outputs"]["output_dir"] + "log/plink_to_vcf.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.infiles} | sed 's/ /\\n/g' > {params.mergelist}
@@ -266,7 +266,7 @@ rule vcf_fixref_hg38:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"]
-    log: config["outputs"]["output_dir"] + "logs/vcf_fixref_hg38.{ancestry}.log"
+    log: config["outputs"]["output_dir"] + "log/vcf_fixref_hg38.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools +fixref {input.vcf} -- -f {input.ref_fasta} -i {input.ref_vcf} | \
@@ -300,7 +300,7 @@ rule filter_preimpute_vcf:
         hwe = config["imputation"]["filter_preimpute_vcf_snp_hwe"],
         missing = config["imputation"]["filter_preimpute_vcf_snp_missing_pct"],
         maf = lambda wildcards: ANCESTRY_MAF_DICT[wildcards.ancestry]
-    log: config["outputs"]["output_dir"] + "logs/filter_preimpute_vcf.{ancestry}.log"
+    log: config["outputs"]["output_dir"] + "log/filter_preimpute_vcf.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools +fill-tags {input.vcf} -Oz -o {output.tagged_vcf}
@@ -335,7 +335,7 @@ rule het:
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "het/{ancestry}_het",
         script = "/opt/WG1-pipeline-QC/Imputation/scripts/filter_het.R"
-    log: config["outputs"]["output_dir"] + "logs/het.{ancestry}.log"
+    log: config["outputs"]["output_dir"] + "log/het.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} gunzip -c {input.vcf} | sed 's/^##fileformat=VCFv4.3/##fileformat=VCFv4.2/' > {output.tmp_vcf}
@@ -364,7 +364,7 @@ rule het_filter:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"]
-    log: config["outputs"]["output_dir"] + "logs/het_filter.{ancestry}.log"
+    log: config["outputs"]["output_dir"] + "log/het_filter.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools view -S {input.passed_list} {input.vcf} -Oz -o {output.vcf}
@@ -388,7 +388,7 @@ rule calculate_missingness:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_genotypes"
-    log: config["outputs"]["output_dir"] + "logs/calculate_missingness.{ancestry}.log"
+    log: config["outputs"]["output_dir"] + "log/calculate_missingness.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} gunzip -c {input.vcf} | sed 's/^##fileformat=VCFv4.3/##fileformat=VCFv4.2/' > {output.tmp_vcf}
@@ -412,7 +412,7 @@ rule genotype_donor_annotation:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-    log: config["outputs"]["output_dir"] + "logs/genotype_donor_annotation.log"
+    log: config["outputs"]["output_dir"] + "log/genotype_donor_annotation.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} cut -f2,5- {input.psam} | awk 'NR<2{{print $0;next}}{{print $0| "sort -k1,1"}}' > {output.out_temp}
@@ -440,7 +440,7 @@ rule split_by_chr:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"]
-    log: config["outputs"]["output_dir"] + "logs/split_by_chr.{ancestry}.chr_{chr}.log"
+    log: config["outputs"]["output_dir"] + "log/split_by_chr.{ancestry}.chr_{chr}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools view -r {wildcards.chr} {input.vcf} -Oz -o {output.vcf}
@@ -464,7 +464,7 @@ rule eagle_prephasing:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "eagle_prephasing/{ancestry}_chr{chr}_phased"
-    log: config["outputs"]["output_dir"] + "logs/eagle_prephasing.{ancestry}.chr_{chr}.log"
+    log: config["outputs"]["output_dir"] + "log/eagle_prephasing.{ancestry}.chr_{chr}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} eagle \
@@ -493,7 +493,7 @@ rule minimac_imputation:
         minimac4 = "/opt/bin/minimac4",
         out = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr{chr}",
         chunk_length = config["imputation"]["minimac_chunk_length"]
-    log: config["outputs"]["output_dir"] + "logs/minimac_imputation.{ancestry}.chr_{chr}.log"
+    log: config["outputs"]["output_dir"] + "log/minimac_imputation.{ancestry}.chr_{chr}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} {params.minimac4} \
@@ -521,9 +521,32 @@ rule combine_vcfs_ancestry:
         sif = config["inputs"]["singularity_image"],
         bind = config["inputs"]["bind_path"],
         files_begin = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr*.dose.vcf.gz"
-    log: config["outputs"]["output_dir"] + "logs/combine_vcfs_ancestry.{ancestry}.log"
+    log: config["outputs"]["output_dir"] + "log/combine_vcfs_ancestry.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools concat -Oz {params.files_begin} > {output.vcf}
+        singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
+        """
+
+
+rule split_per_dataset:
+    input:
+        vcf = config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi",
+        samples = "NA"
+    output:
+        vcf = config["outputs"]["output_dir"] + "split_per_dataset/{dataset}_{ancestry}_imputed_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + "split_per_dataset/{dataset}_{ancestry}_imputed_hg38.vcf.gz.csi"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_per_dataset_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_per_dataset_memory"]
+    threads: config["imputation"]["split_per_dataset_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"]
+    log: config["outputs"]["output_dir"] + "log/split_per_dataset.{dataset}.{ancestry}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} bcftools view -S {input.samples} {input.vcf} -Oz -o {output.vcf}
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
         """

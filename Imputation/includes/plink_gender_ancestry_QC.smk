@@ -19,7 +19,7 @@ rule indiv_missingness:
        sif = config["inputs"]["singularity_image"],
        out = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness",
        mind = config["plink_gender_ancestry_QC"]["indiv_missingness_mind"]
-    log: config["outputs"]["output_dir"] + "logs/indiv_missingness.log"
+    log: config["outputs"]["output_dir"] + "log/indiv_missingness.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -57,7 +57,7 @@ rule check_sex:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "check_sex/check_sex",
-    log: config["outputs"]["output_dir"] + "logs/check_sex.log"
+    log: config["outputs"]["output_dir"] + "log/check_sex.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -109,7 +109,7 @@ rule common_snps:
         psam_1000g = "/opt/1000G/all_phase3_filtered.psam",
         out = config["outputs"]["output_dir"] + "common_snps/subset_data",
         out_1000g = config["outputs"]["output_dir"] + "common_snps/subset_1000g"
-    log: config["outputs"]["output_dir"] + "logs/common_snps.log"
+    log: config["outputs"]["output_dir"] + "log/common_snps.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.pvar} {params.pvar_1000g} > {output.snps_1000g}
@@ -164,7 +164,7 @@ rule prune_1000g:
         sif = config["inputs"]["singularity_image"],
         out_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g",
         out = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data"
-    log: config["outputs"]["output_dir"] + "logs/prune_1000g.log"
+    log: config["outputs"]["output_dir"] + "log/prune_1000g.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -231,7 +231,7 @@ rule final_pruning:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "final_pruning/final_subset_pruned_data"
-    log: config["outputs"]["output_dir"] + "logs/final_pruning.log"
+    log: config["outputs"]["output_dir"] + "log/final_pruning.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -264,7 +264,7 @@ rule pca_1000g:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs"
-    log: config["outputs"]["output_dir"] + "logs/pca_1000g.log"
+    log: config["outputs"]["output_dir"] + "log/pca_1000g.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -303,7 +303,7 @@ rule pca_project:
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "pca_projection/final_subset_pruned_data_pcs",
         out_1000g = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs_projected"
-    log: config["outputs"]["output_dir"] + "logs/pca_project.log"
+    log: config["outputs"]["output_dir"] + "log/pca_project.log"
     shell:
         """
         export OMP_NUM_THREADS={threads}
@@ -349,7 +349,7 @@ rule pca_projection_assign:
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Imputation/scripts/PCA_Projection_Plotting.R",
         out = config["outputs"]["output_dir"] + "pca_sex_checks/",
-    log: config["outputs"]["output_dir"] + "logs/pca_projection_assign.log"
+    log: config["outputs"]["output_dir"] + "log/pca_projection_assign.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
@@ -380,7 +380,7 @@ rule summary_ancestry_sex:
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Imputation/scripts/sex_ancestry_summaries.R",
         out = config["outputs"]["output_dir"] + "metrics/",
-    log: config["outputs"]["output_dir"] + "logs/summary_ancestry_sex.log"
+    log: config["outputs"]["output_dir"] + "log/summary_ancestry_sex.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
@@ -407,7 +407,7 @@ rule separate_indivs:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-    log: config["outputs"]["output_dir"] + "logs/separate_indivs.log"
+    log: config["outputs"]["output_dir"] + "log/separate_indivs.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} grep "UPDATE" {input.pca_sex_check} | \
@@ -440,7 +440,7 @@ rule update_sex_ancestry:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "update_sex_ancestry/sex_ancestry_updated"
-    log: config["outputs"]["output_dir"] + "logs/update_sex_ancestry.log"
+    log: config["outputs"]["output_dir"] + "log/update_sex_ancestry.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -473,7 +473,7 @@ rule subset_ancestry:
         sif = config["inputs"]["singularity_image"],
         infile = config["outputs"]["output_dir"] + "update_sex_ancestry/sex_ancestry_updated",
         out = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset"
-    log: config["outputs"]["output_dir"] + "logs/subset_ancestry.{ancestry}.log"
+    log: config["outputs"]["output_dir"] + "log/subset_ancestry.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} grep {wildcards.ancestry} {input.psam} > {output.keep}

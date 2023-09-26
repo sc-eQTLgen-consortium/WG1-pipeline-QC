@@ -29,7 +29,7 @@ suppressMessages(suppressWarnings(library(RColorBrewer)))
 dir.create(args$out, recursive=TRUE)
 
 ##### Read in Results #####
-data_score <- read_delim(as.character(scores), delim = "\t", col_types = cols(.default = "d", "#FID" = "c", "IID" = "c", "Provided_Ancestry" = "c"))
+data_score <- read_delim(as.character(args$scores), delim = "\t", col_types = cols(.default = "d", "#FID" = "c", "IID" = "c", "Provided_Ancestry" = "c"))
 onekg_score <- read_delim(as.character(args$onekg_scores), delim = "\t", col_types = cols(.default = "d", "#IID" = "c", "SuperPop" = "c", "Population" = "c"))
 data_anc <- read_delim(as.character(args$psam), delim = "\t", col_types = cols(.default = "c", "SEX" = "d"))
 onekg_anc <- read_delim(as.character(args$onekg_psam), delim = "\t", col_types = cols(.default = "c", "SEX" = "d"))

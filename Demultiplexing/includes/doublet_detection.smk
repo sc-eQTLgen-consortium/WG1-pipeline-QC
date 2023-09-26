@@ -20,7 +20,7 @@ rule DoubletFinder:
         out = config["outputs"]["output_dir"] + "{pool}/DoubletFinder/",
         find_clusters_resolution = config["doubletfinder_extra"]["find_clusters_resolution"],
         n_generated_artificial_doublets = config["doubletfinder_extra"]["n_generated_artificial_doublets"]
-    log: config["outputs"]["output_dir"] + "logs/DoubletFinder.{pool}.log"
+    log: config["outputs"]["output_dir"] + "log/DoubletFinder.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
@@ -48,7 +48,7 @@ rule scDblFinder:
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scDblFinder.R",
         out = config["outputs"]["output_dir"] + "{pool}/scDblFinder/"
-    log: config["outputs"]["output_dir"] + "logs/scDblFinder.{pool}.log"
+    log: config["outputs"]["output_dir"] + "log/scDblFinder.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
@@ -108,7 +108,7 @@ rule DoubletDetection:
         voter_thresh = lambda wildcards: doubletdetection_params_dict["voter_thresh"][wildcards.pool],
         step = doubletdetection_params_dict["step"],
         out = config["outputs"]["output_dir"] + "{pool}/DoubletDetection/"
-    log: config["outputs"]["output_dir"] + "logs/DoubletDetection.{pool}.log"
+    log: config["outputs"]["output_dir"] + "log/DoubletDetection.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \
@@ -148,7 +148,7 @@ rule scds:
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scds.R",
         out = config["outputs"]["output_dir"] + "{pool}/scds/"
-    log: config["outputs"]["output_dir"] + "logs/scds.{pool}.log"
+    log: config["outputs"]["output_dir"] + "log/scds.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
@@ -198,7 +198,7 @@ rule Scrublet:
         out = config["outputs"]["output_dir"] + "{pool}/Scrublet_{pctl}/",
         step = lambda wildcards: scrublet_params_dict["step"],
         scrublet_doublet_threshold = lambda wildcards: scrublet_params_dict["scrublet_doublet_threshold"][wildcards.pool],
-    log: config["outputs"]["output_dir"] + "logs/Scrublet.{pool}.pctl{pctl}.log"
+    log: config["outputs"]["output_dir"] + "log/Scrublet.{pool}.pctl{pctl}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \

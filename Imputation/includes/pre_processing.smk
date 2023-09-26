@@ -19,7 +19,7 @@ rule split_input_vcf_by_chr:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"]
-    log: config["outputs"]["output_dir"] + "logs/split_input_vcf_by_chr.{chr}.log"
+    log: config["outputs"]["output_dir"] + "log/split_input_vcf_by_chr.{chr}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools view -r {wildcards.chr} {input.vcf} -Oz -o {output.vcf}
@@ -40,7 +40,7 @@ rule normalise_vcf_by_chr:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"]
-    log: config["outputs"]["output_dir"] + "logs/normalise_vcf_by_chr.{chr}.log"
+    log: config["outputs"]["output_dir"] + "log/normalise_vcf_by_chr.{chr}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools norm -m any {input.vcf} -o {output.vcf}
@@ -65,7 +65,7 @@ rule normalise_input_vcf_per_chr:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"]
-    log: config["outputs"]["output_dir"] + "logs/normalise_input_vcf_per_chr.{chr}.log"
+    log: config["outputs"]["output_dir"] + "log/normalise_input_vcf_per_chr.{chr}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools norm -m any {input.vcf} -o {output.vcf}
@@ -109,7 +109,7 @@ rule wgs_filter:
         hardy_weinberg_equilibrium = config["wgs_filter"]["hardy_weinberg_equilibrium"],
         filtered_depth = config["wgs_filter"]["filtered_depth"],
         keep_info_column = config["wgs_filter"]["keep_info_column"]
-    log: config["outputs"]["output_dir"] + "logs/wgs_filter.{chr}.log"
+    log: config["outputs"]["output_dir"] + "log/wgs_filter.{chr}.log"
     shell:
         """
         mkdir -p {params.out_dir} && \
@@ -152,7 +152,7 @@ rule combine_wgs_filtered_vcfs:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         file_list = config["outputs"]["output_dir"] + "combine_wgs_filtered_vcfs/file_list.txt"
-    log: config["outputs"]["output_dir"] + "logs/combine_wgs_filtered_vcfs.log"
+    log: config["outputs"]["output_dir"] + "log/combine_wgs_filtered_vcfs.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {input.vcf} | sed 's/ /\\n/g' > {params.file_list}
@@ -178,7 +178,7 @@ rule wgs_filtered_vcf_to_pgen:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "plink_gender_ancestry_input/data"
-    log: config["outputs"]["output_dir"] + "logs/wgs_filtered_vcf_to_pgen.log"
+    log: config["outputs"]["output_dir"] + "log/wgs_filtered_vcf_to_pgen.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -213,7 +213,7 @@ rule input_vcf_to_pgen:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "plink_gender_ancestry_input/data"
-    log: config["outputs"]["output_dir"] + "logs/input_vcf_to_pgen.log"
+    log: config["outputs"]["output_dir"] + "log/input_vcf_to_pgen.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -248,7 +248,7 @@ rule combine_input_vcfs:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         file_list = config["outputs"]["output_dir"] + "combine_input_vcfs/file_list.txt"
-    log: config["outputs"]["output_dir"] + "logs/combine_input_vcfs.log"
+    log: config["outputs"]["output_dir"] + "log/combine_input_vcfs.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {input.vcf} | sed 's/ /\\n/g' > {params.file_list}
@@ -273,7 +273,7 @@ rule combined_input_vcf_to_pgen:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "plink_gender_ancestry_input/data"
-    log: config["outputs"]["output_dir"] + "logs/combined_input_vcf_to_pgen.log"
+    log: config["outputs"]["output_dir"] + "log/combined_input_vcf_to_pgen.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -308,7 +308,7 @@ rule combine_input_plink:
         infiles = lambda wildcards: expand(config["inputs"]["genotype_path"].replace("CHR", "{chr}"), chr = CHROMOSOMES),
         pmerge_list = config["outputs"]["output_dir"] + "harmonize_hg38/pmerge_list.txt",
         out = config["outputs"]["output_dir"] + "plink_gender_ancestry_input/data"
-    log: config["outputs"]["output_dir"] + "logs/combine_input_plink.log"
+    log: config["outputs"]["output_dir"] + "log/combine_input_plink.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.infiles} | sed 's/ /\\n/g' > {params.pmerge_list}

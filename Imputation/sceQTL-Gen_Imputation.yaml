@@ -9,6 +9,7 @@ inputs:
   bind_path: /path/to/bind/to/mount ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
   genotype_path: /path/to/input_plink/dir/ ### path to directory that contains the genotype input files for pipeline on hg19. Include the filename without extension; accepted are .vcf.gz files or plink2 pgen, pvar and psam. In the cases of a splitted input use CHR to replace the chromosome.
+  dataset_samples: {dataset1: /path/to/dataset1/samples, dataset2: /path/to/dataset2/samples}
 
 outputs:
   output_dir: /path/to/parent/out/dir/ ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
@@ -138,6 +139,9 @@ imputation:
 
   combine_vcfs_ancestry_memory: 2 ### Amount of gigs that will be used for memory and disk space per thread
   combine_vcfs_ancestry_threads: 2 ### Number of threads to use
+
+  split_per_dataset_memory: 8 ### Amount of gigs that will be used for memory and disk space per thread
+  split_per_dataset_threads: 1 ### Number of threads to use
 
 ############################################################################################################################################
 ##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####

@@ -83,6 +83,14 @@ if config["settings"]["is_wgs"] and "PLINK" in input_option[0]:
     logger.info("Error, a VCF input is required for WGS filtering.\n\nExiting.")
     exit("WrongWGSFilteringInputFile")
 
+# Check if the dataset sample files exist.
+DATASETS = []
+for dataset, samples_path in config["inputs"]["dataset_samples"].items():
+    if not os.path.exists(samples_path):
+        logger.info("Could not find the {} file. Please check that the file exists.\n\nExiting.".format(samples_path))
+        exit("WrongDatasetSamplesFile")
+    DATASETS.append(dataset)
+
 # Check if the reference files exist.
 for ref_path in ["relative_vcf_path", "relative_fasta_path", "relative_map_path"]:
     if not os.path.exists(config["refs"]["ref_dir"] + config["refs_extra"][ref_path]):
@@ -317,10 +325,15 @@ if ancestry_updated_psam_df is not None and os.path.exists(sex_man_select_path) 
     input_files.append(config["outputs"]["output_dir"] + "metrics/sex_summary.png")
     input_files.append(config["outputs"]["output_dir"] + "metrics/ancestry_summary.png")
 
-    # Add the endpoints for rule combine_vcfs_ancestry.
+    # Add the endpoints for rule genotype_donor_annotation.
     input_files.append(config["outputs"]["output_dir"] + "genotype_donor_annotation/genotype_donor_annotation.tsv")
-    input_files.append(expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz", ancestry=ANCESTRIES))
-    input_files.append(expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi", ancestry=ANCESTRIES))
+    # Add the endpoints for rule combine_vcfs_ancestry or split_per_dataset.
+    if DATASETS:
+        input_files.append(expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{dataset}_{ancestry}_imputed_hg38.vcf.gz", dataset=DATASETS, ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{dataset}_{ancestry}_imputed_hg38.vcf.gz.csi", dataset=DATASETS, ancestry=ANCESTRIES))
+    else:
+        input_files.append(expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz", ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi", ancestry=ANCESTRIES))
 
 
 rule all:
