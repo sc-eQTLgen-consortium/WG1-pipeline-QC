@@ -11,7 +11,8 @@ rule DoubletFinder:
         summary = config["outputs"]["output_dir"] + "{pool}/DoubletFinder/DoubletFinder_doublet_summary.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletfinder"]["doubletfinder_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletfinder"]["doubletfinder_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletfinder"]["doubletfinder_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["doubletfinder"]["doubletfinder_time"]]
     threads: config["doubletfinder"]["doubletfinder_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -41,7 +42,8 @@ rule scDblFinder:
         summary = config["outputs"]["output_dir"] + "{pool}/scDblFinder/scDblFinder_doublet_summary.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["scdblfinder"]["scfblfinder_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["scdblfinder"]["scfblfinder_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["scdblfinder"]["scfblfinder_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["scdblfinder"]["scfblfinder_time"]]
     threads: config["scdblfinder"]["scdblfinder_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -95,7 +97,8 @@ rule DoubletDetection:
         log = config["outputs"]["output_dir"] + "{pool}/DoubletDetection/" + doubletdetection_params_dict["log"]
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletdetection"]["doubletdetection_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletdetection"]["doubletdetection_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletdetection"]["doubletdetection_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["doubletdetection"]["doubletdetection_time"]]
     threads: config["doubletdetection"]["doubletdetection_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -141,7 +144,8 @@ rule scds:
         summary = config["outputs"]["output_dir"] + "{pool}/scds/scds_doublet_summary.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["scds"]["scds_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["scds"]["scds_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["scds"]["scds_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["scds"]["scds_time"]]
     threads: config["scds"]["scds_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -186,6 +190,7 @@ rule Scrublet:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["scrublet"]["scrublet_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["scrublet"]["scrublet_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["scrublet"]["scrublet_time"]]
     threads: config["scrublet"]["scrublet_threads"]
     params:
         bind = config["inputs"]["bind_path"],

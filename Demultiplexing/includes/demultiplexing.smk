@@ -15,7 +15,8 @@ rule combine_vcfs_all:
         index = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38.vcf.gz.csi"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["combine_vcfs_all_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["combine_vcfs_all_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["combine_vcfs_all_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["demultiplex_preprocessing"]["combine_vcfs_all_time"]]
     threads: config["demultiplex_preprocessing"]["combine_vcfs_all_threads"]
     params:
         sif = config["inputs"]["singularity_image"],
@@ -40,7 +41,8 @@ rule filter4demultiplexing:
         complete_cases = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05_exons_complete_cases.recode.vcf"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["filter4demultiplexing_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["filter4demultiplexing_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["filter4demultiplexing_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["demultiplex_preprocessing"]["filter4demultiplexing_time"]]
     threads: config["demultiplex_preprocessing"]["filter4demultiplexing_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -78,7 +80,8 @@ rule sort4demultiplexing:
     resources:
         java_mem = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["sort4demultiplexing_java_memory"],
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["sort4demultiplexing_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["sort4demultiplexing_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["sort4demultiplexing_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["demultiplex_preprocessing"]["sort4demultiplexing_time"]]
     threads: config["demultiplex_preprocessing"]["sort4demultiplexing_threads"]
     params:
         sif = config["inputs"]["singularity_image"],
@@ -102,7 +105,8 @@ rule count_snps:
         number_snps = report(config["outputs"]["output_dir"] + "count_snps/Number_SNPs.png", category = "SNP Numbers", caption = "../report_captions/counts_snps.rst")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["count_snps_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["count_snps_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["count_snps_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["demultiplex_preprocessing"]["count_snps_time"]]
     threads: config["demultiplex_preprocessing"]["count_snps_threads"]
     params:
         bind=config["inputs"]["bind_path"],
@@ -132,7 +136,8 @@ rule popscle_bam_filter:
         bam = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/snpfiltered_alignment.bam"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_bam_filter_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_bam_filter_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_bam_filter_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["popscle"]["popscle_bam_filter_time"]]
     threads: config["popscle"]["popscle_bam_filter_threads"]
     params:
         out_dir = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/",
@@ -166,7 +171,8 @@ rule popscle_pileup:
         pileup = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup.var.gz",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_pileup_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_pileup_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_pileup_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["popscle"]["popscle_pileup_time"]]
     threads: config["popscle"]["popscle_pileup_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -212,7 +218,8 @@ rule popscle_demuxlet:
         out = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_demuxlet_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_demuxlet_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_demuxlet_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["popscle"]["popscle_demuxlet_time"]]
     threads: config["popscle"]["popscle_demuxlet_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -278,7 +285,8 @@ rule souporcell:
         troublet = config["outputs"]["output_dir"] + "{pool}/souporcell/troublet.done"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["souporcell"]["souporcell_time"]]
     threads: config["souporcell"]["souporcell_threads"]
     params:
         out = config["outputs"]["output_dir"] + "{pool}/souporcell/",
@@ -314,7 +322,8 @@ rule souporcell_summary:
         summary = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_summary.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_summary_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_summary_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_summary_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["souporcell"]["souporcell_summary_time"]]
     threads: config["souporcell"]["souporcell_summary_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -345,7 +354,8 @@ rule souporcell_pool_vcf:
         filtered_refs = config["outputs"]["output_dir"] + "{pool}/souporcell/Individual_genotypes_subset.vcf.gz"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_pool_vcf_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_pool_vcf_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_pool_vcf_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["souporcell"]["souporcell_pool_vcf_time"]]
     threads: config["souporcell"]["souporcell_pool_vcf_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -368,8 +378,9 @@ rule souporcell_correlate_genotypes:
         correlation_img = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/ref_clust_pearson_correlation.png",
         assignments = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt"
     resources:
-        mem_per_thread_gb = config["souporcell"]["souporcell_correlations_memory"],
-        disk_per_thread_gb = config["souporcell"]["souporcell_correlations_memory"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_correlations_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_correlations_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["souporcell"]["souporcell_correlations_time"]]
     threads: config["souporcell"]["souporcell_correlations_threads"]
     params:
         bind = config["inputs"]["bind_path"],

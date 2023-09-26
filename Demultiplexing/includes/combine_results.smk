@@ -32,8 +32,9 @@ rule combine_results:
     output:
         summary = config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * config["combine_results"]["combine_results_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * config["combine_results"]["combine_results_memory"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["combine_results_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["combine_results_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["combine_results"]["combine_results_time"]]
     threads: config["combine_results"]["combine_results_threads"]
     params:
         bind = config["inputs"]["bind_path"],

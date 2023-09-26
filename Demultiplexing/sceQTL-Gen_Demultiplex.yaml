@@ -20,27 +20,34 @@ settings:
     is_multiplexed: False
     is_ambient_corrected: False
     sc_data_type: "single-cell"
-  
+
+cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"}
+
 ##############################################################################################################
 ##### The following arguments are common parameters that may need to be changed depending on the dataset #####
 ##############################################################################################################
 demultiplex_preprocessing:
   combine_vcfs_all_memory: 2 ### Amount of gigs that will be used for memory and disk space per thread
   combine_vcfs_all_threads: 2 ### Number of threads to use
+  combine_vcfs_all_time: 0 ### The time setting to use.
 
   filter4demultiplexing_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   filter4demultiplexing_threads: 4 ### Number of threads to use
+  filter4demultiplexing_time: 0 ### The time setting to use.
 
   sort4demultiplexing_java_memory: 10 ### Memory passed to java for picard.jar in GB.
   sort4demultiplexing_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   sort4demultiplexing_threads: 5 ### Number of threads to use
+  sort4demultiplexing_time: 0 ### The time setting to use.
 
   count_snps_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
   count_snps_threads: 2 ### Number of threads to use
+  count_snps_time: 0 ### The time setting to use.
 
 popscle:
   popscle_bam_filter_memory: 10 ### This is the number of gigs that will be used for memory when subsetting the bam file.
   popscle_bam_filter_threads : 4 ### This is the number of threads that will be used for memory when subsetting the bam file.
+  popscle_bam_filter_time: 0 ### The time setting to use.
   popscle_pileup_memory: 10 ### This is the number of gigs that will be used for memory and disk space per thread for the pileup step.
   popscle_pileup_threads: 10 ### The number threads that will be used for the pileup step
   popscle_demuxlet_memory: 25 ### This is the number of gigs that will be used for memory and disk space per thread for the demuxlet step
@@ -52,6 +59,7 @@ popscle:
 souporcell:
   souporcell_threads: 8 ### The number threads that will be used for the souporcell step
   souporcell_memory: 10  ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell step
+  souporcell_time: 0 ### The time setting to use.
   souporcell_summary_threads: 1 ###
   souporcell_summary_memory: 4 ###
   souporcell_pool_vcf_threads: 1 ###
@@ -63,27 +71,33 @@ souporcell:
 scrublet:
   scrublet_threads: 1 ### The number threads that will be used for the scrublet step
   scrublet_memory: 5 ### The number amount of memory that will be used for scrublet doublet detection (in GB)
+  scrublet_time: 0 ### The time setting to use.
   percentile: [80, 85, 90, 95] ### The percentile cutoff for the most variable genes. Scrublet will be run with each of these percentile limits for each pool and saved into a different directory as pool/scrublet_{percentile}/
 
 scds:
   scds_threads: 1 ### The number threads that will be used for the scds step
   scds_memory: 10 ### The amount of memeory (GB) per thread for the scds step
+  scds_time: 0 ### The time setting to use.
 
 doubletdetection:
   doubletdetection_threads: 2 ### The number threads that will be used for the DoubletDetection step
   doubletdetection_memory: 10 ### The amount of memory (GB) used per thread for the DoubletDetection step
+  doubletdetection_time: 0 ### The time setting to use.
 
 scdblfinder:
   scdblfinder_threads: 1 ### The number threads that will be used for the scDblFinder step
   scfblfinder_memory: 10 ### The amount of memeory (GB) per thread for the scDblFinder step
+  scfblfinder_time: 0 ### The time setting to use.
 
 doubletfinder:
   doubletfinder_threads: 1 ### The number threads that will be used for the DoubletFinder step
   doubletfinder_memory: 10 ### The amount of memeory (GB) per thread for the DoubletFinder step
+  doubletfinder_time: 0 ### The time setting to use.
 
 combine_results:
   combine_results_threads: 2 ###
   combine_results_memory: 20 ###
+  combine_results_time: 0 ### The time setting to use.
 
 
 ###############################################################################################################################################
@@ -103,9 +117,6 @@ doubletdetection_manual:
   doubletdetection_manual_standard_scaling: None ### List of booleans whether to enable standard scaling of normalized count matrix prior to PCA for the manual threshold setting for DoubletDetection. Note that the location in this vector is directly relational to the doubletdetection_manual_pools vector. ex [True, False]
   doubletdetection_manual_p_thresh: None ### List of hypergeometric test p-value threshold that determines per iteration doublet calls for the manual threshold setting for DoubletDetection. Note that the location in this vector is directly relational to the doubletdetection_manual_pools vector. ex [1e-16, 1e-16]
   doubletdetection_manual_voter_thresh: None ### List of fractions of iterations a cell must be called a doublet for the manual threshold setting for DoubletDetection. Note that the location in this vector is directly relational to the doubletdetection_manual_pools vector. ex [0.5, 0.5]
-
-
-
 
 ############################################################################################################################################
 ##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####
