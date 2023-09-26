@@ -50,53 +50,58 @@ popscle:
   popscle_bam_filter_time: 0 ### The time setting to use.
   popscle_pileup_memory: 10 ### This is the number of gigs that will be used for memory and disk space per thread for the pileup step.
   popscle_pileup_threads: 10 ### The number threads that will be used for the pileup step
+  popscle_pileup_time: 0 ### The time setting to use.
   popscle_demuxlet_memory: 25 ### This is the number of gigs that will be used for memory and disk space per thread for the demuxlet step
   popscle_demuxlet_threads: 4 ### The number threads that will be used for the demuxlet step
+  popscle_demuxlet_time: 0 ### The time setting to use.
   popscle_genotype_field: "GP" ### This is the field that will be used to determing the genotype, could be GP or GT or another option
   popscle_tag_group: "CB" ### The tag for the readgroup or barcode. For 10x scRNA-seq this is the correct cell barcode tag, for others, you may have to alter accordingly
   popscle_tag_UMI: "UB" ### The tag for the UMIs. For 10x, UB should be correct
 
 souporcell:
-  souporcell_threads: 8 ### The number threads that will be used for the souporcell step
   souporcell_memory: 10  ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell step
+  souporcell_threads: 8 ### The number threads that will be used for the souporcell step
   souporcell_time: 0 ### The time setting to use.
-  souporcell_summary_threads: 1 ###
   souporcell_summary_memory: 4 ###
-  souporcell_pool_vcf_threads: 1 ###
+  souporcell_summary_threads: 1 ###
+  souporcell_summary_time: 0 ### The time setting to use.
   souporcell_pool_vcf_memory: 5 ###
-  souporcell_correlations_threads: 2 ### The number of threads to be used to run R script that will correlate the souporcell cluster genotypes wiht the reference genotypes
+  souporcell_pool_vcf_threads: 1 ###
+  souporcell_pool_vcf_time: 0 ### The time setting to use.
   souporcell_correlations_memory: 20 ### Amount of memory (in GB) that will be allocated for each thread
+  souporcell_correlations_threads: 2 ### The number of threads to be used to run R script that will correlate the souporcell cluster genotypes wiht the reference genotypes
+  souporcell_correlations_time: 0 ### The time setting to use.
   souporcell_genotype_correlation_threshold: 0.7 ### The minimum correlation between a cluster and provided SNP genotypes to consider that cluster assigned to that individual
 
 scrublet:
-  scrublet_threads: 1 ### The number threads that will be used for the scrublet step
   scrublet_memory: 5 ### The number amount of memory that will be used for scrublet doublet detection (in GB)
+  scrublet_threads: 1 ### The number threads that will be used for the scrublet step
   scrublet_time: 0 ### The time setting to use.
   percentile: [80, 85, 90, 95] ### The percentile cutoff for the most variable genes. Scrublet will be run with each of these percentile limits for each pool and saved into a different directory as pool/scrublet_{percentile}/
 
 scds:
-  scds_threads: 1 ### The number threads that will be used for the scds step
   scds_memory: 10 ### The amount of memeory (GB) per thread for the scds step
+  scds_threads: 1 ### The number threads that will be used for the scds step
   scds_time: 0 ### The time setting to use.
 
 doubletdetection:
-  doubletdetection_threads: 2 ### The number threads that will be used for the DoubletDetection step
   doubletdetection_memory: 10 ### The amount of memory (GB) used per thread for the DoubletDetection step
+  doubletdetection_threads: 2 ### The number threads that will be used for the DoubletDetection step
   doubletdetection_time: 0 ### The time setting to use.
 
 scdblfinder:
-  scdblfinder_threads: 1 ### The number threads that will be used for the scDblFinder step
   scfblfinder_memory: 10 ### The amount of memeory (GB) per thread for the scDblFinder step
+  scdblfinder_threads: 1 ### The number threads that will be used for the scDblFinder step
   scfblfinder_time: 0 ### The time setting to use.
 
 doubletfinder:
-  doubletfinder_threads: 1 ### The number threads that will be used for the DoubletFinder step
   doubletfinder_memory: 10 ### The amount of memeory (GB) per thread for the DoubletFinder step
+  doubletfinder_threads: 1 ### The number threads that will be used for the DoubletFinder step
   doubletfinder_time: 0 ### The time setting to use.
 
 combine_results:
-  combine_results_threads: 2 ###
   combine_results_memory: 20 ###
+  combine_results_threads: 2 ###
   combine_results_time: 0 ### The time setting to use.
 
 
