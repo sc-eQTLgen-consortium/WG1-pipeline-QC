@@ -14,7 +14,8 @@ rule split_input_vcf_by_chr:
         index = config["outputs"]["output_dir"] + "split_input_vcf_by_chr/chr_{chr}.vcf.gz.csi"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["split_vcf_by_chr_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["split_vcf_by_chr_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["split_vcf_by_chr_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["split_vcf_by_chr_time"]]
     threads: config["pre_processing"]["split_vcf_by_chr_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -35,7 +36,8 @@ rule normalise_vcf_by_chr:
         vcf = config["outputs"]["output_dir"] + "normalise/chr_{chr}_normalised.vcf.gz"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["normalise_by_chr_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["normalise_by_chr_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["normalise_by_chr_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["normalise_by_chr_time"]]
     threads: config["pre_processing"]["normalise_by_chr_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -60,7 +62,8 @@ rule normalise_input_vcf_per_chr:
         vcf = config["outputs"]["output_dir"] + "normalise/chr_{chr}_normalised.vcf.gz"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["normalise_by_chr_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["normalise_by_chr_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["normalise_by_chr_memory"],
+        time = lambda wildcards,attempt: config["cluster_time"][attempt + config["pre_processing"]["normalise_by_chr_time"]]
     threads: config["pre_processing"]["normalise_by_chr_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -84,7 +87,8 @@ rule wgs_filter:
         vcf = config["outputs"]["output_dir"] + "wgs_filter/chr_{chr}_normalised-filtered.vcf.gz"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["wgs_filter_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["wgs_filter_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["wgs_filter_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["wgs_filter_time"]]
     threads: config["pre_processing"]["wgs_filter_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -146,7 +150,8 @@ rule combine_wgs_filtered_vcfs:
         index = config["outputs"]["output_dir"] + "combine_wgs_filtered_vcfs/normalised-filtered.vcf.gz.csi",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_vcfs_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_vcfs_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_vcfs_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["combine_vcfs_time"]]
     threads: config["pre_processing"]["combine_vcfs_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -172,7 +177,8 @@ rule wgs_filtered_vcf_to_pgen:
         tmp_psam = config["outputs"]["output_dir"] + "wgs_filtered_vcf_to_pgen/tmp.psam",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["vcf_to_pgen_time"]]
     threads: config["pre_processing"]["vcf_to_pgen_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -207,7 +213,8 @@ rule input_vcf_to_pgen:
         tmp_psam = config["outputs"]["output_dir"] + "wgs_filtered_vcf_to_pgen/tmp.psam",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["vcf_to_pgen_time"]]
     threads: config["pre_processing"]["vcf_to_pgen_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -242,7 +249,8 @@ rule combine_input_vcfs:
         index = config["outputs"]["output_dir"] + "combine_input_vcfs/data.vcf.gz.csi"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_vcfs_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_vcfs_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_vcfs_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["combine_vcfs_time"]]
     threads: config["pre_processing"]["combine_vcfs_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -267,7 +275,8 @@ rule combined_input_vcf_to_pgen:
         psam = config["outputs"]["output_dir"] + "plink_gender_ancestry_input/data.psam",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["vcf_to_pgen_time"]]
     threads: config["pre_processing"]["vcf_to_pgen_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -300,7 +309,8 @@ rule combine_input_plink:
         psam = config["outputs"]["output_dir"] + "plink_gender_ancestry_input/data.psam",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_plink_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_plink_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_plink_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["combine_plink_time"]]
     threads: config["pre_processing"]["combine_plink_threads"]
     params:
         bind = config["inputs"]["bind_path"],

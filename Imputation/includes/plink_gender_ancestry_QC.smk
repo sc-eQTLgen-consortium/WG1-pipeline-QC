@@ -10,9 +10,11 @@ rule indiv_missingness:
         bed = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pgen",
         bim = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pvar",
         fam = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.psam",
+        log = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.log",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["indiv_missingness_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["indiv_missingness_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["indiv_missingness_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["indiv_missingness_time"]]
     threads: config["plink_gender_ancestry_QC"]["indiv_missingness_threads"]
     params:
        bind = config["inputs"]["bind_path"],
@@ -45,13 +47,13 @@ rule check_sex:
         bim = config["outputs"]["output_dir"] + "check_sex/check_sex.bim",
         fam = config["outputs"]["output_dir"] + "check_sex/check_sex.fam",
         hh = config["outputs"]["output_dir"] + "check_sex/check_sex.hh",
-        log = config["outputs"]["output_dir"] + "check_sex/check_sex.log",
         nosex = config["outputs"]["output_dir"] + "check_sex/check_sex.nosex",
         sexcheck_tmp = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck",
         sexcheck = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["check_sex_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["check_sex_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["check_sex_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["check_sex_time"]]
     threads: config["plink_gender_ancestry_QC"]["check_sex_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -94,12 +96,15 @@ rule common_snps:
         pgen = config["outputs"]["output_dir"] + "common_snps/subset_data.pgen",
         pvar = config["outputs"]["output_dir"] + "common_snps/subset_data.pvar",
         psam = config["outputs"]["output_dir"] + "common_snps/subset_data.psam",
+        log = config["outputs"]["output_dir"] + "common_snps/subset_data.log",
         pgen_1000g = config["outputs"]["output_dir"] + "common_snps/subset_1000g.pgen",
         pvar_1000g = config["outputs"]["output_dir"] + "common_snps/subset_1000g.pvar",
         psam_1000g = config["outputs"]["output_dir"] + "common_snps/subset_1000g.psam",
+        log_1000g = config["outputs"]["output_dir"] + "common_snps/subset_1000g.log",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["common_snps_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["common_snps_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["common_snps_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["common_snps_time"]]
     threads: config["plink_gender_ancestry_QC"]["common_snps_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -143,21 +148,25 @@ rule prune_1000g:
         pvar = config["outputs"]["output_dir"] + "common_snps/subset_data.pvar",
         psam = config["outputs"]["output_dir"] + "common_snps/subset_data.psam",
     output:
+        prune_in_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.prune.in",
         prune_out_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.prune.out",
         pgen_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pgen",
         pvar_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pvar",
         psam_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.psam",
+        log_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.log",
         data_1000g_key = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data_1000g_key.txt",
         prune_out = config["outputs"]["output_dir"] + "prune_1000g/subset_data.prune.out",
         pgen = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.pgen",
         pvar = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.pvar",
         psam = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.psam",
+        log = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.log",
         pvar_old = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data_original.pvar",
         SNPs2keep = config["outputs"]["output_dir"] + "prune_1000g/SNPs2keep.txt",
         pvar_temp = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data_temp.pvar"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["prune_1000g_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["prune_1000g_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["prune_1000g_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["prune_1000g_time"]]
     threads: config["plink_gender_ancestry_QC"]["prune_1000g_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -223,9 +232,11 @@ rule final_pruning:
         pgen = config["outputs"]["output_dir"] + "final_pruning/final_subset_pruned_data.pgen",
         pvar = config["outputs"]["output_dir"] + "final_pruning/final_subset_pruned_data.pvar",
         psam = config["outputs"]["output_dir"] + "final_pruning/final_subset_pruned_data.psam",
+        log = config["outputs"]["output_dir"] + "final_pruning/final_subset_pruned_data.log",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["final_pruning_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["final_pruning_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["final_pruning_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["final_pruning_time"]]
     threads: config["plink_gender_ancestry_QC"]["final_pruning_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -256,9 +267,11 @@ rule pca_1000g:
         eig_all = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.eigenvec.allele",
         eig_vec = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.eigenvec",
         eig = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.eigenval",
+        log = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.log",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_1000g_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_1000g_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_1000g_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["pca_1000g_time"]]
     threads: config["plink_gender_ancestry_QC"]["pca_1000g_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -293,10 +306,13 @@ rule pca_project:
         psam_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.psam"
     output:
         projected_scores = config["outputs"]["output_dir"] + "pca_projection/final_subset_pruned_data_pcs.sscore",
-        projected_1000g_scores = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs_projected.sscore"
+        log = config["outputs"]["output_dir"] + "pca_projection/final_subset_pruned_data_pcs.log",
+        projected_1000g_scores = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs_projected.sscore",
+        log_1000g = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs_projected.log"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_project_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_project_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_project_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["pca_project_time"]]
     threads: config["plink_gender_ancestry_QC"]["pca_project_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -342,7 +358,8 @@ rule pca_projection_assign:
         pca_anc_check = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_projection_assign_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_projection_assign_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_projection_assign_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["pca_projection_assign_time"]]
     threads: config["plink_gender_ancestry_QC"]["pca_projection_assign_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -373,7 +390,8 @@ rule summary_ancestry_sex:
         ancestry_summary = report(config["outputs"]["output_dir"] + "metrics/ancestry_summary.png", category = "Ancestry and Sex Summary", caption = "../report_captions/ancestry_summary.rst")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["summary_ancestry_sex_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["summary_ancestry_sex_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["summary_ancestry_sex_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["summary_ancestry_sex_time"]]
     threads: config["plink_gender_ancestry_QC"]["summary_ancestry_sex_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -392,35 +410,6 @@ rule summary_ancestry_sex:
         """
 
 
-rule separate_indivs:
-    input:
-        pca_sex_check = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv",
-        pca_anc_check = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv"
-    output:
-        update_sex = config["outputs"]["output_dir"] + "separate_indivs/sex_update_indivs.tsv",
-        remove_indiv_temp = config["outputs"]["output_dir"] + "separate_indivs/remove_indivs_temp.tsv",
-        remove_indiv = config["outputs"]["output_dir"] + "separate_indivs/remove_indivs.tsv",
-    resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["separate_indivs_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["separate_indivs_memory"]
-    threads: config["plink_gender_ancestry_QC"]["separate_indivs_threads"]
-    params:
-        bind = config["inputs"]["bind_path"],
-        sif = config["inputs"]["singularity_image"],
-    log: config["outputs"]["output_dir"] + "log/separate_indivs.log"
-    shell:
-        """
-        singularity exec --bind {params.bind} {params.sif} grep "UPDATE" {input.pca_sex_check} | \
-            singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2,$4)}}' | \
-                singularity exec --bind {params.bind} {params.sif} sed 's/SNPSEX/SEX/g' > {output.update_sex}
-        singularity exec --bind {params.bind} {params.sif} grep "REMOVE" {input.pca_sex_check} | \
-            singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}'> {output.remove_indiv_temp}
-        singularity exec --bind {params.bind} {params.sif} grep "REMOVE" {input.pca_anc_check} | \
-            singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print($1,$2)}}' >> {output.remove_indiv_temp}
-        singularity exec --bind {params.bind} {params.sif} sort -u {output.remove_indiv_temp} > {output.remove_indiv}
-        """
-
-
 rule update_sex_ancestry:
     input:
         indiv_miss_pgen = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pgen",
@@ -434,7 +423,8 @@ rule update_sex_ancestry:
         psam = config["outputs"]["output_dir"] + "update_sex_ancestry/sex_ancestry_updated.psam",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["update_sex_ancestry_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["update_sex_ancestry_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["update_sex_ancestry_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["update_sex_ancestry_time"]]
     threads: config["plink_gender_ancestry_QC"]["update_sex_ancestry_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -466,7 +456,8 @@ rule subset_ancestry:
         psam = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.psam"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["subset_ancestry_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["subset_ancestry_memory"]
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["subset_ancestry_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["subset_ancestry_time"]]
     threads: config["plink_gender_ancestry_QC"]["subset_ancestry_threads"]
     params:
         bind = config["inputs"]["bind_path"],

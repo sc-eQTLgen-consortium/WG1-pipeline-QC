@@ -239,8 +239,10 @@ input_files.append(plink_gender_ancestry_data + ".psam")
 
 # Define manual selection paths.
 ancestry_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv"
-sex_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv"
+remove_indivs_path = config["outputs"]["output_dir"] + "separate_indivs/remove_indivs.tsv"
 ancestry_maf_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_mafs.tsv"
+sex_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv"
+sex_update_path = config["outputs"]["output_dir"] + "separate_indivs/sex_update_indivs.tsv"
 
 # Add the manual selection files created by rule pca_projection_assign.
 input_files.append(ancestry_man_select_path)
@@ -260,12 +262,23 @@ if os.path.exists(ancestry_man_select_path):
             exit("WrongAncestryUpdateFile")
 
         # if there are any individuals chosen to remove, remove them from the psam.
-        ancestry_updated_psam_df = psam_df.loc[psam_df["UPDATE/REMOVE/KEEP"] != "REMOVE", :].copy()
+        ancestry_updated_psam_df = psam_df.copy()
+        if "REMOVE" in ancestry_check["UPDATE/REMOVE/KEEP"]:
+            # Save the removed samples.
+            if not os.path.isdir(config["outputs"]["output_dir"] + "separate_indivs/"):
+                os.mkdir(config["outputs"]["output_dir"] + "separate_indivs/")
+
+            # Save the REMOVE samples.
+            remove_mask = psam_df["IID"].isin(ancestry_check.loc[ancestry_check["UPDATE/REMOVE/KEEP"] == "REMOVE", "IID"])
+            ancestry_check.loc[remove_mask, :].to_csv(remove_indivs_path, sep="\t", index=False, header=True)
+
+            # Remove the samples that where marked REMOVE.
+            ancestry_updated_psam_df = ancestry_updated_psam_df.loc[~remove_mask, :]
 
         # if there are any individuals chosen to update the ancestry, update them in the psam.
         if "UPDATE" in psam_df["UPDATE/REMOVE/KEEP"]:
-            mask = ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE"
-            ancestry_updated_psam_df.loc[mask, "Provided_Ancestry"] = ancestry_updated_psam_df.loc[mask, "PCA_Assignment"]
+            update_mask = psam_df["IID"].isin(ancestry_check.loc[ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE", "IID"])
+            ancestry_updated_psam_df.loc[update_mask, "Provided_Ancestry"] = ancestry_updated_psam_df.loc[update_mask, "PCA_Assignment"]
 
         # Save the updated psam.
         ancestry_updated_psam_df.to_csv(ancestry_updated_psam_path, sep="\t", na_rep="NA", index=False, header=True)
@@ -309,6 +322,32 @@ if ancestry_updated_psam_df is not None and os.path.exists(sex_man_select_path) 
     if sex_check.loc[sex_check["UPDATE/REMOVE/KEEP"].isin(['UPDATE', 'REMOVE', 'KEEP']), "UPDATE/REMOVE/KEEP"].count() == len(sex_check):
         logger.info("Your UPDATE/REMOVE/KEEP column in sex_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
         exit("WrongSexUpdateRemove")
+
+    # Create seperate_indics outdir if not exist.
+    if not os.path.isdir(config["outputs"]["output_dir"] + "separate_indivs/"):
+        os.mkdir(config["outputs"]["output_dir"] + "separate_indivs/")
+
+    if "REMOVE" in sex_check["UPDATE/REMOVE/KEEP"]:
+        # Save the REMOVE samples.
+        remove_mask = psam_df["IID"].isin(sex_check.loc[sex_check["UPDATE/REMOVE/KEEP"] == "REMOVE", "IID"])
+        remove_indics = sex_check.loc[remove_mask, :]
+
+        if os.path.exists(remove_indivs_path):
+            ancestry_remove_indics = pd.read_csv(remove_indivs_path, sep="\t", index_col=None, header=0)
+            remove_indics = pd.concat([remove_indics, ancestry_remove_indics], axis=0).drop_duplicates(keep="first")
+
+        remove_indics.to_csv(remove_indivs_path, sep="\t", index=False, header=True)
+
+    if "UPDATE" in sex_check["UPDATE/REMOVE/KEEP"]:
+        update_sex = sex_check.loc[sex_check["UPDATE/REMOVE/KEEP"] == "UPDATE", ["#FID", "IID", "SNPSEX"]]
+        update_sex.columns = ["#FID", "IID", "SEX"]
+        update_sex.to_csv(sex_update_path, sep="\t", index=False, header=True)
+
+    # Create empty files if UPDATE sex and/or remove indics was not needed.
+    if not os.path.exists(remove_indivs_path):
+        pd.DataFrame({"#FID": [], "IID": []}).to_csv(remove_indivs_path, sep="\t", index=False, header=True)
+    if not os.path.exists(sex_update_path):
+        pd.DataFrame({"#FID": [], "IID": [], "SEX": []}).to_csv(sex_update_path, sep="\t", index=False, header=True)
 
     # Add the endpoints for harmonize_hg38. This forces rule split_by_chr_for_harmonize to be executed, splitting the VCF
     # per chromosome before running GenotypeHarmonizer.jar. This needed because WGS files are often too big to be run in one go.
