@@ -19,7 +19,7 @@ rule crossmap:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["crossmap_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["crossmap_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["crossmap_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["crossmap_time"]]
     threads: config["imputation"]["crossmap_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -57,7 +57,7 @@ rule sort_bed:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["sort_bed_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["sort_bed_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["sort_bed_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["sort_bed_time"]]
     threads: config["imputation"]["sort_bed_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -93,7 +93,7 @@ rule harmonize_hg38:
         java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_hg38_java_memory"],
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_hg38_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_hg38_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["harmonize_hg38_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["harmonize_hg38_time"]]
     threads: config["imputation"]["harmonize_hg38_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -125,7 +125,7 @@ rule plink_to_vcf:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["plink_to_vcf_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["plink_to_vcf_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["plink_to_vcf_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["plink_to_vcf_time"]]
     threads: config["imputation"]["plink_to_vcf_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -164,7 +164,7 @@ rule split_by_chr_for_harmonize:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_chr_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_chr_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["split_by_chr_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["split_by_chr_time"]]
     threads: config["imputation"]["split_by_chr_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -199,7 +199,7 @@ rule harmonize_hg38_per_chr:
         java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_hg38_java_memory"],
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_hg38_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_hg38_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["harmonize_hg38_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["harmonize_hg38_time"]]
     threads: config["imputation"]["harmonize_hg38_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -231,7 +231,7 @@ rule plink_per_chr_to_vcf:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["plink_to_vcf_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["plink_to_vcf_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["plink_to_vcf_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["plink_to_vcf_time"]]
     threads: config["imputation"]["plink_to_vcf_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -269,7 +269,7 @@ rule vcf_fixref_hg38:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["vcf_fixref_hg38_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["vcf_fixref_hg38_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["vcf_fixref_hg38_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["vcf_fixref_hg38_time"]]
     threads: config["imputation"]["vcf_fixref_hg38_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -301,7 +301,7 @@ rule filter_preimpute_vcf:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["filter_preimpute_vcf_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["filter_preimpute_vcf_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["filter_preimpute_vcf_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["filter_preimpute_vcf_time"]]
     threads: config["imputation"]["filter_preimpute_vcf_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -338,7 +338,7 @@ rule het:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["het_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["het_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["het_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["het_time"]]
     threads: config["imputation"]["het_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -370,7 +370,7 @@ rule het_filter:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["het_filter_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["het_filter_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["het_filter_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["het_filter_time"]]
     threads: config["imputation"]["het_filter_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -394,7 +394,7 @@ rule calculate_missingness:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["calculate_missingness_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["calculate_missingness_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["calculate_missingness_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["calculate_missingness_time"]]
     threads: config["imputation"]["calculate_missingness_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -420,7 +420,7 @@ rule genotype_donor_annotation:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["genotype_donor_annotation_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["genotype_donor_annotation_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["genotype_donor_annotation_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["genotype_donor_annotation_time"]]
     threads: config["imputation"]["genotype_donor_annotation_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -448,7 +448,7 @@ rule split_by_chr:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_chr_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_chr_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["split_by_chr_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["split_by_chr_time"]]
     threads:
         config["imputation"]["split_by_chr_threads"]
     params:
@@ -473,7 +473,7 @@ rule eagle_prephasing:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["eagle_prephasing_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["eagle_prephasing_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["eagle_prephasing_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["eagle_prephasing_time"]]
     threads: config["imputation"]["eagle_prephasing_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -501,7 +501,7 @@ rule minimac_imputation:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["minimac_imputation_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["minimac_imputation_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["minimac_imputation_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["minimac_imputation_time"]]
     threads: config["imputation"]["minimac_imputation_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -532,7 +532,7 @@ rule combine_vcfs_ancestry:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["combine_vcfs_ancestry_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["combine_vcfs_ancestry_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["combine_vcfs_ancestry_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["combine_vcfs_ancestry_time"]]
     threads: config["imputation"]["combine_vcfs_ancestry_threads"]
     params:
         sif = config["inputs"]["singularity_image"],
@@ -557,7 +557,7 @@ rule split_per_dataset:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_per_dataset_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_per_dataset_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["imputation"]["split_per_dataset_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["split_per_dataset_time"]]
     threads: config["imputation"]["split_per_dataset_threads"]
     params:
         sif = config["inputs"]["singularity_image"],

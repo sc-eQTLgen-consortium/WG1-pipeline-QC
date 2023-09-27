@@ -29,8 +29,8 @@ vcf_list <- paste0(args$indir, "/vcf_merged_by_ancestries/", list.files(paste0(a
 names(vcf_list) <- paste0(gsub(paste0(args$indir, "/vcf_merged_by_ancestries/"), "", gsub("_imputed_hg38.vcf.gz$", "", vcf_list)), "\nImputed\nSNPs")
 
 vcf_list[["All\nImputed\nSNPs"]] <- paste0(args$indir, "/vcf_all_merged/imputed_hg38_info_filled.vcf.gz")
-vcf_list[["All\nImputed\nSNPs\nFiltered"]] <- paste0(args$indir, "/vcf_all_merged/imputed_hg38_R2_0.3_MAF0.05.vcf.gz")
-vcf_list[["All\nImputed\nSNPs\nFiltered\nGenes"]] <- paste0(args$indir, "/vcf_4_demultiplex/imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf")
+vcf_list[["All\nImputed\nSNPs\nFiltered"]] <- paste0(args$indir, "/vcf_all_merged/imputed_hg38_qc_filtered.vcf.gz")
+vcf_list[["All\nImputed\nSNPs\nFiltered\nGenes"]] <- paste0(args$indir, "/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf")
 
 
 

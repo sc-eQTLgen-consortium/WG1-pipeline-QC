@@ -34,7 +34,7 @@ rule combine_results:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["combine_results_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["combine_results_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["combine_results"]["combine_results_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["combine_results"]["combine_results_time"]]
     threads: config["combine_results"]["combine_results_threads"]
     params:
         bind = config["inputs"]["bind_path"],

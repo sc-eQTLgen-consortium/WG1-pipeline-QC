@@ -14,7 +14,7 @@ rule indiv_missingness:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["indiv_missingness_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["indiv_missingness_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["indiv_missingness_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["plink_gender_ancestry_QC"]["indiv_missingness_time"]]
     threads: config["plink_gender_ancestry_QC"]["indiv_missingness_threads"]
     params:
        bind = config["inputs"]["bind_path"],
@@ -53,7 +53,7 @@ rule check_sex:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["check_sex_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["check_sex_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["check_sex_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["plink_gender_ancestry_QC"]["check_sex_time"]]
     threads: config["plink_gender_ancestry_QC"]["check_sex_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -104,7 +104,7 @@ rule common_snps:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["common_snps_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["common_snps_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["common_snps_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["plink_gender_ancestry_QC"]["common_snps_time"]]
     threads: config["plink_gender_ancestry_QC"]["common_snps_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -166,7 +166,7 @@ rule prune_1000g:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["prune_1000g_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["prune_1000g_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["prune_1000g_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["plink_gender_ancestry_QC"]["prune_1000g_time"]]
     threads: config["plink_gender_ancestry_QC"]["prune_1000g_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -236,7 +236,7 @@ rule final_pruning:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["final_pruning_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["final_pruning_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["final_pruning_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["plink_gender_ancestry_QC"]["final_pruning_time"]]
     threads: config["plink_gender_ancestry_QC"]["final_pruning_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -271,7 +271,7 @@ rule pca_1000g:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_1000g_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_1000g_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["pca_1000g_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["plink_gender_ancestry_QC"]["pca_1000g_time"]]
     threads: config["plink_gender_ancestry_QC"]["pca_1000g_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -312,7 +312,7 @@ rule pca_project:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_project_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_project_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["pca_project_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["plink_gender_ancestry_QC"]["pca_project_time"]]
     threads: config["plink_gender_ancestry_QC"]["pca_project_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -359,7 +359,7 @@ rule pca_projection_assign:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_projection_assign_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_projection_assign_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["pca_projection_assign_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["plink_gender_ancestry_QC"]["pca_projection_assign_time"]]
     threads: config["plink_gender_ancestry_QC"]["pca_projection_assign_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -391,7 +391,7 @@ rule summary_ancestry_sex:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["summary_ancestry_sex_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["summary_ancestry_sex_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["summary_ancestry_sex_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["plink_gender_ancestry_QC"]["summary_ancestry_sex_time"]]
     threads: config["plink_gender_ancestry_QC"]["summary_ancestry_sex_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -424,7 +424,7 @@ rule update_sex_ancestry:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["update_sex_ancestry_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["update_sex_ancestry_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["update_sex_ancestry_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["plink_gender_ancestry_QC"]["update_sex_ancestry_time"]]
     threads: config["plink_gender_ancestry_QC"]["update_sex_ancestry_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -457,7 +457,7 @@ rule subset_ancestry:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["subset_ancestry_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["subset_ancestry_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["plink_gender_ancestry_QC"]["subset_ancestry_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["plink_gender_ancestry_QC"]["subset_ancestry_time"]]
     threads: config["plink_gender_ancestry_QC"]["subset_ancestry_threads"]
     params:
         bind = config["inputs"]["bind_path"],

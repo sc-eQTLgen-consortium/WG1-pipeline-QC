@@ -15,7 +15,7 @@ rule split_input_vcf_by_chr:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["split_vcf_by_chr_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["split_vcf_by_chr_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["split_vcf_by_chr_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["pre_processing"]["split_vcf_by_chr_time"]]
     threads: config["pre_processing"]["split_vcf_by_chr_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -37,7 +37,7 @@ rule normalise_vcf_by_chr:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["normalise_by_chr_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["normalise_by_chr_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["normalise_by_chr_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["pre_processing"]["normalise_by_chr_time"]]
     threads: config["pre_processing"]["normalise_by_chr_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -63,7 +63,7 @@ rule normalise_input_vcf_per_chr:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["normalise_by_chr_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["normalise_by_chr_memory"],
-        time = lambda wildcards,attempt: config["cluster_time"][attempt + config["pre_processing"]["normalise_by_chr_time"]]
+        time = lambda wildcards,attempt: config["cluster_time"][(attempt - 1) + config["pre_processing"]["normalise_by_chr_time"]]
     threads: config["pre_processing"]["normalise_by_chr_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -88,7 +88,7 @@ rule wgs_filter:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["wgs_filter_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["wgs_filter_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["wgs_filter_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["pre_processing"]["wgs_filter_time"]]
     threads: config["pre_processing"]["wgs_filter_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -151,7 +151,7 @@ rule combine_wgs_filtered_vcfs:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_vcfs_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_vcfs_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["combine_vcfs_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["pre_processing"]["combine_vcfs_time"]]
     threads: config["pre_processing"]["combine_vcfs_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -178,7 +178,7 @@ rule wgs_filtered_vcf_to_pgen:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["vcf_to_pgen_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["pre_processing"]["vcf_to_pgen_time"]]
     threads: config["pre_processing"]["vcf_to_pgen_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -214,7 +214,7 @@ rule input_vcf_to_pgen:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["vcf_to_pgen_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["pre_processing"]["vcf_to_pgen_time"]]
     threads: config["pre_processing"]["vcf_to_pgen_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -250,7 +250,7 @@ rule combine_input_vcfs:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_vcfs_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_vcfs_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["combine_vcfs_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["pre_processing"]["combine_vcfs_time"]]
     threads: config["pre_processing"]["combine_vcfs_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -276,7 +276,7 @@ rule combined_input_vcf_to_pgen:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["vcf_to_pgen_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["vcf_to_pgen_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["pre_processing"]["vcf_to_pgen_time"]]
     threads: config["pre_processing"]["vcf_to_pgen_threads"]
     params:
         bind = config["inputs"]["bind_path"],
@@ -310,7 +310,7 @@ rule combine_input_plink:
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_plink_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["pre_processing"]["combine_plink_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][attempt + config["pre_processing"]["combine_plink_time"]]
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["pre_processing"]["combine_plink_time"]]
     threads: config["pre_processing"]["combine_plink_threads"]
     params:
         bind = config["inputs"]["bind_path"],

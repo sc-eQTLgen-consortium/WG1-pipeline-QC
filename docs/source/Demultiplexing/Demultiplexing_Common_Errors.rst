@@ -51,7 +51,7 @@ If you have any questions or issues, feel free to open an issue_ or directly ema
 
         .. code-block:: bash
 
-            singularity exec --bind $BIND_DIR $SIF bcftools reheader -f $FAI imputed_hg38_R2_0.3_MAF0.05_exons_sorted.vcf > imputed_hg38_R2_0.3_MAF0.05_exons_sorted_reheader.vcf
+            singularity exec --bind $BIND_DIR $SIF bcftools reheader -f $FAI imputed_hg38_qc_filtered_exons_sorted.vcf > imputed_hg38_qc_filtered_exons_sorted_reheader.vcf
 
 
         .. admonition:: Note
@@ -67,15 +67,15 @@ If you have any questions or issues, feel free to open an issue_ or directly ema
             if($0 !~ /^#/)
                   print "chr"$0;
             else print $0
-            }' imputed_hg38_R2_0.3_MAF0.05_exons_sorted_reheader.vcf > imputed_hg38_R2_0.3_MAF0.05_exons_sorted_reheader_chr.vcf
+            }' imputed_hg38_qc_filtered_exons_sorted_reheader.vcf > imputed_hg38_qc_filtered_exons_sorted_reheader_chr.vcf
 
      #. Finally, you can update the order of the SNPs in the file to match the order of the chromosomes in the header with picard. Again, you can run this directly from the singularity image: 
 
         .. code-block:: bash
 
             singularity exec --bind $BIND_DIR $SIF java -jar /opt/picard/build/libs/picard.jar SortVcf \
-            I=imputed_hg38_R2_0.3_MAF0.05_exons_sorted_reheader.vcf \
-            O=imputed_hg38_R2_0.3_MAF0.05_exons_sorted_reheader_reorder.vcf
+            I=imputed_hg38_qc_filtered_exons_sorted_reheader.vcf \
+            O=imputed_hg38_qc_filtered_exons_sorted_reheader_reorder.vcf
 
 
         .. admonition:: Note

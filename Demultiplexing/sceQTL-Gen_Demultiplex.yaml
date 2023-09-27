@@ -134,6 +134,10 @@ settings_extra:
     sc_doubletdetection_methods: ["DoubletDetection", "scds", "Scrublet"]
     sn_doubletdetection_methods: ["DoubletFinder", "scDblFinder"]
 
+demultiplex_preprocessing_extra:
+  filter4demultiplexing_maf: 0.05
+  filter4demultiplexing_r2: 0.3
+
 popscle_extra:
   cap_bq: 40 ### Maximum base quality (higher BQ will be capped)
   min_bq: 13 ### Minimum base quality to consider (lower BQ will be skipped)
