@@ -20,20 +20,10 @@ parser.add_argument("-o", "--out", required = True, help = "The output directory
 args = parser.parse_args()
 
 import scrublet as scr
-import scipy.io
 import matplotlib
 matplotlib.use('AGG')
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import umap
-import numba
-import numba.typed
-
-# Get path of mods directory from current script directory
-mods_path = "/opt/WG1-pipeline-QC/Demultiplexing/mods"
-sys.path.append(mods_path)
-import read10x
 
 if not os.path.isdir(args.out):
     os.mkdir(args.out)
@@ -44,7 +34,7 @@ plt.rcParams['pdf.fonttype'] = 42
 
 ### Read in data ###
 counts_matrix = scanpy.read_10x_h5(args.counts)
-barcodes_df = read10x.read_barcodes(args.barcodes)
+barcodes_df = pd.read_csv(args.barcodes, sep="\t", header=None, names=["Barcode"])
 
 
 dbl_rate = counts_matrix.shape[0]/1000 * 0.008

@@ -20,14 +20,8 @@ import numpy as np
 import doubletdetection
 import matplotlib
 matplotlib.use('PDF')
-import sys
 import pandas as pd
 import scanpy
-
-# Load read10x function from mods directory
-mods_path = "/opt/WG1-pipeline-QC/Demultiplexing/mods"
-sys.path.append(mods_path)
-import read10x
 
 if args.phenograph == 'True':
     pheno = True
@@ -48,7 +42,7 @@ if not os.path.isdir(args.out):
 
 # Read in data
 raw_counts = scanpy.read_10x_h5(args.counts)
-barcodes_df = read10x.read_barcodes(args.barcodes)
+barcodes_df = pd.read_csv(args.barcodes, sep="\t", header=None, names=["Barcode"])
 
 print('Counts matrix shape: {} rows, {} columns'.format(raw_counts.shape[0], raw_counts.shape[1]))
 
