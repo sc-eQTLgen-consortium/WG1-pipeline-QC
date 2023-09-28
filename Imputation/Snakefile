@@ -392,5 +392,5 @@ rule all:
 
 # Import individual rules
 include: "includes/pre_processing.smk"
-include: "includes/sex_ancestry_QC.smk"
+include: "includes/ancestry_sex_QC.smk"
 include: "includes/imputation.smk"
