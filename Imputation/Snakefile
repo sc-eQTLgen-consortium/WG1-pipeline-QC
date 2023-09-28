@@ -83,6 +83,11 @@ if config["settings"]["is_wgs"] and "PLINK" in input_option[0]:
     logger.info("Error, a VCF input is required for WGS filtering.\n\nExiting.")
     exit("WrongWGSFilteringInputFile")
 
+# Check if the genome build is valid.
+if not config["inputs"]["genome_build"] in ['hg18', 'GRCh36', 'hg19', 'GRCh37', 'hg38', 'GRCh38']:
+    logger.info("Error, invalid genome build. Accepted input are hg18, GRCh36, hg19, GRCh37, hg38 and GRCh38.\n\nExiting.")
+    exit("WrongGenomeBuild")
+
 # Check if the dataset sample files exist.
 DATASETS = []
 for dataset, samples_path in config["inputs"]["dataset_samples"].items():
@@ -348,6 +353,12 @@ if ancestry_updated_psam_df is not None and os.path.exists(sex_man_select_path) 
         pd.DataFrame({"#FID": [], "IID": []}).to_csv(remove_indivs_path, sep="\t", index=False, header=True)
     if not os.path.exists(sex_update_path):
         pd.DataFrame({"#FID": [], "IID": [], "SEX": []}).to_csv(sex_update_path, sep="\t", index=False, header=True)
+
+    # Add the endpoints for crossmap. This forces rule to apply crossmap of not using genome build hg38 or GRCh38.
+    if config["inputs"]["genome_build"] in ['hg18', 'GRCh36', 'hg19', 'GRCh37']:
+        input_files.append(expand(config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bed", ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bim", ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.fam", ancestry=ANCESTRIES))
 
     # Add the endpoints for harmonize_hg38. This forces rule split_by_chr_for_harmonize to be executed, splitting the VCF
     # per chromosome before running GenotypeHarmonizer.jar. This needed because WGS files are often too big to be run in one go.

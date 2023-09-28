@@ -89,8 +89,11 @@ From: drneavin/SingularityBaseImages:r363_python368
         wget https://www.dropbox.com/s/uy9828g1r1jt5xy/ImputationTestDataset_plink.tar.gz
 		tar -xzf ImputationTestDataset_plink.tar.gz
 
+    # Getting it from eQTLgen github since the other chain is also on there.
 	cd /opt
-		wget https://www.dropbox.com/s/u8haw4n5t3b8b34/GRCh37_to_GRCh38.chain
+		wget https://github.com/eQTLGen/eQTLGenImpute/blob/main/data/GRCh37_to_GRCh38.chain
+	cd /opt
+		wget https://github.com/eQTLGen/eQTLGenImpute/blob/main/data/hg18ToHg38.over.chain
 
 	cd /opt
 		wget https://alkesgroup.broadinstitute.org/Eagle/downloads/Eagle_v2.4.1.tar.gz

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+####################################################
+############ hg18, GRCh36, hg19, GRCh37 ############
+####################################################
 
 # Converts BIM to BED and converts the BED file via CrossMap.
 # Finds excluded SNPs and removes them from the original plink file.
@@ -25,7 +28,7 @@ rule crossmap:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink",
-        chain_file = "/opt/GRCh37_to_GRCh38.chain"
+        chain_file = "/opt/GRCh37_to_GRCh38.chain" if config["inputs"]["genome_build"] in ["hg19", "GRCh37"] else "/opt/hg18ToHg38.over.chain"
     log: config["outputs"]["output_dir"] + "log/crossmap.{ancestry}.log"
     shell:
         """
@@ -45,15 +48,15 @@ rule crossmap:
         """
 
 
-rule sort_bed:
+rule sort_bed_after_crossmap:
     input:
         bed = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bed",
         bim = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bim",
         fam = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.fam"
     output:
-        bed = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.bed",
-        bim = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.bim",
-        fam = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.fam"
+        bed = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bed",
+        bim = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bim",
+        fam = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.fam"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["sort_bed_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["sort_bed_memory"],
@@ -62,8 +65,8 @@ rule sort_bed:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        out = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted"
-    log: config["outputs"]["output_dir"] + "log/sort_bed.{ancestry}.log"
+        out = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted"
+    log: config["outputs"]["output_dir"] + "log/sort_bed_after_crossmap.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
@@ -77,12 +80,52 @@ rule sort_bed:
             --out {params.out}
         """
 
+######################################
+############ hg38, GRCh38 ############
+######################################
+
+
+rule sort_bed:
+    input:
+        pgen = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.pgen",
+        pvar = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.pvar",
+        psam = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.psam",
+    output:
+        bed = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bed",
+        bim = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bim",
+        fam = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.fam"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["sort_bed_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["sort_bed_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["sort_bed_time"]]
+    threads: config["imputation"]["sort_bed_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        out = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted"
+    log: config["outputs"]["output_dir"] + "log/sort_bed.{ancestry}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} plink2 \
+            --threads {threads} \
+            --pgen {input.pgen} \
+            --pvar {input.pvar} \
+            --psam {input.psam} \
+            --make-bed \
+            --max-alleles 2 \
+            --output-chr MT \
+            --out {params.out}
+        """
+
+
+####################################################
+
 
 rule harmonize_hg38:
     input:
-        bed = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.bed",
-        bim = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.bim",
-        fam = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.fam",
+        bed = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bed",
+        bim = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bim",
+        fam = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.fam",
         ref_vcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"],
         ref_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"] + ".tbi"
     output:
@@ -99,7 +142,7 @@ rule harmonize_hg38:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         jar = "/opt/GenotypeHarmonizer-1.4.23/GenotypeHarmonizer.jar",
-        infile = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted",
+        infile = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted",
         out = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}",
     log: config["outputs"]["output_dir"] + "log/harmonize_hg38.{ancestry}.log"
     shell:
@@ -154,13 +197,13 @@ rule plink_to_vcf:
 
 rule split_by_chr_for_harmonize:
     input:
-        bed = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.bed",
-        bim = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.bim",
-        fam = config["outputs"]["output_dir"] + "crossmapped_sorted/{ancestry}_crossmapped_sorted.fam"
+        bed = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bed",
+        bim = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bim",
+        fam = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.fam"
     output:
-        bed = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_crossmapped_sorted.bed",
-        bim = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_crossmapped_sorted.bim",
-        fam = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_crossmapped_sorted.fam"
+        bed = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_sorted.bed",
+        bim = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_sorted.bim",
+        fam = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_sorted.fam"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_chr_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_chr_memory"],
@@ -169,7 +212,7 @@ rule split_by_chr_for_harmonize:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        out = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_crossmapped_sorted"
+        out = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_sorted"
     log: config["outputs"]["output_dir"] + "log/split_by_chr_for_harmonize.{ancestry}.chr_{chr}.log"
     shell:
         """
@@ -186,9 +229,9 @@ rule split_by_chr_for_harmonize:
 
 rule harmonize_hg38_per_chr:
     input:
-        bed = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_crossmapped_sorted.bed",
-        bim = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_crossmapped_sorted.bim",
-        fam = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_crossmapped_sorted.fam",
+        bed = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_sorted.bed",
+        bim = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_sorted.bim",
+        fam = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_sorted.fam",
         ref_vcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"],
         ref_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"] + ".tbi"
     output:
@@ -205,7 +248,7 @@ rule harmonize_hg38_per_chr:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         jar = "/opt/GenotypeHarmonizer-1.4.23/GenotypeHarmonizer.jar",
-        infile = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_crossmapped_sorted",
+        infile = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_sorted",
         out = config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_chr_{chr}",
     log: config["outputs"]["output_dir"] + "log/harmonize_hg38_per_chr.{ancestry}.chr_{chr}.log"
     shell:
