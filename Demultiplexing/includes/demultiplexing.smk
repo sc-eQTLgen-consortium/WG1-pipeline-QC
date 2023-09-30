@@ -49,7 +49,7 @@ rule filter4demultiplexing:
         sif = config["inputs"]["singularity_image"],
         maf = config["demultiplex_preprocessing_extra"]["filter4demultiplexing_maf"],
         r2 = config["demultiplex_preprocessing_extra"]["filter4demultiplexing_r2"],
-        bed = "/opt/hg38exonsUCSC.bed",
+        bed = "/opt/hg38exonsUCSC.bed", # TODO: this file is removed from the image, refactor as input file
         out = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_qc_filtered_exons",
         complete_out = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_qc_filtered_exons_complete_cases",
     log: config["outputs"]["output_dir"] + "log/filter4demultiplexing.log"
@@ -88,7 +88,7 @@ rule sort4demultiplexing:
     params:
         sif = config["inputs"]["singularity_image"],
         bind = config["inputs"]["bind_path"],
-        jar = "/opt/picard/build/libs/picard.jar"
+        jar = "/opt/picard-3.1.0/build/libs/picard.jar"
     log: config["outputs"]["output_dir"] + "log/sort4demultiplexing.log"
     shell:
         """

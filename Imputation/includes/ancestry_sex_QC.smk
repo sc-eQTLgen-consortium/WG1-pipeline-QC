@@ -109,9 +109,9 @@ rule common_snps:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        pgen_1000g = "/opt/1000G/all_phase3_filtered.pgen",
-        pvar_1000g = "/opt/1000G/all_phase3_filtered.pvar",
-        psam_1000g = "/opt/1000G/all_phase3_filtered.psam",
+        pgen_1000g = "/opt/1000G/all_phase3_filtered.pgen", # TODO: this file is removed from the image, refactor as input file
+        pvar_1000g = "/opt/1000G/all_phase3_filtered.pvar", # TODO: this file is removed from the image, refactor as input file
+        psam_1000g = "/opt/1000G/all_phase3_filtered.psam", # TODO: this file is removed from the image, refactor as input file
         out = config["outputs"]["output_dir"] + "common_snps/subset_data",
         out_1000g = config["outputs"]["output_dir"] + "common_snps/subset_1000g"
     log: config["outputs"]["output_dir"] + "log/common_snps.log"

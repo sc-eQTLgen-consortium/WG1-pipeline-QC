@@ -1,10 +1,5 @@
 Bootstrap: shub
 From: drneavin/SingularityBaseImages:r363_python368
-
-%labels
-    Authors Drew Neavin and Anne Senabouth
-	Image_version = 1.0.0
-
 %environment
     export PATH=/opt/DoubletDetection/:/opt/popscle/bin/:/opt:/usr/games:/opt/bedtools2/bin:/opt/conda/envs/py36/bin:/opt/souporcell:/opt/souporcell/troublet/target/release:/opt/conda/bin:/opt/minimap2-2.7:/root/.cargo/bin:/opt/vartrix-v1.1.3-x86_64-linux/:/opt/freebayes/scripts:/opt/freebayes:/opt/vcflib/bin:/opt/vcflib/scripts:$PATH
     export PYTHONPATH=/opt/conda/envs/py36/lib/python3.6/site-packages/
@@ -40,7 +35,6 @@ From: drneavin/SingularityBaseImages:r363_python368
     cd
         wget https://github.com/Kitware/CMake/releases/download/v3.25.2/cmake-3.25.2.tar.gz
         tar xvf cmake-3.25.2.tar.gz
-        rm cmake-3.25.2.tar.gz
         cd cmake-3.25.2
         ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF
         make
@@ -61,7 +55,6 @@ From: drneavin/SingularityBaseImages:r363_python368
     cd /opt
     wget https://github.com/arq5x/bedtools2/releases/download/v2.28.0/bedtools-2.28.0.tar.gz
         tar -zxvf bedtools-2.28.0.tar.gz
-        rm bedtools-2.28.0.tar.gz
         cd bedtools2
         make
 
@@ -89,14 +82,13 @@ From: drneavin/SingularityBaseImages:r363_python368
     cd /opt
     wget https://github.com/samtools/htslib/releases/download/1.10.2/htslib-1.10.2.tar.bz2
         tar xvfj htslib-1.10.2.tar.bz2
-        rm htslib-1.10.2.tar.bz2
         cd htslib-1.10.2
         ./configure
         make
         make install
 
     cd /opt
-        git clone --single-branch --branch scMetaBrain https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
+        git clone --single-branch --branch v1.0.0 https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
 
     cd /opt
         wget https://github.com/samtools/samtools/releases/download/1.10/samtools-1.10.tar.bz2
@@ -126,7 +118,6 @@ From: drneavin/SingularityBaseImages:r363_python368
     cd /opt
     wget http://ftp.gnu.org/gnu/parallel/parallel-latest.tar.bz2
         tar xjf parallel-latest.tar.bz2
-        rm parallel-latest.tar.bz2
         cd parallel-*
         ./configure && make
         yes | make install
@@ -146,42 +137,6 @@ From: drneavin/SingularityBaseImages:r363_python368
 
     sed -i 's/louvain.set_rng_seed(random_state)/partition_kwargs["seed"] = random_state/g'  /opt/conda/envs/py36/lib/python3.6/site-packages/scanpy/tools/_louvain.py
 
-	### Needed for R libraries ###
-    cp /opt/conda/lib/libstdc++.so.6.0.28 /usr/lib/x86_64-linux-gnu/
-    mv /usr/lib/x86_64-linux-gnu/libstdc++.so.6 /usr/lib/x86_64-linux-gnu/libstdc++.so.6.bkp
-    ln -s /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28 /usr/lib/x86_64-linux-gnu/libstdc++.so.6
-
-
-	### Install R libraries ###
-	## Base helper packages ##
-    R --slave -e 'install.packages("V8", repos = "http://cran.us.r-project.org")'
-    R --slave -e 'install.packages("argparse", repos = "http://cran.us.r-project.org")'
-    R --slave -e 'install.packages("tidyr", repos = "http://cran.us.r-project.org")' # new
-    R --slave -e 'install.packages("tidyverse", repos = "http://cran.us.r-project.org")'
-    R --slave -e 'install.packages("dplyr", repos = "http://cran.us.r-project.org")' # new
-    R --slave -e 'install.packages("lsa", repos = "http://cran.us.r-project.org")'
-    R --slave -e 'install.packages("data.table", repos = "http://cran.us.r-project.org")'
-    R --slave -e 'install.packages("future.apply", repos = "http://cran.us.r-project.org")' # new
-    R --slave -e 'install.packages("ComplexUpset", repos = "http://cran.us.r-project.org")' # new
-    R --slave -e 'install.packages("RColorBrewer", repos = "http://cran.us.r-project.org")' # new
-    R --slave -e 'install.packages("scCustomize", repos = "http://cran.us.r-project.org")' # new
-    R --slave -e 'install.packages("Seurat", repos = "http://cran.us.r-project.org")'
-    R --slave -e 'install.packages("readr", repos = "http://cran.us.r-project.org")' # new
-    R --slave -e 'install.packages("ggplot2", repos = "http://cran.us.r-project.org")' # new
-    R --slave -e 'install.packages("ggpubr", repos = "http://cran.us.r-project.org")' # new
-    R --slave -e 'install.packages("cowplot", repos = "http://cran.us.r-project.org")' # new
-    R --slave -e 'install.packages("xgboost" ,repo="http://cran.us.r-project.org")'
-
-    R --slave -e 'devtools::install_github(repo="knausb/vcfR")'
-    R --slave -e 'remotes::install_github("chris-mcginnis-ucsf/DoubletFinder")'
-    R --slave -e 'devtools::install_github("kostkalab/scds", ref="master")'
-
-    R --slave -e 'install.packages("BiocManager")'
-    R --slave -e 'BiocManager::install("ComplexHeatmap")'
-	R --slave -e 'BiocManager::install("mbkmeans")'
-    R --slave -e 'BiocManager::install("scDblFinder")'
-    R --slave -e 'BiocManager::install("SingleCellExperiment")'
-
 ##############################
 # setup scripts for users
 ##############################
@@ -200,3 +155,9 @@ From: drneavin/SingularityBaseImages:r363_python368
     export TAR
 %apprun test_dataset
     exec cp -a ${TAR} "$@"
+
+
+
+%labels
+    Authors Drew Neavin and Anne Senabouth
+	Image_version = 1.0.0

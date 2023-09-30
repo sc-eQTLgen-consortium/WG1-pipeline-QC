@@ -28,7 +28,7 @@ rule crossmap:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink",
-        chain_file = "/opt/GRCh37_to_GRCh38.chain" if config["inputs"]["genome_build"] in ["hg19", "GRCh37"] else "/opt/hg18ToHg38.over.chain"
+        chain_file = "/opt/GRCh37_to_GRCh38.chain" if config["inputs"]["genome_build"] in ["hg19", "GRCh37"] else "/opt/hg18ToHg38.over.chain" # TODO: this file is removed from the image, refactor as input file
     log: config["outputs"]["output_dir"] + "log/crossmap.{ancestry}.log"
     shell:
         """
@@ -141,7 +141,7 @@ rule harmonize_hg38:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        jar = "/opt/GenotypeHarmonizer-1.4.23/GenotypeHarmonizer.jar",
+        jar = "/opt/GenotypeHarmonizer-1.4.27/GenotypeHarmonizer.jar",
         infile = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted",
         out = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}",
     log: config["outputs"]["output_dir"] + "log/harmonize_hg38.{ancestry}.log"
@@ -247,7 +247,7 @@ rule harmonize_hg38_per_chr:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        jar = "/opt/GenotypeHarmonizer-1.4.23/GenotypeHarmonizer.jar",
+        jar = "/opt/GenotypeHarmonizer-1.4.27/GenotypeHarmonizer.jar",
         infile = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_sorted",
         out = config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_chr_{chr}",
     log: config["outputs"]["output_dir"] + "log/harmonize_hg38_per_chr.{ancestry}.chr_{chr}.log"
@@ -549,13 +549,12 @@ rule minimac_imputation:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        minimac4 = "/opt/bin/minimac4",
         out = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr{chr}",
         chunk_length = config["imputation"]["minimac_chunk_length"]
     log: config["outputs"]["output_dir"] + "log/minimac_imputation.{ancestry}.chr_{chr}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} {params.minimac4} \
+        singularity exec --bind {params.bind} {params.sif} minimac4 \
             --refHaps {input.impute_file} \
             --haps {input.vcf} \
             --prefix {params.out} \
