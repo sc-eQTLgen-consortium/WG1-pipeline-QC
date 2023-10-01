@@ -18,6 +18,9 @@ MAINTAINER Drew Neavin <d.neavin@garvan.org.au>, Martijn Vochteloo <m.vochteloo@
 
 ################## INSTALLATION ######################
 
+# Build syntax: docker build -t wg1-pipeline-qc:1.0.0 --progress=plain . 2>&1 | tee build.log
+# Whole build took ±90 min and total size is 11.65 GB.
+
 ADD . /tmp/repo
 WORKDIR /tmp/repo
 ENV PATH=/opt:/usr/games:/opt/conda/envs/py36/bin:/opt/conda/bin:/opt/minimap2-2.26:/opt/bedtools2/bin:/opt/.cargo/bin:/opt/souporcell:/opt/souporcell/troublet/target/release:/opt/vartrix-1.1.22:/opt/freebayes-1.3.7:/opt/freebayes-1.3.7/scripts:/opt/popscle/bin:/opt/DoubletDetection:/opt/Eagle_v2.4.1:/opt/Minimac4:/opt/GenotypeHarmonizer-1.4.27:/opt/picard-3.1.0/build/libs:$PATH
@@ -26,7 +29,7 @@ ENV LC_ALL=C
 ENV LANG=C.UTF-8
 ENV TZ=Europe
 
-# Needed to prevent asking for geagrpahic location when installing things.
+# Needed to prevent asking for geographic location when installing things.
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN apt-get update -y
@@ -59,33 +62,32 @@ RUN apt-get install -y wget
 
 # Install Python. Also required for bedtools2.
 RUN apt-get install -y python3
-#RUN cd /opt \
-#    && wget https://www.python.org/ftp/python/3.6.15/Python-3.6.15.tgz \
-#    && tar -xzf Python-3.6.15.tgz \
-#    && rm Python-3.6.15.tgz \
-#    && cd Python-3.6.15 \
-#    && ./configure \
-#    && make \
-#    && make install
 
-# Install miniconda for the virtual environment
+# Install miniconda for the virtual environment.
+# https://github.com/ContinuumIO/docker-images/blob/main/miniconda3/debian/Dockerfile
 RUN cd /opt \
-    && wget https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.2-0-Linux-x86_64.sh \
-    && /bin/bash Miniconda3-py39_23.5.2-0-Linux-x86_64.sh -b -p /opt/conda \
-    && rm Miniconda3-py39_23.5.2-0-Linux-x86_64.sh
+    && wget https://repo.anaconda.com/miniconda/Miniconda3-py311_23.5.2-0-Linux-x86_64.sh -O miniconda.sh -q \
+    && mkdir -p /opt \
+    && bash miniconda.sh -b -p /opt/conda \
+    && rm miniconda.sh \
+    && ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh \
+    && echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc \
+    && echo "conda activate base" >> ~/.bashrc \
+    && find /opt/conda/ -follow -type f -name '*.a' -delete \
+    && find /opt/conda/ -follow -type f -name '*.js.map' -delete \
+    && /opt/conda/bin/conda clean -afy
 
 # Create and activate virtual environment
-# TODO this does not work.
-# RUN eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
-# RUN export PATH=/opt/conda/bin/:$PATH
-# ca-certificates-2023.08.22, libuuid-1.41.5, openssl-3.0.11, pip-23.2.1, python-3.10.13, setuptools-68.0.0, wheel-0.41.2
-RUN conda create -n py310 python=3.10
-# RUN conda init zsh
-# RUN eval "$(conda shell.bash hook)"
-# RUN conda activate py310
+# ca-certificates-2023.08.22, ld_impl_linux-64-2.38, libffi-3.4.4, libgcc-ng-11.2.0, libgomp-11.2.0, libstdcxx-ng-11.2.0
+# libuuid-1.41.5, ncurses-6.4, openssl-3.0.11, pip-23.2.1, python-3.11.5, readline-8.2, setuptools-68.0.0, sqlite-3.41.2
+# tk-8.6.12, tzdata-2023c, wheel-0.41.2, xz-5.4.2, zlib-1.2.13
+RUN eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)" \
+    && conda create -n py311 python=3.11.5 \
+    && conda init bash \
+    && conda activate py311
 
 # Downgrade setuptools for pyvcf.
-RUN /opt/conda/envs/py310/bin/pip install --force-reinstall -v "setuptools==58.0.1"
+RUN /opt/conda/envs/py311/bin/pip install --force-reinstall -v "setuptools==58.0.1"
 
 # MarkupSafe-2.1.3 appdirs-1.4.4 attrs-23.1.0 certifi-2023.7.22 charset-normalizer-3.2.0 configargparse-1.7
 # connection-pool-0.0.3 datrie-0.8.2 docutils-0.20.1 dpath-2.1.6 fastjsonschema-2.18.0 gitdb-4.0.10
@@ -94,42 +96,42 @@ RUN /opt/conda/envs/py310/bin/pip install --force-reinstall -v "setuptools==58.0
 # pyyaml-6.0.1 referencing-0.30.2 requests-2.31.0 reretry-0.11.8 rpds-py-0.10.3 smart-open-6.4.0 smmap-5.0.1
 # snakemake-7.32.4 stopit-1.1.2 tabulate-0.9.0 throttler-1.2.2 toposort-1.10 traitlets-5.10.1 urllib3-2.0.5
 # wrapt-1.15.0 yte-1.5.1
-RUN /opt/conda/envs/py310/bin/pip install snakemake==7.32.4
+RUN /opt/conda/envs/py311/bin/pip install snakemake==7.32.4
 
 # Requirements for souporcell.
 # None
-RUN /opt/conda/envs/py310/bin/pip install numpy==1.26.0
+RUN /opt/conda/envs/py311/bin/pip install numpy==1.26.0
 # absl-py-2.0.0 astunparse-1.6.3 cachetools-5.3.1 flatbuffers-23.5.26 gast-0.5.4 google-auth-2.23.2
 # google-auth-oauthlib-1.0.0 google-pasta-0.2.0 grpcio-1.58.0 h5py-3.9.0 keras-2.14.0 libclang-16.0.6
 # markdown-3.4.4 ml-dtypes-0.2.0 oauthlib-3.2.2 opt-einsum-3.3.0 protobuf-4.24.3 pyasn1-0.5.0
 # pyasn1-modules-0.3.0 requests-oauthlib-1.3.1 rsa-4.9 six-1.16.0 tensorboard-2.14.1
 # tensorboard-data-server-0.7.1 tensorflow-2.14.0 tensorflow-estimator-2.14.0 tensorflow-io-gcs-filesystem-0.34.0
 # termcolor-2.3.0 typing-extensions-4.8.0 werkzeug-2.3.7 wrapt-1.14.1
-RUN /opt/conda/envs/py310/bin/pip install tensorflow==2.14.0
+RUN /opt/conda/envs/py311/bin/pip install tensorflow==2.14.0
 # None
-RUN /opt/conda/envs/py310/bin/pip install pyvcf==0.6.8
+RUN /opt/conda/envs/py311/bin/pip install pyvcf==0.6.8
 # aiohttp-3.8.5 aiosignal-1.3.1 async-timeout-4.0.3 clikit-0.6.2 crashtest-0.3.1 frozenlist-1.4.0
 # httpstan-4.10.1 marshmallow-3.20.1 multidict-6.0.4 pastel-0.2.1 pylev-1.4.0 pysimdjson-5.0.2
 # pystan-3.7.0 webargs-8.3.0 yarl-1.9.2
-RUN /opt/conda/envs/py310/bin/pip install pystan==3.7.0
+RUN /opt/conda/envs/py311/bin/pip install pystan==3.7.0
 # importlib-metadata-6.8.0 pyfaidx-0.7.2.2 zipp-3.17.0
-RUN /opt/conda/envs/py310/bin/pip install pyfaidx==0.7.2.2
+RUN /opt/conda/envs/py311/bin/pip install pyfaidx==0.7.2.2
 # None
-RUN /opt/conda/envs/py310/bin/pip install scipy==1.11.3
+RUN /opt/conda/envs/py311/bin/pip install scipy==1.11.3
 
 # Requirements for Scrublet.
 # pandas-2.1.1 python-dateutil-2.8.2 pytz-2023.3.post1 tzdata-2023.3
-RUN /opt/conda/envs/py310/bin/pip install pandas==2.1.1
+RUN /opt/conda/envs/py311/bin/pip install pandas==2.1.1
 # contourpy-1.1.1 cycler-0.12.0 fonttools-4.43.0 kiwisolver-1.4.5 matplotlib-3.8.0 pillow-10.0.1 pyparsing-3.1.1
-RUN /opt/conda/envs/py310/bin/pip install matplotlib==3.8.0
+RUN /opt/conda/envs/py311/bin/pip install matplotlib==3.8.0
 # PyWavelets-1.4.1 annoy-1.17.3 cython-3.0.2 imageio-2.31.4 joblib-1.3.2 lazy_loader-0.3 llvmlite-0.41.0
 # networkx-3.1 numba-0.58.0 numpy-1.25.2 pynndescent-0.5.10 scikit-image-0.21.0 scikit-learn-1.3.1
 # scrublet-0.2.3 tbb-2021.10.0 threadpoolctl-3.2.0 tifffile-2023.9.26 tqdm-4.66.1 umap-learn-0.5.4
-RUN /opt/conda/envs/py310/bin/pip install scrublet==0.2.3
+RUN /opt/conda/envs/py311/bin/pip install scrublet==0.2.3
 
 # Requirements for CrossMap.
 # CrossMap-0.6.6 bx-python-0.10.0 pyBigWig-0.3.22 pysam-0.21.0
-RUN /opt/conda/envs/py310/bin/pip install CrossMap==0.6.6
+RUN /opt/conda/envs/py311/bin/pip install CrossMap==0.6.6
 
 # Requirements for DoubletDetection.
 # anndata-0.9.2 asttokens-2.4.0 backcall-0.2.0 comm-0.1.4 decorator-5.1.1 doubletdetection-4.2
@@ -138,9 +140,9 @@ RUN /opt/conda/envs/py310/bin/pip install CrossMap==0.6.6
 # parso-0.8.3 patsy-0.5.3 pexpect-4.8.0 phenograph-1.5.7 pickleshare-0.7.5 prompt-toolkit-3.0.39
 # ptyprocess-0.7.0 pure-eval-0.2.2 pygments-2.16.1 scanpy-1.9.5 seaborn-0.12.2 session-info-1.0.0
 # stack-data-0.6.2 statsmodels-0.14.0 stdlib_list-0.9.0 texttable-1.6.7 wcwidth-0.2.7 widgetsnbextension-4.0.9
-RUN /opt/conda/envs/py310/bin/pip install doubletdetection==4.2
+RUN /opt/conda/envs/py311/bin/pip install doubletdetection==4.2
 
-RUN conda clean --all
+RUN conda clean -y --all
 
 #############################
 ############# R #############
@@ -339,14 +341,10 @@ RUN cd /opt \
       && make
 
 # Required for souporcell.
-# TODO: specify version
-# info: default host triple is x86_64-unknown-linux-gnu
-# info: syncing channel updates for 'stable-x86_64-unknown-linux-gnu'
-# info: latest update on 2023-09-19, rust version 1.72.1 (d5c2e9c34 2023-09-13)
 RUN cd /opt \
-    && CARGO_HOME=/opt/.cargo RUSTUP_HOME=/opt/.cargo bash -c 'curl https://sh.rustup.rs -sSf | sh -s -- -y' \
+    && CARGO_HOME=/opt/.cargo RUSTUP_HOME=/opt/.cargo bash -c 'curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=1.72.1 -y' \
     && . /opt/.cargo/env \
-    && rustup default stable
+    && rustup default stable-x86_64-unknown-linux-gnu
 
 # Fork from commit 9fb5271ae9f2257ea9a8552dfda3d4b7080be194
 # requires samtools, bcftools, htslib, python3, freebayes, vartrix, minimap2, Rust (i.e. cargo)
@@ -370,29 +368,6 @@ RUN cd /opt \
       && ./configure \
       && make \
       && make install
-
-# Required for popscle.
-RUN cd /opt \
-    && wget https://github.com/samtools/htslib/releases/download/1.18/htslib-1.18.tar.bz2 \
-    && tar xjf htslib-1.18.tar.bz2 \
-    && rm htslib-1.18.tar.bz2 \
-    && cd htslib-1.18 \
-      && ./configure \
-      && make \
-      && make install
-
-## Commit of May 5, 2021
-## TODO fix error. Perhaps downgrade htslib to 1.10.2?
-## [CMakeFiles/popscle.dir/build.make:230: CMakeFiles/popscle.dir/cmd_plp_make_dge_matrix.cpp.o] Error 1
-## [CMakeFiles/Makefile2:83: CMakeFiles/popscle.dir/all] Error 2
-#RUN cd /opt \
-#    && git clone https://github.com/statgen/popscle.git \
-#    && cd popscle \
-#      && git checkout da70fc78da385ef049e0e890342acfd62842cae0 \
-#      && mkdir build \
-#      && cd build \
-#        && cmake ..  \
-#        && make
 
 # Used by minimap2 and picard? No clue but seems important.
 RUN cd /opt \
@@ -435,33 +410,44 @@ RUN cd /opt \
       && git checkout tags/3.1.0 \
       && ./gradlew shadowJar
 
-# Always get our own newest software.
-# TODO: make sure you use the correct branch here.
+# Switch GCC to version 10.5 since popscle doesn't build with version 11.4:
+# stl_algo.h:3455:5: note: 'std::min' declared here
+# https://forum.qt.io/topic/59045/build-qt-static-make-error-solved/18
+# Note that we do this last so that the rest is build on version 11.4.
+RUN apt-get install -y g++-10 gcc-10
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 80 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
+RUN update-alternatives --config gcc
+
+# Required for popscle.
+RUN cd /opt \
+    && wget https://github.com/samtools/htslib/releases/download/1.18/htslib-1.18.tar.bz2 \
+    && tar xjf htslib-1.18.tar.bz2 \
+    && rm htslib-1.18.tar.bz2 \
+    && cd htslib-1.18 \
+      && ./configure \
+      && make \
+      && make install
+
+# Commit of May 5, 2021
+# Source: https://github.com/statgen/popscle/issues/21
+RUN cd /opt \
+    && git clone https://github.com/statgen/popscle.git \
+    && cd popscle \
+      && git checkout da70fc78da385ef049e0e890342acfd62842cae0 \
+      && mkdir build \
+      && cd build \
+        && cmake ..  \
+        && make
+
+
+######################################
+############# SC-EQTLGEN #############
+######################################
+
+
+# Always get our own newest software. IMPORTANT: make sure you use the correct branch here.
 RUN cd /opt \
     && git clone --single-branch --branch scMetaBrain https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git \
     && chmod 777 -R /opt/WG1-pipeline-QC/Demultiplexing/scripts \
-    && chmod 777 -R /opt/WG1-pipeline-QC/Imputation/scripts
-
-
-## TODO: this stuff should probably not be included in the image but downloaded separately.
-## md5sum 77e1141441b2b443519249d331dab5ae 1000G.tar.gz
-#RUN cd /opt \
-#    && wget https://www.dropbox.com/s/xso2vt3p9h2rh8m/1000G.tar.gz \
-#    && tar -xzf 1000G.tar.gz \
-#    && rm 1000G.tar.gz
-#
-## md5sum 2a862e70fa1afc08f1f3e7a8cc5cda14 GRCh37_to_GRCh38.chain.gz
-## md5sum 79f905be8ef01dce1196975cab239cca GRCh37_to_GRCh38.chain
-#RUN cd /opt \
-#    && wget https://ftp.ensembl.org/pub/assembly_mapping/homo_sapiens/GRCh37_to_GRCh38.chain.gz \
-#    && gunzip GRCh37_to_GRCh38.chain.gz
-#
-## md5sum cb4ba08996a10b0ded40fae00987d1c8 hg18ToHg38.over.chain.gz
-## md5sum da54dd9e82393c38512de0e63335a05d hg18ToHg38.over.chain
-#RUN cd /opt \
-#    && wget http://hgdownload.cse.ucsc.edu/goldenPath/hg18/liftOver/hg18ToHg38.over.chain.gz \
-#    && gunzip hg18ToHg38.over.chain.gz
-#
-## md5sum c323d4fb5da690ca6352a7ee8a14e022 hg38exonsUCSC.bed
-#RUN cd /opt \
-#    && wget https://www.dropbox.com/s/fvd4pl8no3ngg0l/hg38exonsUCSC.bed
+    && chmod 777 -R /opt/WG1-pipeline-QC/Imputation/scripts \
