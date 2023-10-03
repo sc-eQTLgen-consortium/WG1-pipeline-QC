@@ -13,7 +13,8 @@ LABEL about.documentation="https://github.com/sc-eQTLgen-consortium/WG1-pipeline
 LABEL about.tags="Genomics"
 
 # Build syntax: docker build -t wg1-pipeline-qc:1.0.0 --progress=plain . 2>&1 | tee build.log
-# Total build takes ? hour, ? minutes, and ? seconds and has a size of ? GB.
+# Total build takes 1 hour, and 48 minutes and has a size of 7.41 GB.
+# Use dive wg1-pipeline-qc:1.0.0 to investigate memory usage.
 
 ################## MAINTAINER ######################
 
@@ -21,10 +22,12 @@ MAINTAINER Drew Neavin <d.neavin@garvan.org.au>, Martijn Vochteloo <m.vochteloo@
 
 ################## INSTALLATION ######################
 
-# Section build takes 43 seconds and has a size of 0.469 GB.
+# Section build takes 23 seconds and has a size of 0.469 GB.
 
+# Uses 74 MB.
 ADD . /tmp/repo
 WORKDIR /tmp/repo
+
 ENV PATH=/opt:/usr/games:/opt/conda/envs/py36/bin:/opt/conda/bin:/opt/minimap2-2.26:/opt/bedtools2/bin:/opt/.cargo/bin:/opt/souporcell:/opt/souporcell/troublet/target/release:/opt/vartrix-1.1.22:/opt/freebayes-1.3.7:/opt/freebayes-1.3.7/scripts:/opt/popscle/bin:/opt/DoubletDetection:/opt/Eagle_v2.4.1:/opt/Minimac4:/opt/GenotypeHarmonizer-1.4.27:/opt/picard-3.1.0/build/libs:$PATH
 ENV SHELL=/bin/bash
 ENV LC_ALL=C
@@ -33,11 +36,11 @@ ENV TZ=Europe
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Needed to prevent asking for geographic location when installing things.
-# Uses 7 B.
+# Uses 0.000007 MB.
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone
 
-# Uses 317 MB, mainly in /usr/lib (221 MB), /usr/bin/ (59 MB), and /var/ (50 MB)
+# Uses 300 MB, mainly in /usr/lib/ (221 MB), /usr/bin/ (59 MB), and /var/ (50 MB)
 RUN apt-get update -y \
     # libc-bin libc6 libsystemd0 libudev1
     && apt-get upgrade -y \
@@ -58,7 +61,10 @@ RUN apt-get update -y \
 ############# PYTHON #############
 ##################################
 
-# Section build takes 4 minutes and 20 seconds and has a size of 4.271 GB.
+# Section build takes 3 minutes and 27 seconds and has a size of 3.38 GB.
+
+# Reduce conda size by preventing Python from recreating a corresponding bytecode cache file (*.pyc) at runtime.
+ENV PYTHONDONTWRITEBYTECODE=true
 
 # Install Python. Also required for bedtools2.
 # libexpat1 libmpdec3 libpython3-stdlib libpython3.10-minimal
@@ -87,7 +93,7 @@ RUN cd /opt \
 # libgcc-ng-11.2.0, libgomp-11.2.0, libstdcxx-ng-11.2.0 libuuid-1.41.5, ncurses-6.4, openssl-3.0.11,
 # pip-23.2.1, python-3.11.5, readline-8.2, setuptools-68.0.0, sqlite-3.41.2 tk-8.6.12, tzdata-2023c
 # wheel-0.41.2, xz-5.4.2, zlib-1.2.13
-# Uses 3.9 GB, mainly in /opt/conda/envs/py311/lib/ (2.9 GB), and /root/.cache (872 MB)
+# Uses 3.1 GB, mainly in /opt/conda/envs/py311/lib/ (2.9 GB)
 RUN eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)" \
     && conda create -n py311 python=3.11.5 \
     && conda init bash \
@@ -143,19 +149,20 @@ RUN eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)" \
     # stack-data-0.6.2 statsmodels-0.14.0 stdlib_list-0.9.0 texttable-1.6.7 wcwidth-0.2.7 widgetsnbextension-4.0.9
     && /opt/conda/envs/py311/bin/pip install doubletdetection==4.2 \
     && conda clean -y --all \
-    && conda deactivate
+    && conda deactivate \
+    && /opt/conda/envs/py311/bin/pip cache purge
 
 #############################
 ############# R #############
 #############################
 
-# Section build takes 1 hours, 29 minutes, and 31 seconds and has a size of 1.381 GB.
+# Section build takes 41 minutes, and 14 seconds and has a size of 1.381 GB.
 
 # ggpubr - nloptr.
 # cmake cmake-data dh-elpa-helper emacsen-common libarchive13 libbrotli1
 # libcurl4 libexpat1 libicu70 libjsoncpp25 libldap-2.5-0 libnghttp2-14
 # librhash0 librtmp1 libsasl2-2 libsasl2-modules-db libssh-4 libuv1 libxml2
-# Uses 415 MB, mainly in /usr/lib/ (328 MB), /usr/bin/ (37 MB), /usr/share/ (30 MB)
+# Uses 386 MB, mainly in /usr/lib/ (328 MB), /usr/bin/ (37 MB), /usr/share/ (30 MB)
 RUN apt-get install -y --no-install-recommends cmake \
     # install two helper packages we need: dirmngr and software-properties-common
     && apt-get install -y --no-install-recommends dirmngr \
@@ -185,7 +192,7 @@ RUN apt-get install -y --no-install-recommends cmake \
     && tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc \
     # add the R 4.0 repo from CRAN -- adjust 'focal' to 'groovy' or 'bionic' as needed
     && add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu jammy-cran40/" \
-    # && R and its dependencies. \
+    # Install R and its dependencies. \
     # fontconfig fontconfig-config fonts-dejavu-core libblas3 libbsd0 libcairo2
     # libdatrie1 libdeflate0 libfontconfig1 libfreetype6 libfribidi0 libgfortran5
     # libgraphite2-3 libharfbuzz0b libice6 libjbig0 libjpeg-turbo8 libjpeg8
@@ -222,7 +229,9 @@ RUN apt-get install -y --no-install-recommends cmake \
     # python3-lib2to3
     && apt-get install -y --no-install-recommends libharfbuzz-dev \
     # libfribidi-dev
-    && apt-get install -y --no-install-recommends libfribidi-dev
+    && apt-get install -y --no-install-recommends libfribidi-dev \
+    # libdeflate-dev libjbig-dev libtiff-dev libtiffxx5
+    && apt-get install -y --no-install-recommends libtiff-dev
 
 # remotes_2.4.2.1
 # Uses 791 MB, mainly in /usr/local/lib/R/BH/ (130 MB), xgboost (100 MB), RcppEigen (37 MB), lme4 (29MB), igraph (20 MB), vroom (20 MB), uwot (20 MB)
@@ -331,7 +340,7 @@ RUN R --slave -e 'install.packages("BiocManager")' \
 ############## JAVA #############
 #################################
 
-# Section build takes 25 seconds and has a size of 0.526 GB.
+# Section build takes 19 seconds and has a size of 0.526 GB.
 
 ## adwaita-icon-theme ca-certificates-java fontconfig fontconfig-config
 ## fonts-dejavu-core gtk-update-icon-cache hicolor-icon-theme
@@ -353,64 +362,62 @@ RUN R --slave -e 'install.packages("BiocManager")' \
 ## libxinerama1 libxml2 libxrandr2 libxrender1 libxshmfence1 libxtst6
 ## libxxf86vm1 openjdk-17-jdk openjdk-17-jdk-headless openjdk-17-jre
 ## openjdk-17-jre-headless shared-mime-info ubuntu-mono ucf x11-common
-# Uses 526 MB, mainly in /usr/lib/ (221 MB), /var/ (50 MB), /usr/share/ (22 MB), and /usr/include/ (20 MB)
+# Uses 468 MB, mainly in /usr/lib/ (221 MB), /var/ (50 MB), /usr/share/ (22 MB), and /usr/include/ (20 MB)
 RUN apt-get install -y --no-install-recommends openjdk-17-jdk
 
 ##################################
 ############## OTHER #############
 ##################################
 
-# Section build takes 17 minutes and 19 seconds and has a size of 5.417 GB.
+# Section build takes 12 minutes and 31 seconds and has a size of 1.931 GB.
 
-# bedtools2, samtools, bcftools, minimap2, vcftools, htslib, zlib1g-dev
-# Uses 27 MB, mainly in /usr/lib/ (19 MB) and /usr/bin/ (4.6 MB)
-RUN apt-get install -y --no-install-recommends libz-dev \
-    # bedtools2, samtools, bcftools, htslib
-    # bzip2-doc libbz2-dev
-    && apt-get install -y --no-install-recommends libbz2-dev \
-    # bedtools2, samtools, bcftools, htslib
-    # liblzma-doc
-    && apt-get install -y --no-install-recommends liblzma-dev \
-    # samtools
-    # libncurses-dev
-    && apt-get install -y --no-install-recommends libncurses-dev \
-    # # cargo for souporcell, also Google Cloud Storage support for htslib
-    # curl libcurl4
-    && apt-get install -y --no-install-recommends curl \
+# cargo for souporcell
+# cargo libssh2-1 libstd-rust-1.66 libstd-rust-dev rustc
+# Uses 316 MB
+RUN apt-get install -y --no-install-recommends cargo \
     # souporcell, popscle
     # git git-man less libcbor0.8 libcurl3-gnutls libedit2 liberror-perl libfido2-1 libnghttp2-14 librtmp1 libssh-4 libxext6
     # libxmuu1 openssh-client xauth
-    && apt-get install -y --no-install-recommends git \
-    # vcftools
-    # libglib2.0-0 libglib2.0-data libicu70 libxml2 pkg-config shared-mime-info xdg-user-dirs
-    && apt-get install -y --no-install-recommends pkg-config
+    && apt-get install -y --no-install-recommends git
 
 ## This is only needed if you do not run the Python install section.
-#RUN apt-get install -y --no-install-recommends python3 # bedtools2
-#
+## bedtools2
+#RUN apt-get install -y --no-install-recommends python3
+
 ## This is only needed if you do not run the R install section.
-## htslib
-#RUN apt-get install -y --no-install-recommends libcurl4-openssl-dev \
+#RUN apt-get install -y --no-install-recommends libz-dev \
+#    # bedtools2, samtools, bcftools, htslib
+#    # bzip2-doc libbz2-dev
+#    && apt-get install -y --no-install-recommends libbz2-dev \
+#    # bedtools2, samtools, bcftools, htslib
+#    # liblzma-doc
+#    && apt-get install -y --no-install-recommends liblzma-dev \
+#    # samtools
+#    # libncurses-dev
+#    && apt-get install -y --no-install-recommends libncurses-dev \
+#    # vcftools
+#    # libglib2.0-0 libglib2.0-data libicu70 libxml2 pkg-config shared-mime-info xdg-user-dirs
+#    && apt-get install -y --no-install-recommends pkg-config \
+#    # htslib
+#    && apt-get install -y --no-install-recommends libcurl4-openssl-dev \
 #    # popscle
 #    && apt-get install -y --no-install-recommends cmake \
 #    # popscle
 #    && apt-get install -y --no-install-recommends libssl-dev \
 #    # plink, plink2
 #    && apt-get install -y --no-install-recommends unzip
-#
-## This is only needed if you do not run the Java install section.
-#RUN apt-get install -y --no-install-recommends openjdk-17-jdk # picard
 
 # Requires Python to install.
-# Uses 225 MB, mainly in /opt/bedtools2-2.31.0/obj/ (117 MB), /opt/bedtools2-2.31.0/test/ (47 MB), and /opt/bedtools2-2.31.0/bin/ (41 MB)
+# Uses 178 MB, mainly in /opt/bedtools2-2.31.0/obj/ (117 MB), /opt/bedtools2-2.31.0/bin/ (41 MB), and /opt/bedtools2-2.31.0/src/ (13 MB)
 RUN cd /opt \
     && wget https://github.com/arq5x/bedtools2/archive/refs/tags/v2.31.0.tar.gz \
     && tar -xzf v2.31.0.tar.gz \
     && rm v2.31.0.tar.gz \
     && cd bedtools2-2.31.0 \
-      && make
+      && make \
+    && rm -rf /opt/bedtools2-2.31.0/test
 
-# Uses 108 MB, mainly in /opt/samtools-1.18/test/ (53 MB) and /opt/samtools-1.18/htslib-1.18/ (32 MB)
+# Uses 55 MB, mainly in /opt/samtools-1.18/htslib-1.18/ (32 MB)
 RUN cd /opt \
     && wget https://github.com/samtools/samtools/releases/download/1.18/samtools-1.18.tar.bz2 \
     && tar xjf samtools-1.18.tar.bz2 \
@@ -418,9 +425,10 @@ RUN cd /opt \
     && cd samtools-1.18 \
       && ./configure \
       && make \
-      && make install
+      && make install \
+    && rm -rf /opt/samtools-1.18/test
 
-# Uses 84 MB, mainly in /opt/bcftools-1.18/htslib-1.18/ (32 MB), /opt/bcftools-1.18/test/ (15 MB), /opt/bcftools-1.18/bcftools/ (9 MB), /opt/bcftools-1.18/plugins/ (4.2 MB)
+# Uses 69 MB, mainly in /opt/bcftools-1.18/htslib-1.18/ (32 MB), /opt/bcftools-1.18/bcftools/ (9 MB), /opt/bcftools-1.18/plugins/ (4.2 MB)
 RUN cd /opt \
     && wget https://github.com/samtools/bcftools/releases/download/1.18/bcftools-1.18.tar.bz2 \
     && tar xjf bcftools-1.18.tar.bz2 \
@@ -428,7 +436,8 @@ RUN cd /opt \
     && cd bcftools-1.18 \
       && ./configure \
       && make \
-      && make install
+      && make install \
+    && rm -rf /opt/bcftools-1.18/test
 
 # Uses 5.7 MB, mainly in /opt/freebayes-1.3.7/src (3 MB)
 RUN cd /opt \
@@ -436,11 +445,12 @@ RUN cd /opt \
     && tar -xzf v1.3.7.tar.gz \
     && rm v1.3.7.tar.gz
 
-# Uses 8.7 MB, mainly in /opt/vartrix-1.1.22/test/ (8.4 MB)
+# Uses 0.241 MB, mainly in /opt/vartrix-1.1.22/VarTrix_WorkFlow.png (0.119 MB)
 RUN cd /opt \
     && wget https://github.com/10XGenomics/vartrix/archive/refs/tags/v1.1.22.tar.gz \
     && tar -xzf v1.1.22.tar.gz \
-    && rm v1.1.22.tar.gz
+    && rm v1.1.22.tar.gz \
+    && rm -rf /opt/vartrix-1.1.22/test
 
 # Uses 5.4 MB, mainly in /opt/minimap2-2.26/libminimap2.a/ (1.7 MB)
 RUN cd /opt \
@@ -450,31 +460,41 @@ RUN cd /opt \
     && cd minimap2-2.26 \
       && make
 
-# Required for souporcell.
-# Uses 1.2 GB in /opt/.cargo/, mainly in /toolchain/1.72.1-x86_64-unknown-linux-gnu/lib/ (501 MB) and /toolchain/1.72.1-x86_64-unknown-linux-gnu/share/ (582 MB)
-# Uses 1.2 GB in /root/.rustup/
-RUN cd /opt \
-    && CARGO_HOME=/opt/.cargo RUSTUP_HOME=/opt/.cargo bash -c 'curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=1.72.1 -y' \
-    && . /opt/.cargo/env \
-    && rustup default stable-x86_64-unknown-linux-gnu
+## Required for souporcell.
+## Reducing size using https://github.com/rust-lang/rustup/issues/837.
+## Uses 1.2 GB in /opt/.cargo/, mainly in /opt/.cargo/toolchain/1.72.1-x86_64-unknown-linux-gnu/share/ (582 MB), /opt/.cargo/toolchain/1.72.1-x86_64-unknown-linux-gnu/lib/ (501 MB), /opt/.cargo/toolchain/1.72.1-x86_64-unknown-linux-gnu/bin/ (83 MB)
+## Uses 0.57 GB /root/.rustup/, mainly in /root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/ (501 MB)
+## Not using this code but instead added apt-get install -y --no-install-recommends cargo above since it uses less space.
+#RUN cd /opt \
+#    && CARGO_HOME=/opt/.cargo RUSTUP_HOME=/opt/.cargo bash -c 'curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=1.72.1 -y' \
+#    && . /opt/.cargo/env \
+#    && rustup set profile minimal \
+#    && rustup default stable-x86_64-unknown-linux-gnu \
+#    && rm -rf /root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc \
+#    && rm -rf /root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/man \
+#    && rm -rf /root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/zsh
 
 # Fork from commit 9fb5271ae9f2257ea9a8552dfda3d4b7080be194
 # requires samtools, bcftools, htslib, python3, freebayes, vartrix, minimap2, Rust (i.e. cargo)
-# Uses 237 MB, mainly in /opt/souporcell/souporcell/ (167 MB), /opt/souporcell/troublet (42 MB)
+# Using tips from https://github.com/johnthagen/min-sized-rust to reduce the binary size.
+# Uses 529 MB, mainly in /root/.cargo/registry/index/ (384 MB)
 RUN cd /opt \
     && git clone --single-branch --branch RoyOelen/add-fastq-gzipping https://github.com/sc-eQTLgen-consortium/souporcell.git \
     && cd /opt/souporcell/souporcell \
+      && echo "\n[profile.release]\nopt-level = 'z'\nlto = true\ncodegen-units = 1\npanic = 'abort'\nstrip = true" >> Cargo.toml \
       && cargo build --release \
     && cd /opt/souporcell/troublet \
-      && cargo build --release
+      && echo "\n[profile.release]\nopt-level = 'z'\nlto = true\ncodegen-units = 1\npanic = 'abort'\nstrip = true" >> Cargo.toml \
+      && cargo build --release \
+    && rm -rf /opt/souporcell/.git
 
 # RUN apt-get install -y minimac4=4.1.4
 # Uses 14 MB, mainly in /opt/bin/ (11 MB)
 RUN cd /opt \
-      && wget https://github.com/statgen/Minimac4/releases/download/v4.1.4/minimac4-4.1.4-Linux-x86_64.sh \
-      && bash minimac4-4.1.4-Linux-x86_64.sh --skip-license TRUE
+    && wget https://github.com/statgen/Minimac4/releases/download/v4.1.4/minimac4-4.1.4-Linux-x86_64.sh \
+    && bash minimac4-4.1.4-Linux-x86_64.sh --skip-license TRUE
 
-# Uses 66 MB, mainly in /opt/vcftools-0.1.16/src (64 MB)
+# Uses 84 MB, mainly in /opt/vcftools-0.1.16/src (64 MB)
 RUN cd /opt \
     && wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools-0.1.16.tar.gz \
     && tar -xzf vcftools-0.1.16.tar.gz \
@@ -485,7 +505,7 @@ RUN cd /opt \
       && make install
 
 # Used by minimap2 and picard? No clue but seems important.
-# Uses 6.5 MB, mainly in /opt/parallel-20230922/src/ (5.9 MB)
+# Uses 11 MB, mainly in /opt/parallel-20230922/src/ (5.9 MB)
 RUN cd /opt \
     && wget https://ftp.gnu.org/gnu/parallel/parallel-20230922.tar.bz2 \
     && tar xjf parallel-20230922.tar.bz2 \
@@ -495,11 +515,13 @@ RUN cd /opt \
       && make \
       && make install
 
-# Uses 229 MB, mainly in /opt/Eagle_v2.4.1/tables/ (223 MB)
+# Uses 6 MB, mainly in /opt/Eagle_v2.4.1/eagle/ (4.6 MB)
+# We can delete the tables since we will supply our own reference map.
 RUN cd /opt \
     && wget https://alkesgroup.broadinstitute.org/Eagle/downloads/Eagle_v2.4.1.tar.gz \
     && tar -xzf Eagle_v2.4.1.tar.gz \
-    && rm Eagle_v2.4.1.tar.gz
+    && rm Eagle_v2.4.1.tar.gz \
+    && rm -rf /opt/Eagle_v2.4.1/tables/
 
 # Uses 38 MB, mainly in /opt/GenotypeHarmonizer-1.4.27-SNAPSHOT/lib/ (32 MB) and /opt/GenotypeHarmonizer-1.4.27-SNAPSHOT/exampleData/ (5.9 MB)
 RUN cd /opt \
@@ -512,38 +534,38 @@ RUN cd /opt \
     && mkdir plink \
     && cd plink \
       && wget https://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20230116.zip \
-      && unzip plink_linux_x86_64_20230116.zip \
+      && unzip -q plink_linux_x86_64_20230116.zip \
       && rm plink_linux_x86_64_20230116.zip
 
 # Uses 42 MB, mainly in /opt/plink2/plink2/ (42 MB)
 RUN cd /opt \
     && mkdir plink2 \
     && cd plink2 \
-      && wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20230927.zip \
-      && unzip plink2_linux_x86_64_20230927.zip \
-      && rm plink2_linux_x86_64_20230927.zip
+      && wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20231002.zip \
+      && unzip -q plink2_linux_x86_64_20231002.zip \
+      && rm plink2_linux_x86_64_20231002.zip
 
 # Requires openjdk-17-jdk.
-# Uses 876 MB, mainly in /root/.gradle/ (422 MB), /opt/picard/.git/ (226 MB), /opt/picard/build/ (129 MB), and /opt/picard/testdata/ (91 MB)
+# Uses 62 MB, mainly in /opt/picard-3.1.0/build/libs/picard.jar (62 MB)
+# I am downloading the jar file directly since it uses less memory that building a new one.
 RUN cd /opt \
-    && git clone https://github.com/broadinstitute/picard \
-    && cd picard \
-      && git checkout tags/3.1.0 \
-      && ./gradlew shadowJar
+    && mkdir -p picard-3.1.0/build/libs/ \
+    && cd picard-3.1.0/build/libs/ \
+    && wget https://github.com/broadinstitute/picard/releases/download/3.1.0/picard.jar
 
 # Switch GCC to version 10.5 since popscle doesn't build with version 11.4:
 # stl_algo.h:3455:5: note: 'std::min' declared here
 # https://forum.qt.io/topic/59045/build-qt-static-make-error-solved/18
 # Note that we do this last so that the rest is build on version 11.4.
 # cpp-10 g++-10 gcc-10 gcc-10-base libgcc-10-dev libstdc++-10-dev
-# Uses 278 MB, mainly in /usr/lib/ (100 MB), /usr/bin/ (28 MB), and /usr/include/ (10 MB)
+# Uses 140 MB, mainly in /usr/lib/ (100 MB), /usr/bin/ (28 MB), and /usr/include/ (10 MB)
 RUN apt-get install -y g++-10 gcc-10 \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 80 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11 \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10 \
     && update-alternatives --config gcc
 
 # Required for popscle.
-# Uses 239 MB, mainly in /opt/htslib-1.18/test (130 MB), /usr/local/lib/ (10 MB), /usr/local/bin (18 MB)
+# Uses 109 MB, mainly in /opt/htslib-1.18/ (71 MB), /usr/local/lib/ (19 MB), /usr/local/bin/ (18 MB)
 RUN cd /opt \
     && wget https://github.com/samtools/htslib/releases/download/1.18/htslib-1.18.tar.bz2 \
     && tar xjf htslib-1.18.tar.bz2 \
@@ -551,11 +573,12 @@ RUN cd /opt \
     && cd htslib-1.18 \
       && ./configure \
       && make \
-      && make install
+      && make install \
+    && rm -rf /opt/htslib-1.18/test
 
 # Commit of May 5, 2021
 # Source: https://github.com/statgen/popscle/issues/21
-# Uses 8 MB, mainly in /opt/popscle/tutorials/ (2.9 MB), /opt/popscle/build/ (2.3 MB)
+# Uses 7 MB, mainly in /opt/popscle/tutorials/ (2.9 MB), /opt/popscle/build/ (2.3 MB)
 RUN cd /opt \
     && git clone https://github.com/statgen/popscle.git \
     && cd popscle \
@@ -563,44 +586,30 @@ RUN cd /opt \
       && mkdir build \
       && cd build \
         && cmake ..  \
-        && make
-
+        && make \
+    && rm -rf /opt/popscle/.git
 
 #######################################
-############## SC-EQTLGEN #############
+################ WG1-CODE #############
 #######################################
 
-# Section build takes 4 seconds and has a size of 0.000133 GB.
+# Section build takes 5 seconds and has a size of 0.000095 GB.
 
 # Always get our own newest software. IMPORTANT: make sure you use the correct branch here.
-ARG GITHUB_BRANCH=scMetaBrain
-RUN mkdir -p /opt/WG1-pipeline-QC/Demultiplexing/scripts/ \
-    && cd /opt/WG1-pipeline-QC/Demultiplexing/scripts/ \
-    && wget -q https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/${GITHUB_BRANCH}/Demultiplexing/scripts/Assign_Indiv_by_Geno.R \
-    && wget -q https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/${GITHUB_BRANCH}/Demultiplexing/scripts/Combine_Results.R \
-    && wget -q https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/${GITHUB_BRANCH}/Demultiplexing/scripts/DoubletDetection.py \
-    && wget -q https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/${GITHUB_BRANCH}/Demultiplexing/scripts/DoubletFinder.R \
-    && wget -q https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/${GITHUB_BRANCH}/Demultiplexing/scripts/SNP_numbers.R \
-    && wget -q https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/${GITHUB_BRANCH}/Demultiplexing/scripts/Scrublet_pipeline.py \
-    && wget -q https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/${GITHUB_BRANCH}/Demultiplexing/scripts/expected_observed_individuals_doublets.R\
-    && wget -q https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/${GITHUB_BRANCH}/Demultiplexing/scripts/scDblFinder.R \
-    && wget -q https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/${GITHUB_BRANCH}/Demultiplexing/scripts/scds.R \
-    && chmod 770 *
+# Delete all the non python / R files since we won't need them anyway.
+# Uses 0.135 MB
+RUN GITHUB_BRANCH=scMetaBrain \
+    && wget https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/archive/refs/heads/${GITHUB_BRANCH}.zip \
+    && unzip -q ${GITHUB_BRANCH}.zip \
+    && rm ${GITHUB_BRANCH}.zip \
+    && cd WG1-pipeline-QC-${GITHUB_BRANCH} \
+    && find . -type f ! \( -iname \*.py -o -iname \*.R \) -delete \
+    && find . -type d -empty -delete \
+    && find . -type f \( -iname \*.py -o -iname \*.R \) -exec chmod 770 {} \;
 
-RUN mkdir -p /opt/WG1-pipeline-QC/Imputation/scripts/ \
-    && cd /opt/WG1-pipeline-QC/Imputation/scripts/ \
-    && wget -q https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/${GITHUB_BRANCH}/Imputation/scripts/PCA_Projection_Plotting.R \
-    && wget -q https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/${GITHUB_BRANCH}/Imputation/scripts/custom_vcf_filter.py \
-    && wget -q https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/${GITHUB_BRANCH}/Imputation/scripts/filter_het.R \
-    && wget -q https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/${GITHUB_BRANCH}/Imputation/scripts/sex_ancestry_summaries.R \
-    && chmod 770 *
+####################################
+################ CLEAN #############
+####################################
 
-
-##################################
-############## CLEAN #############
-##################################
-
-
-RUN apt-get clean
-
-
+RUN apt-get clean \
+    && apt-get autoremove -y
