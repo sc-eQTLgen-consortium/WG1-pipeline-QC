@@ -28,16 +28,20 @@ MAINTAINER Drew Neavin <d.neavin@garvan.org.au>, Martijn Vochteloo <m.vochteloo@
 ADD . /tmp/repo
 WORKDIR /tmp/repo
 
-ENV PATH=/opt:/usr/games:/opt/conda/envs/py36/bin:/opt/conda/bin:/opt/minimap2-2.26:/opt/bedtools2/bin:/opt/.cargo/bin:/opt/souporcell:/opt/souporcell/troublet/target/release:/opt/vartrix-1.1.22:/opt/freebayes-1.3.7:/opt/freebayes-1.3.7/scripts:/opt/popscle/bin:/opt/DoubletDetection:/opt/Eagle_v2.4.1:/opt/Minimac4:/opt/GenotypeHarmonizer-1.4.27:/opt/picard-3.1.0/build/libs:$PATH
+ENV PATH=/opt:/usr/games:/opt/conda/envs/py311/bin:/opt/conda/bin:/opt/minimap2-2.26:/opt/bedtools2/bin:/opt/.cargo/bin:/opt/souporcell:/opt/souporcell/troublet/target/release:/opt/vartrix-1.1.22:/opt/freebayes-1.3.7:/opt/freebayes-1.3.7/scripts:/opt/popscle/bin:/opt/DoubletDetection:/opt/Eagle_v2.4.1:/opt/bin/:/opt/GenotypeHarmonizer-1.4.27:/opt/plink:/opt/plink2:$PATH
+ENV PYTHONPATH=/opt/conda/envs/py311/lib/python3.11/site-packages/
+ENV BCFTOOLS_PLUGINS=/opt/bcftools-1.18/plugins
 ENV SHELL=/bin/bash
 ENV LC_ALL=C
 ENV LANG=C.UTF-8
-ENV TZ=Europe
 ENV DEBIAN_FRONTEND=noninteractive
+
+RUN echo 'alias python=python3' >> ~/.bashrc
 
 # Needed to prevent asking for geographic location when installing things.
 # Uses 0.000007 MB.
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+RUN export TZ=Europe/Amsterdam \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone
 
 # Uses 300 MB, mainly in /usr/lib/ (221 MB), /usr/bin/ (59 MB), and /var/ (50 MB)
@@ -342,28 +346,28 @@ RUN R --slave -e 'install.packages("BiocManager")' \
 
 # Section build takes 19 seconds and has a size of 0.526 GB.
 
-## adwaita-icon-theme ca-certificates-java fontconfig fontconfig-config
-## fonts-dejavu-core gtk-update-icon-cache hicolor-icon-theme
-## humanity-icon-theme java-common libasound2 libasound2-data libatk1.0-0
-## libatk1.0-data libavahi-client3 libavahi-common-data libavahi-common3
-## libbrotli1 libbsd0 libcairo2 libcups2 libdatrie1 libdbus-1-3 libdeflate0
-## libdrm-amdgpu1 libdrm-common libdrm-intel1 libdrm-nouveau2 libdrm-radeon1
-## libdrm2 libedit2 libelf1 libexpat1 libfontconfig1 libfreetype6 libfribidi0
-## libgdk-pixbuf-2.0-0 libgdk-pixbuf2.0-common libgif7 libgl1 libgl1-mesa-dri
-## libglapi-mesa libglib2.0-0 libglvnd0 libglx-mesa0 libglx0 libgraphite2-3
-## libgtk2.0-0 libgtk2.0-common libharfbuzz0b libicu70 libjbig0 libjpeg-turbo8
-## libjpeg8 liblcms2-2 libllvm15 libmd0 libnspr4 libnss3 libpango-1.0-0
-## libpangocairo-1.0-0 libpangoft2-1.0-0 libpciaccess0 libpcsclite1
-## libpixman-1-0 libpng16-16 libsensors-config libsensors5 libsqlite3-0
-## libthai-data libthai0 libtiff5 libwebp7 libx11-6 libx11-data libx11-xcb1
-## libxau6 libxcb-dri2-0 libxcb-dri3-0 libxcb-glx0 libxcb-present0
-## libxcb-randr0 libxcb-render0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0 libxcb1
-## libxcomposite1 libxcursor1 libxdamage1 libxdmcp6 libxext6 libxfixes3 libxi6
-## libxinerama1 libxml2 libxrandr2 libxrender1 libxshmfence1 libxtst6
-## libxxf86vm1 openjdk-17-jdk openjdk-17-jdk-headless openjdk-17-jre
-## openjdk-17-jre-headless shared-mime-info ubuntu-mono ucf x11-common
+# adwaita-icon-theme ca-certificates-java fontconfig fontconfig-config
+# fonts-dejavu-core gtk-update-icon-cache hicolor-icon-theme
+# humanity-icon-theme java-common libasound2 libasound2-data libatk1.0-0
+# libatk1.0-data libavahi-client3 libavahi-common-data libavahi-common3
+# libbrotli1 libbsd0 libcairo2 libcups2 libdatrie1 libdbus-1-3 libdeflate0
+# libdrm-amdgpu1 libdrm-common libdrm-intel1 libdrm-nouveau2 libdrm-radeon1
+# libdrm2 libedit2 libelf1 libexpat1 libfontconfig1 libfreetype6 libfribidi0
+# libgdk-pixbuf-2.0-0 libgdk-pixbuf2.0-common libgif7 libgl1 libgl1-mesa-dri
+# libglapi-mesa libglib2.0-0 libglvnd0 libglx-mesa0 libglx0 libgraphite2-3
+# libgtk2.0-0 libgtk2.0-common libharfbuzz0b libicu70 libjbig0 libjpeg-turbo8
+# libjpeg8 liblcms2-2 libllvm15 libmd0 libnspr4 libnss3 libpango-1.0-0
+# libpangocairo-1.0-0 libpangoft2-1.0-0 libpciaccess0 libpcsclite1
+# libpixman-1-0 libpng16-16 libsensors-config libsensors5 libsqlite3-0
+# libthai-data libthai0 libtiff5 libwebp7 libx11-6 libx11-data libx11-xcb1
+# libxau6 libxcb-dri2-0 libxcb-dri3-0 libxcb-glx0 libxcb-present0
+# libxcb-randr0 libxcb-render0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0 libxcb1
+# libxcomposite1 libxcursor1 libxdamage1 libxdmcp6 libxext6 libxfixes3 libxi6
+# libxinerama1 libxml2 libxrandr2 libxrender1 libxshmfence1 libxtst6
+# libxxf86vm1 openjdk-17-jdk openjdk-17-jdk-headless openjdk-17-jre
+# openjdk-17-jre-headless shared-mime-info ubuntu-mono ucf x11-common
 # Uses 468 MB, mainly in /usr/lib/ (221 MB), /var/ (50 MB), /usr/share/ (22 MB), and /usr/include/ (20 MB)
-RUN apt-get install -y --no-install-recommends openjdk-17-jdk
+ RUN apt-get install -y --no-install-recommends openjdk-17-jdk
 
 ##################################
 ############## OTHER #############
@@ -492,7 +496,7 @@ RUN cd /opt \
 # Uses 14 MB, mainly in /opt/bin/ (11 MB)
 RUN cd /opt \
     && wget https://github.com/statgen/Minimac4/releases/download/v4.1.4/minimac4-4.1.4-Linux-x86_64.sh \
-    && bash minimac4-4.1.4-Linux-x86_64.sh --skip-license TRUE
+    && bash minimac4-4.1.4-Linux-x86_64.sh --prefix=/opt/ --skip-license
 
 # Uses 84 MB, mainly in /opt/vcftools-0.1.16/src (64 MB)
 RUN cd /opt \
@@ -541,9 +545,9 @@ RUN cd /opt \
 RUN cd /opt \
     && mkdir plink2 \
     && cd plink2 \
-      && wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20231002.zip \
-      && unzip -q plink2_linux_x86_64_20231002.zip \
-      && rm plink2_linux_x86_64_20231002.zip
+      && wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20231003.zip \
+      && unzip -q plink2_linux_x86_64_20231003.zip \
+      && rm plink2_linux_x86_64_20231003.zip
 
 # Requires openjdk-17-jdk.
 # Uses 62 MB, mainly in /opt/picard-3.1.0/build/libs/picard.jar (62 MB)
@@ -551,7 +555,8 @@ RUN cd /opt \
 RUN cd /opt \
     && mkdir -p picard-3.1.0/build/libs/ \
     && cd picard-3.1.0/build/libs/ \
-    && wget https://github.com/broadinstitute/picard/releases/download/3.1.0/picard.jar
+    && wget https://github.com/broadinstitute/picard/releases/download/3.1.0/picard.jar \
+    && chmod 770 /opt/picard-3.1.0/build/libs/picard.jar
 
 # Switch GCC to version 10.5 since popscle doesn't build with version 11.4:
 # stl_algo.h:3455:5: note: 'std::min' declared here
