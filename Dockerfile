@@ -531,7 +531,8 @@ RUN cd /opt \
 RUN cd /opt \
     && wget https://github.com/molgenis/systemsgenetics/releases/download/GH_1.4.27/GenotypeHarmonizer-1.4.27-SNAPSHOT-dist.tar.gz \
     && tar -xzf GenotypeHarmonizer-1.4.27-SNAPSHOT-dist.tar.gz  \
-    && rm GenotypeHarmonizer-1.4.27-SNAPSHOT-dist.tar.gz
+    && rm GenotypeHarmonizer-1.4.27-SNAPSHOT-dist.tar.gz \
+    && chmod 777 /opt/GenotypeHarmonizer-1.4.27-SNAPSHOT/GenotypeHarmonizer.jar
 
 # Uses 42 MB, mainly in /opt/plink/plink/ (42 MB)
 RUN cd /opt \
@@ -556,7 +557,7 @@ RUN cd /opt \
     && mkdir -p picard-3.1.0/build/libs/ \
     && cd picard-3.1.0/build/libs/ \
     && wget https://github.com/broadinstitute/picard/releases/download/3.1.0/picard.jar \
-    && chmod 770 /opt/picard-3.1.0/build/libs/picard.jar
+    && chmod 777 /opt/picard-3.1.0/build/libs/picard.jar
 
 # Switch GCC to version 10.5 since popscle doesn't build with version 11.4:
 # stl_algo.h:3455:5: note: 'std::min' declared here
@@ -603,14 +604,16 @@ RUN cd /opt \
 # Always get our own newest software. IMPORTANT: make sure you use the correct branch here.
 # Delete all the non python / R files since we won't need them anyway.
 # Uses 0.135 MB
-RUN GITHUB_BRANCH=scMetaBrain \
+RUN cd /opt \
+    && GITHUB_BRANCH=scMetaBrain \
     && wget https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/archive/refs/heads/${GITHUB_BRANCH}.zip \
     && unzip -q ${GITHUB_BRANCH}.zip \
     && rm ${GITHUB_BRANCH}.zip \
-    && cd WG1-pipeline-QC-${GITHUB_BRANCH} \
+    && mv WG1-pipeline-QC-${GITHUB_BRANCH} WG1-pipeline-QC \
+    && cd WG1-pipeline-QC \
     && find . -type f ! \( -iname \*.py -o -iname \*.R \) -delete \
     && find . -type d -empty -delete \
-    && find . -type f \( -iname \*.py -o -iname \*.R \) -exec chmod 770 {} \;
+    && find . -type f \( -iname \*.py -o -iname \*.R \) -exec chmod 777 {} \;
 
 ####################################
 ################ CLEAN #############
