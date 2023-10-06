@@ -49,7 +49,7 @@ rule filter4demultiplexing:
         sif = config["inputs"]["singularity_image"],
         maf = config["demultiplex_preprocessing_extra"]["filter4demultiplexing_maf"],
         r2 = config["demultiplex_preprocessing_extra"]["filter4demultiplexing_r2"],
-        bed = "/opt/hg38exonsUCSC.bed", # TODO: this file is removed from the image, refactor as input file
+        bed = config["refs"]["ref_dir"] + config["refs_extra"]["relative_hg38_exons_ucsc_bed_path"],
         out = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_qc_filtered_exons",
         complete_out = config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38_qc_filtered_exons_complete_cases",
     log: config["outputs"]["output_dir"] + "log/filter4demultiplexing.log"

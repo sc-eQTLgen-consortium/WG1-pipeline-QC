@@ -9,10 +9,10 @@ parser <- ArgumentParser()
 
 # specify our desired options
 # by default ArgumentParser will add an help option
-parser$add_argument("-sc", "--sex_check", required=FALSE, type="character", help="")
-parser$add_argument("-ps", "--sex_decisions", required=FALSE, type="character", help="")
 parser$add_argument("-p", "--psam", required=FALSE, type="character", help="")
-parser$add_argument("-pa", "--ancestry_decisions", required=FALSE, type="character", help="")
+parser$add_argument("-sc", "--sex_check", required=FALSE, type="character", help="")
+parser$add_argument("-sd", "--sex_decisions", required=FALSE, type="character", help="")
+parser$add_argument("-ad", "--ancestry_decisions", required=FALSE, type="character", help="")
 parser$add_argument("-o", "--out", required=TRUE, type="character", help="The output directory where results will be saved.")
 
 # get command line options, if help option encountered print help and exit, 

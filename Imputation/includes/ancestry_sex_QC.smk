@@ -48,8 +48,8 @@ rule check_sex:
         fam = config["outputs"]["output_dir"] + "check_sex/check_sex.fam",
         hh = config["outputs"]["output_dir"] + "check_sex/check_sex.hh",
         nosex = config["outputs"]["output_dir"] + "check_sex/check_sex.nosex",
-        sexcheck_tmp = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck",
-        sexcheck = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv"
+        sex_check_tmp = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck",
+        sex_check = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["check_sex_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["check_sex_memory"],
@@ -78,8 +78,8 @@ rule check_sex:
             --check-sex \
             --out {params.out}
         singularity exec --bind {params.bind} {params.sif} touch {output.nosex}
-        singularity exec --bind {params.bind} {params.sif} sed 's/^ \+//g' {output.sexcheck_tmp} | \
-            singularity exec --bind {params.bind} {params.sif} sed 's/ \+/\t/g' > {output.sexcheck}
+        singularity exec --bind {params.bind} {params.sif} sed 's/^ \+//g' {output.sex_check_tmp} | \
+            singularity exec --bind {params.bind} {params.sif} sed 's/ \+/\t/g' > {output.sex_check}
         """
 
 
@@ -109,9 +109,9 @@ rule common_snps:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        pgen_1000g = "/opt/1000G/all_phase3_filtered.pgen", # TODO: this file is removed from the image, refactor as input file
-        pvar_1000g = "/opt/1000G/all_phase3_filtered.pvar", # TODO: this file is removed from the image, refactor as input file
-        psam_1000g = "/opt/1000G/all_phase3_filtered.psam", # TODO: this file is removed from the image, refactor as input file
+        pgen_1000g = config["refs"]["ref_dir"] + config["refs_extra"]["relative_1000g_files"] + ".pgen",
+        pvar_1000g = config["refs"]["ref_dir"] + config["refs_extra"]["relative_1000g_files"] + ".pvar",
+        psam_1000g= config["refs"]["ref_dir"] + config["refs_extra"]["relative_1000g_files"] + ".psam",
         out = config["outputs"]["output_dir"] + "common_snps/subset_data",
         out_1000g = config["outputs"]["output_dir"] + "common_snps/subset_1000g"
     log: config["outputs"]["output_dir"] + "log/common_snps.log"
@@ -257,6 +257,7 @@ rule final_pruning:
 
 
 ### use PCA from plink for PCA and projection
+# Note: --ac-founders is required in newer versions of plink2.
 rule pca_1000g:
     input:
         pgen_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pgen",
@@ -286,6 +287,7 @@ rule pca_1000g:
             --pvar {input.pvar_1000g} \
             --psam {input.psam_1000g} \
             --freq counts \
+            --ac-founders \
             --pca allele-wts \
             --out {params.out}
         """
@@ -344,14 +346,13 @@ rule pca_project:
        """
 
 
-# TODO sure this is the right PSAM?
 rule pca_projection_assign:
     input:
         projected_scores = config["outputs"]["output_dir"] + "pca_projection/final_subset_pruned_data_pcs.sscore",
         projected_1000g_scores = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs_projected.sscore",
         psam = plink_gender_ancestry_data + ".psam",
         psam_1000g = config["outputs"]["output_dir"] + "common_snps/subset_1000g.psam",
-        sexcheck = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv",
+        sex_check = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv",
     output:
         anc_fig = report(config["outputs"]["output_dir"] + "pca_sex_checks/Ancestry_PCAs.png", category = "Ancestry", caption = "../report_captions/ancestry_pca.rst"),
         pca_sex_check = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv",
@@ -374,16 +375,16 @@ rule pca_projection_assign:
             --onekg_scores {input.projected_1000g_scores} \
             --psam {input.psam} \
             --onekg_psam {input.psam_1000g} \
-            --sexcheck {input.sexcheck} \
+            --sex_check {input.sex_check} \
             --out {params.out}
         """
 
 
 rule summary_ancestry_sex:
     input:
-        sexcheck = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv",
+        psam = plink_gender_ancestry_data + ".psam",
+        sex_check = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv",
         pca_sex_check = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv",
-        psam = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.psam",
         pca_anc_check = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv"
     output:
         sex_summary = report(config["outputs"]["output_dir"] + "metrics/sex_summary.png", category = "Ancestry and Sex Summary", caption = "../report_captions/sex_summary.rst"),
@@ -402,14 +403,15 @@ rule summary_ancestry_sex:
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
-            --sex_check {input.sexcheck} \
-            --sex_decisions {input.pca_sex_check} \
             --psam {input.psam} \
+            --sex_check {input.sex_check} \
+            --sex_decisions {input.pca_sex_check} \
             --ancestry_decisions {input.pca_anc_check} \
             --out {params.out}
         """
 
 
+# TODO this can be done in the Snakefile.
 rule update_sex_ancestry:
     input:
         indiv_miss_pgen = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pgen",

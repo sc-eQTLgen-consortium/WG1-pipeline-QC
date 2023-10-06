@@ -177,11 +177,14 @@ imputation:
 ##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####
 ############################################################################################################################################
 refs_extra:
-  relative_vcf_path: "ref_panel_QC/30x-GRCh38_NoSamplesSorted.vcf.gz"
-  relative_fasta_path: "ref_genome_QC/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
-  relative_map_path: "phasing/genetic_map/genetic_map_hg38_withX.txt.gz"
-  relative_phasing_dir: "phasing/phasing_reference/"
-  relative_imputation_dir: "imputation/"
+  relative_1000g_files: "1000G/all_phase3_filtered"
+  relative_grch37_to_grch38_chain_path: "GRCh37_to_GRCh38.chain"
+  relative_hg18_to_hg38_chain_path: "hg18ToHg38.over.chain"
+  relative_vcf_path: "hg38/ref_panel_QC/30x-GRCh38_NoSamplesSorted.vcf.gz"
+  relative_fasta_path: "hg38/ref_genome_QC/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+  relative_map_path: "hg38/phasing/genetic_map/genetic_map_hg38_withX.txt.gz"
+  relative_phasing_dir: "hg38/phasing/phasing_reference/"
+  relative_imputation_dir: "hg38/imputation/"
 
 wgs_filter:
   genotype_quality: 20 ### The genotype quality threshold

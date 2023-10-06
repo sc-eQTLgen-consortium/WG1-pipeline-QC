@@ -97,7 +97,12 @@ for dataset, samples_path in config["inputs"]["dataset_samples"].items():
     DATASETS.append(dataset)
 
 # Check if the reference files exist.
-for ref_path in ["relative_vcf_path", "relative_fasta_path", "relative_map_path"]:
+for extension in [".pgen", ".pvar", ".psam"]:
+    onekg_file = config["refs"]["ref_dir"] + config["refs_extra"]["relative_1000g_files"] + extension
+    if not os.path.exists(onekg_file):
+        logger.info("Could not find the {} file. Please check that the file exists.\n\nExiting.".format(onekg_file))
+        exit("Missing1000GFile")
+for ref_path in ["relative_grch37_to_grch38_chain_path", "relative_hg18_to_hg38_chain_path", "relative_vcf_path", "relative_fasta_path", "relative_map_path"]:
     if not os.path.exists(config["refs"]["ref_dir"] + config["refs_extra"][ref_path]):
         logger.info("Could not find the {} file. Please check that the file exists.\n\nExiting.".format(config["refs"]["ref_dir"] + config["refs_extra"][ref_path]))
         exit("MissingReferenceFile")
@@ -136,6 +141,7 @@ logger.info("\tThe imputation files: {}chrCHR.m3vcf.gz\n".format(config["refs"][
 
 
 # Check if the input PSAM is valid.
+# TODO: check if IID column is unique
 if os.path.exists(plink_gender_ancestry_data + ".psam"):
     required_columns = {
         '#FID': (False, False, {}),
@@ -249,6 +255,11 @@ ancestry_maf_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks
 sex_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv"
 sex_update_path = config["outputs"]["output_dir"] + "separate_indivs/sex_update_indivs.tsv"
 
+# Remove selection file if it exists.
+for filepath in [remove_indivs_path, sex_update_path]:
+    if os.path.exists(filepath):
+        os.remove(filepath)
+
 # Add the manual selection files created by rule pca_projection_assign.
 input_files.append(ancestry_man_select_path)
 input_files.append(sex_man_select_path)
@@ -259,80 +270,88 @@ ancestry_updated_psam_df = None
 ANCESTRIES = []
 ANCESTRY_MAF_DICT = {}
 if os.path.exists(ancestry_man_select_path):
-    # Check if the processed psam already exists (happens if you do multiple dry_runs).
-    if not os.path.exists(ancestry_updated_psam_path):
-        ancestry_check = pd.read_csv(ancestry_man_select_path, sep="\t")
-        if not ancestry_check.loc[ancestry_check["UPDATE/REMOVE/KEEP"].isin(['UPDATE', 'REMOVE', 'KEEP']), "UPDATE/REMOVE/KEEP"].count() == len(ancestry_check):
-            logger.info("Your UPDATE/REMOVE/KEEP column in ancestry_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
-            exit("WrongAncestryUpdateFile")
+    logger.info("Applying manual selection in ancestry_update_remove.tsv to update input PSAM.")
 
-        # if there are any individuals chosen to remove, remove them from the psam.
-        ancestry_updated_psam_df = psam_df.copy()
-        if "REMOVE" in ancestry_check["UPDATE/REMOVE/KEEP"]:
-            # Save the removed samples.
-            if not os.path.isdir(config["outputs"]["output_dir"] + "separate_indivs/"):
-                os.mkdir(config["outputs"]["output_dir"] + "separate_indivs/")
+    ancestry_check = pd.read_csv(ancestry_man_select_path, sep="\t", dtype=str)
+    if not ancestry_check.loc[ancestry_check["UPDATE/REMOVE/KEEP"].isin(["UPDATE", "REMOVE", "KEEP"]), "UPDATE/REMOVE/KEEP"].count() == len(ancestry_check):
+        logger.info("\tYour UPDATE/REMOVE/KEEP column in ancestry_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
+        exit("WrongAncestryUpdateFile")
 
-            # Save the REMOVE samples.
-            remove_mask = psam_df["IID"].isin(ancestry_check.loc[ancestry_check["UPDATE/REMOVE/KEEP"] == "REMOVE", "IID"])
-            ancestry_check.loc[remove_mask, :].to_csv(remove_indivs_path, sep="\t", index=False, header=True)
+    # if there are any individuals chosen to remove, remove them from the psam.
+    ancestry_updated_psam_df = psam_df.copy()
+    if ancestry_check["UPDATE/REMOVE/KEEP"].str.contains("REMOVE").any():
+        logger.info("\tYou indicated to remove {:,} individual(s) due to ancestry assignments.".format(np.sum(ancestry_check["UPDATE/REMOVE/KEEP"] == "REMOVE")))
 
-            # Remove the samples that where marked REMOVE.
-            ancestry_updated_psam_df = ancestry_updated_psam_df.loc[~remove_mask, :]
+        # Save the removed samples.
+        if not os.path.isdir(config["outputs"]["output_dir"] + "separate_indivs/"):
+            os.mkdir(config["outputs"]["output_dir"] + "separate_indivs/")
 
-        # if there are any individuals chosen to update the ancestry, update them in the psam.
-        if "UPDATE" in psam_df["UPDATE/REMOVE/KEEP"]:
-            update_mask = psam_df["IID"].isin(ancestry_check.loc[ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE", "IID"])
-            ancestry_updated_psam_df.loc[update_mask, "Provided_Ancestry"] = ancestry_updated_psam_df.loc[update_mask, "PCA_Assignment"]
+        # Save the REMOVE samples.
+        remove_mask = psam_df["IID"].isin(ancestry_check.loc[ancestry_check["UPDATE/REMOVE/KEEP"] == "REMOVE", "IID"])
+        ancestry_check.loc[remove_mask, :].to_csv(remove_indivs_path, sep="\t", index=False, header=True)
 
-        # Save the updated psam.
-        ancestry_updated_psam_df.to_csv(ancestry_updated_psam_path, sep="\t", na_rep="NA", index=False, header=True)
-    else:
-        # If the user wants to recreate it, it should just remove the existing file.
-        logger.info("Warning, updated_psam.psam already exists, using existing file")
-        ancestry_updated_psam_df = pd.read_csv(ancestry_updated_psam_path, sep="\t", index_col=None, header=0)
+        # Remove the samples that where marked REMOVE.
+        ancestry_updated_psam_df = ancestry_updated_psam_df.loc[~remove_mask, :]
+
+    # if there are any individuals chosen to update the ancestry, update them in the psam.
+    if ancestry_check["UPDATE/REMOVE/KEEP"].str.contains("UPDATE").any():
+        logger.info("\tYou indicated to update the ancestry of {:,} individual(s).".format(np.sum(ancestry_check["UPDATE/REMOVE/KEEP"] == "UPDATE")))
+        for _, row in ancestry_check.iterrows():
+            ancestry_updated_psam_df.loc[ancestry_updated_psam_df["IID"] == row["IID"], "Provided_Ancestry"] = row["PCA_Assignment"]
+
+    # Save the updated psam.
+    ancestry_updated_psam_df.to_csv(ancestry_updated_psam_path, sep="\t", na_rep="NA", index=False, header=True)
 
     # If the ancestry have been updated we can ask the user for the MAF values.
-    ancestry_counts = ancestry_updated_psam_df["Provided_Ancestry"].counts()
+    ancestry_counts = ancestry_updated_psam_df["Provided_Ancestry"].value_counts()
     if os.path.exists(ancestry_maf_man_select_path):
+        logger.info("Validating imputation settings per ancestry.")
+
         # File already exists, check if the input is valid.
         maf_df = pd.read_csv(ancestry_maf_man_select_path, sep="\t", index_col=None, header=0)
-
         for _, row in maf_df.iterrows():
-            if row["MAF"] == "NA":
-                logger.info("You indicated that you don't want to impute {:,} individuals from {} ancestry.".format(ancestry_counts[row["Ancestry"]], row["Ancestry"]))
-            elif not value.isnumeric():
-                logger.info("Your MAF column in ancestry_mafs.tsv is not NA nor numeric, please make sure there are only numeric values in this column.\n\nExiting.".format(column))
-                exit("WrongMAFFile")
-            else:
-                logger.info("You indicated that you want to impute {:,} individuals from {} ancestry with MAF {}.".format(ancestry_counts[row["Ancestry"]], row["Ancestry"], row["MAF"]))
-                ANCESTRIES.append(row["Ancestry"])
+            if row["Ancestry"] not in ancestry_counts:
+                continue
 
-        maf_df["MAF"] = maf_df["MAF"].astype(float)
-        ANCESTRY_MAF_DICT = dict(zip(maf_df["Ancestry"], maf_df["MAF"]))
+            if np.isnan(row["MAF"]):
+                logger.info("\tYou indicated that you don't want to impute {:,} individual(s) from {} ancestry.".format(ancestry_counts[row["Ancestry"]], row["Ancestry"]))
+                continue
+
+            if not str(row["MAF"]).replace(".", "").isnumeric():
+                logger.info("\tYour MAF value for ancestry {} in ancestry_mafs.tsv is not a digit, please make sure all values in this column are valid.\n\nExiting.".format(row["Ancestry"]))
+                exit("WrongMAFInput")
+            else:
+                logger.info("\tYou indicated that you want to impute {:,} individuals from {} ancestry with MAF {}.".format(ancestry_counts[row["Ancestry"]], row["Ancestry"], row["MAF"]))
+                ANCESTRIES.append(row["Ancestry"])
+                ANCESTRY_MAF_DICT[row["Ancestry"]] = float(row["MAF"])
+
+        if len(ANCESTRIES) == 0:
+            logger.info("\tError, please select at least one ancstry to impute.")
+            exit("MissingAncestryToImpute")
 
         # Add the endpoints for plink_gender_ancestry_QC.
-        input_files.append(expand(config["outputs"]["output_dir"] + "/subset_ancestry/{ancestry}_subset.pgen", ancestry=ANCESTRIES))
-        input_files.append(expand(config["outputs"]["output_dir"] + "/subset_ancestry/{ancestry}_subset.pvar", ancestry=ANCESTRIES))
-        input_files.append(expand(config["outputs"]["output_dir"] + "/subset_ancestry/{ancestry}_subset.psam", ancestry=ANCESTRIES))
-    else:
-        # Generate the MAF selection file.
-        pd.DataFrame({'Ancestry': [ancestry for ancestry in ancestry_counts.index], 'MAF': np.nan}).to_csv(ancestry_maf_man_select_path, sep="\t", index=False)
+        input_files.append(expand(config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.pgen", ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.pvar", ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.psam", ancestry=ANCESTRIES))
 
 # Update the sex column in the psam (rule update_sex_ancestry does this for some reason).
 # sex_update_remove.tsv is created by the pca_projection_assign rule.
 sex_ancestry_updated_psam_path = config["outputs"]["output_dir"] + "pca_sex_checks/sex_ancestry_updated.psam"
 if ancestry_updated_psam_df is not None and os.path.exists(sex_man_select_path) and not os.path.exists(sex_ancestry_updated_psam_path):
+    logger.info("Validating manual selection in sex_update_remove.tsv.")
+
     sex_check = pd.read_csv(sex_man_select_path, sep="\t")
-    if sex_check.loc[sex_check["UPDATE/REMOVE/KEEP"].isin(['UPDATE', 'REMOVE', 'KEEP']), "UPDATE/REMOVE/KEEP"].count() == len(sex_check):
-        logger.info("Your UPDATE/REMOVE/KEEP column in sex_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
+    if not sex_check.loc[sex_check["UPDATE/REMOVE/KEEP"].isin(['UPDATE', 'REMOVE', 'KEEP']), "UPDATE/REMOVE/KEEP"].count() == len(sex_check):
+        logger.info("\tYour UPDATE/REMOVE/KEEP column in sex_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
         exit("WrongSexUpdateRemove")
 
     # Create seperate_indics outdir if not exist.
     if not os.path.isdir(config["outputs"]["output_dir"] + "separate_indivs/"):
         os.mkdir(config["outputs"]["output_dir"] + "separate_indivs/")
 
-    if "REMOVE" in sex_check["UPDATE/REMOVE/KEEP"]:
+    if sex_check["UPDATE/REMOVE/KEEP"].str.contains("REMOVE").any():
+        logger.info("\tYou indicated to remove {:,} individual(s) due to sex assignments.".format(np.sum(sex_check["UPDATE/REMOVE/KEEP"] == "REMOVE")))
+
         # Save the REMOVE samples.
         remove_mask = psam_df["IID"].isin(sex_check.loc[sex_check["UPDATE/REMOVE/KEEP"] == "REMOVE", "IID"])
         remove_indics = sex_check.loc[remove_mask, :]
@@ -343,7 +362,8 @@ if ancestry_updated_psam_df is not None and os.path.exists(sex_man_select_path) 
 
         remove_indics.to_csv(remove_indivs_path, sep="\t", index=False, header=True)
 
-    if "UPDATE" in sex_check["UPDATE/REMOVE/KEEP"]:
+    if sex_check["UPDATE/REMOVE/KEEP"].str.contains("UPDATE").any():
+        logger.info("\tYou indicated to update the sex of {:,} individual(s).".format(np.sum(sex_check["UPDATE/REMOVE/KEEP"] == "UPDATE")))
         update_sex = sex_check.loc[sex_check["UPDATE/REMOVE/KEEP"] == "UPDATE", ["#FID", "IID", "SNPSEX"]]
         update_sex.columns = ["#FID", "IID", "SEX"]
         update_sex.to_csv(sex_update_path, sep="\t", index=False, header=True)
@@ -355,7 +375,7 @@ if ancestry_updated_psam_df is not None and os.path.exists(sex_man_select_path) 
         pd.DataFrame({"#FID": [], "IID": [], "SEX": []}).to_csv(sex_update_path, sep="\t", index=False, header=True)
 
     # Add the endpoints for crossmap. This forces rule to apply crossmap of not using genome build hg38 or GRCh38.
-    if config["inputs"]["genome_build"] in ['hg18', 'GRCh36', 'hg19', 'GRCh37']:
+    if config["inputs"]["genome_build"] in ["hg18", "GRCh36", "hg19", "GRCh37"]:
         input_files.append(expand(config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bed", ancestry=ANCESTRIES))
         input_files.append(expand(config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bim", ancestry=ANCESTRIES))
         input_files.append(expand(config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.fam", ancestry=ANCESTRIES))
@@ -384,7 +404,6 @@ if ancestry_updated_psam_df is not None and os.path.exists(sex_man_select_path) 
     else:
         input_files.append(expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz", ancestry=ANCESTRIES))
         input_files.append(expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi", ancestry=ANCESTRIES))
-
 
 rule all:
     input:

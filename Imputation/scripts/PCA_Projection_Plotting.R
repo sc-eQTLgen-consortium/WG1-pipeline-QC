@@ -10,10 +10,10 @@ parser <- ArgumentParser()
 # specify our desired options
 # by default ArgumentParser will add an help option
 parser$add_argument("-s", "--scores", required=TRUE, type="character", help="")
-parser$add_argument("-oneks", "--onekg_scores", required=FALSE, type="character", help="")
+parser$add_argument("-os", "--onekg_scores", required=FALSE, type="character", help="")
 parser$add_argument("-p", "--psam", required=FALSE, type="character", help="")
-parser$add_argument("-onekp", "--onekg_psam", required=FALSE, type="character", help="")
-parser$add_argument("-s", "--sexcheck", required=FALSE, type="character", help="")
+parser$add_argument("-op", "--onekg_psam", required=FALSE, type="character", help="")
+parser$add_argument("-sc", "--sex_check", required=FALSE, type="character", help="")
 parser$add_argument("-o", "--out", required=TRUE, type="character", help="The output directory where results will be saved.")
 
 # get command line options, if help option encountered print help and exit, 
@@ -33,7 +33,7 @@ data_score <- read_delim(as.character(args$scores), delim = "\t", col_types = co
 onekg_score <- read_delim(as.character(args$onekg_scores), delim = "\t", col_types = cols(.default = "d", "#IID" = "c", "SuperPop" = "c", "Population" = "c"))
 data_anc <- read_delim(as.character(args$psam), delim = "\t", col_types = cols(.default = "c", "SEX" = "d"))
 onekg_anc <- read_delim(as.character(args$onekg_psam), delim = "\t", col_types = cols(.default = "c", "SEX" = "d"))
-sex_check <- read_delim(as.character(args$sexcheck), delim = "\t", col_types = cols(.default = "c", "PEDSEX" = "d", "SNPSEX" = "d", "F" = "d"))
+sex_check <- read_delim(as.character(args$sex_check), delim = "\t", col_types = cols(.default = "c", "PEDSEX" = "d", "SNPSEX" = "d", "F" = "d"))
 
 
 ##### Set up variables #####
@@ -168,3 +168,7 @@ anc_mismatch <- anc_mismatch[, c("#FID", "IID", "Provided_Ancestry", "PCA_Assign
 
 print("writing acestry_update_remove.tsv file")
 write_delim(anc_mismatch, paste0(args$out, "/ancestry_update_remove.tsv"), na = "", delim = "\t")
+
+anc_mafs <- data.frame(Ancestry = c("AFR", "AMR", "EAS", "EUR", "SAS"), MAF = NA)
+print("writing ancestry_mafs.tsv file")
+write_delim(anc_mafs, paste0(args$out, "/ancestry_mafs.tsv"), na = "", delim = "\t")
