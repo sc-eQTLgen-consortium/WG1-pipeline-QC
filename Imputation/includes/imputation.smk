@@ -16,8 +16,8 @@ rule crossmap:
         bed = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bed",
         bim = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bim",
         fam = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.fam",
-        inbed = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmap_input.bed",
-        outbed = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmap_output.bed",
+        inbed = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_input.bed",
+        outbed = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_output.bed",
         excluded_ids = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_excluded_ids.txt"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["crossmap_memory"],
@@ -28,7 +28,7 @@ rule crossmap:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink",
-        chain_file = "/opt/GRCh37_to_GRCh38.chain" if config["inputs"]["genome_build"] in ["hg19", "GRCh37"] else "/opt/hg18ToHg38.over.chain" # TODO: this file is removed from the image, refactor as input file
+        chain_file = config["refs"]["ref_dir"] + (config["refs_extra"]["relative_grch37_to_grch38_chain_path"] if config["inputs"]["genome_build"] in ["hg19", "GRCh37"] else config["refs_extra"]["relative_hg18_to_hg38_chain_path"])
     log: config["outputs"]["output_dir"] + "log/crossmap.{ancestry}.log"
     shell:
         """
@@ -48,11 +48,11 @@ rule crossmap:
         """
 
 
-rule sort_bed_after_crossmap:
+rule sort_bed:
     input:
-        bed = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bed",
-        bim = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bim",
-        fam = config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.fam"
+        bed = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.bed" if config["inputs"]["genome_build"] in ["hg18", "GRCh36", "hg19", "GRCh37"] else "subset_ancestry/{ancestry}_subset.pgen"),
+        bim = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.bim" if config["inputs"]["genome_build"] in ["hg18", "GRCh36", "hg19", "GRCh37"] else "subset_ancestry/{ancestry}_subset.bim"),
+        fam = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.fam" if config["inputs"]["genome_build"] in ["hg18", "GRCh36", "hg19", "GRCh37"] else "subset_ancestry/{ancestry}_subset.fam")
     output:
         bed = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bed",
         bim = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bim",
@@ -80,44 +80,6 @@ rule sort_bed_after_crossmap:
             --out {params.out}
         """
 
-######################################
-############ hg38, GRCh38 ############
-######################################
-
-
-rule sort_bed:
-    input:
-        pgen = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.pgen",
-        pvar = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.pvar",
-        psam = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.psam",
-    output:
-        bed = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bed",
-        bim = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bim",
-        fam = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.fam"
-    resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["sort_bed_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["sort_bed_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["sort_bed_time"]]
-    threads: config["imputation"]["sort_bed_threads"]
-    params:
-        bind = config["inputs"]["bind_path"],
-        sif = config["inputs"]["singularity_image"],
-        out = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted"
-    log: config["outputs"]["output_dir"] + "log/sort_bed.{ancestry}.log"
-    shell:
-        """
-        singularity exec --bind {params.bind} {params.sif} plink2 \
-            --threads {threads} \
-            --pgen {input.pgen} \
-            --pvar {input.pvar} \
-            --psam {input.psam} \
-            --make-bed \
-            --max-alleles 2 \
-            --output-chr MT \
-            --out {params.out}
-        """
-
-
 ####################################################
 
 
@@ -141,7 +103,7 @@ rule harmonize_hg38:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        jar = "/opt/GenotypeHarmonizer-1.4.27/GenotypeHarmonizer.jar",
+        jar = "/opt/GenotypeHarmonizer-1.4.27-SNAPSHOT/GenotypeHarmonizer.jar",
         infile = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted",
         out = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}",
     log: config["outputs"]["output_dir"] + "log/harmonize_hg38.{ancestry}.log"
@@ -247,7 +209,7 @@ rule harmonize_hg38_per_chr:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        jar = "/opt/GenotypeHarmonizer-1.4.27/GenotypeHarmonizer.jar",
+        jar = "/opt/GenotypeHarmonizer-1.4.27-SNAPSHOT/GenotypeHarmonizer.jar",
         infile = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_sorted",
         out = config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_chr_{chr}",
     log: config["outputs"]["output_dir"] + "log/harmonize_hg38_per_chr.{ancestry}.chr_{chr}.log"
@@ -455,7 +417,6 @@ rule calculate_missingness:
 rule genotype_donor_annotation:
     input:
         individuals = expand(config["outputs"]["output_dir"] + "genotype_donor_annotation/{ancestry}_individuals.tsv", ancestry = ANCESTRIES),
-        psam = config["outputs"]["output_dir"] + "pca_sex_checks/sex_ancestry_updated.psam"
     output:
         out_temp = temp(config["outputs"]["output_dir"] + "genotype_donor_annotation/genotype_donor_annotation_temp.tsv"),
         combined_individuals = config["outputs"]["output_dir"] + "genotype_donor_annotation/combined_individuals.tsv",
@@ -468,10 +429,11 @@ rule genotype_donor_annotation:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
+        psam = config["outputs"]["output_dir"] + "pca_sex_checks/updated.psam"
     log: config["outputs"]["output_dir"] + "log/genotype_donor_annotation.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} cut -f2,5- {input.psam} | awk 'NR<2{{print $0;next}}{{print $0| "sort -k1,1"}}' > {output.out_temp}
+        singularity exec --bind {params.bind} {params.sif} cut -f2,5- {params.psam} | awk 'NR<2{{print $0;next}}{{print $0| "sort -k1,1"}}' > {output.out_temp}
         singularity exec --bind {params.bind} {params.sif} cat {input.individuals} >> {output.combined_individuals}
         singularity exec --bind {params.bind} {params.sif} sed -i '1 i\IID' {output.combined_individuals}
         singularity exec --bind {params.bind} {params.sif} awk -F"\t" 'NR==FNR {{a[$1]; next}} $1 in a' {output.combined_individuals} {output.out_temp} | awk 'BEGIN{{FS=OFS="\t"}}{{sub("1","M",$2);print}}' | awk 'BEGIN{{FS=OFS="\t"}}{{sub("2","F",$2);print}}' > {output.final}
@@ -480,6 +442,7 @@ rule genotype_donor_annotation:
         singularity exec --bind {params.bind} {params.sif} sed -i '1s/SangerImputationServer/imputation_method/g' {output.final}
         singularity exec --bind {params.bind} {params.sif} sed -i '1s/1000g_30x_GRCh38_ref/imputation_reference/g' {output.final}
         """
+
 
 rule split_by_chr:
     input:
@@ -509,10 +472,11 @@ rule eagle_prephasing:
     input:
         vcf = config["outputs"]["output_dir"] + "split_by_chr/{ancestry}_chr_{chr}.vcf.gz",
         map_file = config["refs"]["ref_dir"] + config["refs_extra"]["relative_map_path"],
-        phasing_bcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"] + "ls",
+        phasing_bcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"] + "chr{chr}.bcf",
         phasing_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"] + "chr{chr}.bcf.csi"
     output:
-        vcf = config["outputs"]["output_dir"] + "eagle_prephasing/{ancestry}_chr{chr}_phased.vcf.gz"
+        vcf = config["outputs"]["output_dir"] + "eagle_prephasing/{ancestry}_chr_{chr}_phased.vcf.gz",
+        index = config["outputs"]["output_dir"] + "eagle_prephasing/{ancestry}_chr_{chr}_phased.vcf.gz.csi"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["eagle_prephasing_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["eagle_prephasing_memory"],
@@ -521,7 +485,7 @@ rule eagle_prephasing:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        out = config["outputs"]["output_dir"] + "eagle_prephasing/{ancestry}_chr{chr}_phased"
+        out = config["outputs"]["output_dir"] + "eagle_prephasing/{ancestry}_chr_{chr}_phased"
     log: config["outputs"]["output_dir"] + "log/eagle_prephasing.{ancestry}.chr_{chr}.log"
     shell:
         """
@@ -532,15 +496,21 @@ rule eagle_prephasing:
             --chrom={wildcards.chr} \
             --outPrefix={params.out} \
             --numThreads={threads}
+        singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
         """
 
 
+# TODO: results are slightly different compared to v1.0.2
+# ID column is rsID in NEW but chr:pos:ref:alt in OLD
+# NEW INFO column contains AVG_CS + values are slightly different
+# NEW FORMAT is reordered as GT:GP:DS
 rule minimac_imputation:
     input:
-        impute_file = config["refs"]["ref_dir"] + config["refs_extra"]["relative_imputation_dir"] + "chr{chr}.m3vcf.gz",
-        vcf = config["outputs"]["output_dir"] + "eagle_prephasing/{ancestry}_chr{chr}_phased.vcf.gz"
+        reference = config["refs"]["ref_dir"] + config["refs_extra"]["relative_imputation_dir"] + "chr{chr}.msav",
+        target = config["outputs"]["output_dir"] + "eagle_prephasing/{ancestry}_chr_{chr}_phased.vcf.gz",
+        target_index = config["outputs"]["output_dir"] + "eagle_prephasing/{ancestry}_chr_{chr}_phased.vcf.gz.csi"
     output:
-        dose = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr{chr}.dose.vcf.gz"
+        vcf = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr_{chr}.dose.vcf.gz",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["minimac_imputation_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["minimac_imputation_memory"],
@@ -549,25 +519,28 @@ rule minimac_imputation:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        out = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr{chr}",
-        chunk_length = config["imputation"]["minimac_chunk_length"]
+        out = config["outputs"]["output_dir"] + "minimac_imputed",
+        chunk = config["imputation"]["minimac_chunk"],
+        overlap = config["imputation"]["minimac_overlap"]
     log: config["outputs"]["output_dir"] + "log/minimac_imputation.{ancestry}.chr_{chr}.log"
     shell:
         """
+        mkdir -p {params.out}
         singularity exec --bind {params.bind} {params.sif} minimac4 \
-            --refHaps {input.impute_file} \
-            --haps {input.vcf} \
-            --prefix {params.out} \
+            {input.reference} \
+            {input.target} \
+            --chunk {params.chunk} \
             --format GT,DS,GP \
-            --noPhoneHome \
-            --cpus {threads} \
-            --ChunkLengthMb {params.chunk_length}
+            --output {output.vcf} \
+            --output-format vcf.gz \
+            --threads {threads} \
+            --overlap {params.overlap}
         """
 
 
 rule combine_vcfs_ancestry:
     input:
-        vcfs = expand(config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr{chr}.dose.vcf.gz", chr = CHROMOSOMES, ancestry = ANCESTRIES)
+        vcfs = expand(config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr_{chr}.dose.vcf.gz", ancestry = ANCESTRIES, chr = CHROMOSOMES)
     output:
         vcf = config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz",
         index = config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi"

@@ -163,7 +163,8 @@ imputation:
   minimac_imputation_memory: 10 ### Amount of gigs that will be used for memory and disk space per thread
   minimac_imputation_threads: 5 ### Number of threads to use
   minimac_imputation_time: 0 ### The time setting to use.
-  minimac_chunk_length: 20 ### length in Mb for minimac4 imputation chunks (20 by default)
+  minimac_chunk: 20000000 ###  Maximum chunk length in base pairs to impute at once (default: 20000000)
+  minimac_overlap: 3000000 ### Size (in base pairs) of overlap before and after impute region to use as input to HMM (default: 3000000)
 
   combine_vcfs_ancestry_memory: 2 ### Amount of gigs that will be used for memory and disk space per thread
   combine_vcfs_ancestry_threads: 2 ### Number of threads to use

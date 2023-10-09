@@ -7,9 +7,9 @@ rule indiv_missingness:
         pvar = plink_gender_ancestry_data + ".pvar",
         psam = plink_gender_ancestry_data + ".psam",
     output:
-        bed = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pgen",
-        bim = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pvar",
-        fam = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.psam",
+        pgen = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pgen",
+        pvar = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pvar",
+        psam = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.psam",
         log = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.log",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["indiv_missingness_memory"],
@@ -35,8 +35,6 @@ rule indiv_missingness:
         """
 
 
-# TODO: first make-bed just to use plink v1 check-sex?
-# TODO: tmp file not needed?
 rule check_sex:
     input:
         pgen = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pgen",
@@ -48,7 +46,7 @@ rule check_sex:
         fam = config["outputs"]["output_dir"] + "check_sex/check_sex.fam",
         hh = config["outputs"]["output_dir"] + "check_sex/check_sex.hh",
         nosex = config["outputs"]["output_dir"] + "check_sex/check_sex.nosex",
-        sex_check_tmp = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck",
+        sexcheck = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck",
         sex_check = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["check_sex_memory"],
@@ -78,13 +76,12 @@ rule check_sex:
             --check-sex \
             --out {params.out}
         singularity exec --bind {params.bind} {params.sif} touch {output.nosex}
-        singularity exec --bind {params.bind} {params.sif} sed 's/^ \+//g' {output.sex_check_tmp} | \
-            singularity exec --bind {params.bind} {params.sif} sed 's/ \+/\t/g' > {output.sex_check}
+        singularity exec --bind {params.bind} {params.sif} sed 's/^ \+//g; s/ \+/\t/g' {output.sexcheck} > {output.sex_check}
         """
 
 
 # TODO: might have duplicates
-### Pull just common SNPs between two groups ###
+# Pull just common SNPs between two groups ###
 rule common_snps:
     input:
         pgen = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pgen",
@@ -138,7 +135,7 @@ rule common_snps:
         """
 
 
-### Prune with --indep,
+# Prune with --indep,
 rule prune_1000g:
     input:
         pgen_1000g = config["outputs"]["output_dir"] + "common_snps/subset_1000g.pgen",
@@ -222,7 +219,7 @@ rule prune_1000g:
         """
         
         
-### put in contingency for duplicated snps - remove from both 1000G and your dataset
+# put in contingency for duplicated snps - remove from both 1000G and your dataset
 rule final_pruning: 
     input:
         pgen = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.pgen",
@@ -295,7 +292,7 @@ rule pca_1000g:
 
 # TODO: is it fine we are using the 1000g acount frq for the input file?
 # TODO: OMP_NUM_THREADS not used?
-### use plink pca results to plot with R ###
+# use plink pca results to plot with R
 rule pca_project:
     input:
         pgen = config["outputs"]["output_dir"] + "final_pruning/final_subset_pruned_data.pgen",
@@ -356,7 +353,8 @@ rule pca_projection_assign:
     output:
         anc_fig = report(config["outputs"]["output_dir"] + "pca_sex_checks/Ancestry_PCAs.png", category = "Ancestry", caption = "../report_captions/ancestry_pca.rst"),
         pca_sex_check = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv",
-        pca_anc_check = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv"
+        pca_anc_check = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv",
+        anc_maf_select = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_mafs.tsv",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_projection_assign_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["pca_projection_assign_memory"],
@@ -411,46 +409,10 @@ rule summary_ancestry_sex:
         """
 
 
-# TODO this can be done in the Snakefile.
-rule update_sex_ancestry:
-    input:
-        indiv_miss_pgen = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pgen",
-        indiv_miss_pvar = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pvar",
-        ancestry_updated_psam = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_updated.psam",
-        update_sex = config["outputs"]["output_dir"] + "separate_indivs/sex_update_indivs.tsv",
-        remove_indiv = config["outputs"]["output_dir"] + "separate_indivs/remove_indivs.tsv",
-    output:
-        pgen = config["outputs"]["output_dir"] + "update_sex_ancestry/sex_ancestry_updated.pgen",
-        pvar = config["outputs"]["output_dir"] + "update_sex_ancestry/sex_ancestry_updated.pvar",
-        psam = config["outputs"]["output_dir"] + "update_sex_ancestry/sex_ancestry_updated.psam",
-    resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["update_sex_ancestry_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["plink_gender_ancestry_QC"]["update_sex_ancestry_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["plink_gender_ancestry_QC"]["update_sex_ancestry_time"]]
-    threads: config["plink_gender_ancestry_QC"]["update_sex_ancestry_threads"]
-    params:
-        bind = config["inputs"]["bind_path"],
-        sif = config["inputs"]["singularity_image"],
-        out = config["outputs"]["output_dir"] + "update_sex_ancestry/sex_ancestry_updated"
-    log: config["outputs"]["output_dir"] + "log/update_sex_ancestry.log"
-    shell:
-        """
-        singularity exec --bind {params.bind} {params.sif} plink2 \
-            --threads {threads} \
-            --pgen {input.indiv_miss_pgen} \
-            --pvar {input.indiv_miss_pvar} \
-            --psam {input.ancestry_updated_psam} \
-            --update-sex {input.update_sex} \
-            --remove {input.remove_indiv} \
-            --make-pgen 'psam-cols='fid,parents,sex,phenos \
-            --out {params.out}
-        """
-
 rule subset_ancestry:
     input:
-        pgen = config["outputs"]["output_dir"] + "update_sex_ancestry/sex_ancestry_updated.pgen",
-        pvar = config["outputs"]["output_dir"] + "update_sex_ancestry/sex_ancestry_updated.pvar",
-        psam = config["outputs"]["output_dir"] + "update_sex_ancestry/sex_ancestry_updated.psam"
+        pgen = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pgen",
+        pvar = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pvar",
     output:
         keep = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_individuals.psam",
         pgen = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.pgen",
@@ -464,15 +426,17 @@ rule subset_ancestry:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        infile = config["outputs"]["output_dir"] + "update_sex_ancestry/sex_ancestry_updated",
+        psam = config["outputs"]["output_dir"] + "pca_sex_checks/updated.psam",
         out = config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset"
     log: config["outputs"]["output_dir"] + "log/subset_ancestry.{ancestry}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} grep {wildcards.ancestry} {input.psam} > {output.keep}
+        singularity exec --bind {params.bind} {params.sif} grep {wildcards.ancestry} {params.psam} > {output.keep}
         singularity exec --bind {params.bind} {params.sif} plink2 \
             --threads {threads} \
-            --pfile {params.infile} \
+            --pgen {input.pgen} \
+            --pvar {input.pvar} \
+            --psam {params.psam} \
             --keep {output.keep} \
             --max-alleles 2 \
             --make-pgen 'psam-cols='fid,parents,sex,phenos \
