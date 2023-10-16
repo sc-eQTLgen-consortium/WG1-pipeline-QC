@@ -94,7 +94,7 @@ rule wgs_filter:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/custom_vcf_filter.py",
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/wgs_vcf_filter.py",
         out_dir = config["outputs"]["output_dir"] + "wgs_filter",
         sex = lambda wildcards: "--sex {}".format(config["inputs"]["psam"]) if wildcards.chr in ["X", "Y"] else "",
         genotype_quality = config["wgs_filter"]["genotype_quality"],
