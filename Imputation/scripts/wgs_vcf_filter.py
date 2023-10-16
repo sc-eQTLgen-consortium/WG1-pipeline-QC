@@ -22,7 +22,7 @@ parser.add_argument("--no_indel_vqsr_check", dest='check_vqsr_indel', action='st
 parser.add_argument("--vqsr_indel", type=float, dest='thresh_vqsr_indel', default=99.95, help="The variant_quality_score_recalibration threshold. Default: 99.95.")
 parser.add_argument("--keep_multialleic", dest='remove_multiallelic', action='store_false', help="Add this flag to remove multiallelic variants. Default: True.")
 parser.add_argument("--keep_non_pass_snv", dest='remove_non_pass_snv', action='store_false', help="Add this flag to remove SNV's without PASS label. Default: True.")
-parser.add_argument("--keep_non_pass_indel", dest='remove_non_pass_indel', action='store_false',jelp="Add this flag to remove indel's without PASS label. Default: True.")
+parser.add_argument("--keep_non_pass_indel", dest='remove_non_pass_indel', action='store_false', help="Add this flag to remove indel's without PASS label. Default: True.")
 parser.add_argument("--keep_low_complexity", dest='filer_low_complexity', action='store_false', help="Add this flag to keep low complexity variants. Default: True.")
 parser.add_argument("-maf", "--minor_allele_frequency", type=float, dest='thresh_maf', default=0.01, help="The minor allele frequency threshold. Default: 0.01.")
 parser.add_argument("-cr", "--call_rate", type=float, dest='thresh_cr', default=0.99, help="The call rate threshold. Default: 0.99.")
@@ -31,8 +31,8 @@ parser.add_argument("-dp", "--filtered_depth", type=float, dest='thresh_dp', def
 parser.add_argument("--keep_info_column", dest='strip_info_col', action='store_false', help="Add this flag to keep the INFO column. Default: True.")
 args = parser.parse_args()
 
-if not os.path.isdir(args.out):
-    os.mkdir(args.out)
+if not os.path.isdir(os.path.dirname(args.output_path)):
+    os.mkdir(os.path.dirname(args.output_path))
 
 sample_filter_set = args.sample_filter_set
 if isinstance(sample_filter_set, list):
@@ -42,107 +42,27 @@ ismale_dict = None
 if args.sex_path is not None:
     ismale_dict = {}
     fs = open(args.sex_path, 'r')
-    for line in fs:
-        sample, sex = line.strip("\n").split(",")
-        if sex == "M":
-            ismale_dict[sample] = True
-        elif sex == "F":
-            ismale_dict[sample] = False
+    iid_index = None
+    sex_index = None
+    for line_num, line in enumerate(fs):
+        values = line.strip("\n").split("\t")
+        if line_num == 0:
+            for col_index, value in enumerate(values):
+                if value == "IID":
+                    iid_index = col_index
+                elif value == "SEX":
+                    sex_index = col_index
+                else:
+                    pass
+            continue
+        if values[sex_index] == "0" or values[sex_index] == "1":
+            ismale_dict[values[iid_index]] = True
+        elif values[sex_index] == "2":
+            ismale_dict[values[iid_index]] = False
         else:
             print("Unexpected input in sex file.")
             exit()
-
-fh = gzip.open(args.input_path, 'rt')
-fho = gzip.open(args.output_path, 'wt')
-fhlog = gzip.open(args.log_path, 'wt')
-fhlog.write("Id\tReason\tStats\n")
-
-sample_mask = []
-sample_male_mask = []
-
-linectr = 0
-lineswritten = 0
-for line in fh:
-    if line.startswith("#CHROM"):
-        outln = "##{} tresh_GQ ={};tresh_AB_lower ={};" \
-                "tresh_AB_upper ={};tresh_IB ={};check_VQSR_SNV ={};" \
-                "tresh_VQSR_SNV ={};check_VQSR_Indel ={};" \
-                "tresh_VQSR_Indel ={};remove_multiAllelic ={};" \
-                "remove_nonPASS_indel ={};remove_nonPASS_SNV ={};" \
-                "filter_lowcomplexity ={};tresh_MAF ={};" \
-                "tresh_HWE ={};tresh_CR ={};" \
-                "tresh_DP ={}\n".format(args.input_path,
-                                        args.thresh_gq,
-                                        args.thresh_ab_lower,
-                                        args.thresh_ab_upper,
-                                        args.thresh_ib,
-                                        args.check_vqsr_snv,
-                                        args.thresh_vqsr_snv,
-                                        args.check_vqsr_indel,
-                                        args.thresh_vqsr_indel,
-                                        args.remove_multiallelic,
-                                        args.remove_non_pass_indel,
-                                        args.remove_non_pass_snv,
-                                        args.filer_low_complexity,
-                                        args.thresh_maf,
-                                        args.thresh_hwe,
-                                        args.thresh_cr,
-                                        args.thresh_dp
-                                        )
-        fho.write(outln)
-
-        # header line with samples
-        elems = line.strip().split("\t")
-        elems[6] = "FILTER"
-        elems[7] = "INFO"
-        headerout = "\t".join(elems[0:9])
-        n_samples_included = 0
-        n_samples_excluded = 0
-        for i in range(9, len(elems)):
-            sample = elems[i]
-            if sample_filter_set is None or sample in sample_filter_set:
-                headerout += "\t" + sample
-                sample_mask.append(True)
-                sample_male_mask.append(None if ismale_dict is None else ismale_dict[sample])
-                n_samples_included += 1
-            else:
-                sample_mask.append(False)
-                n_samples_excluded += 1
-        print("{:,} samples selected from VCF header, {:,} excluded".format(n_samples_included, n_samples_excluded))
-        fho.write(headerout + "\n")
-        lineswritten += 1
-    elif line.startswith("#"):
-        if line.startswith("##FORMAT") and line[13:15] not in ["GT", "DP", "AD", "AB", "GQ"]:
-            continue
-        if line.startswith("##INFO") and args.strip_info_col:
-            continue
-        fho.write(line)
-        lineswritten += 1
-    else:
-        # this can now be potentially multithreaded?
-        parsed = args.parse_line(
-            line_number=linectr,
-            line=line,
-            sample_mask=sample_mask,
-            sample_male_mask=sample_male_mask
-        )  # returns: [line_number, False, logid+"\PASSQC\t"+stats[1], outln]
-        fhlog.write(parsed[2])
-        if parsed[1]:
-            fho.write(parsed[3])
-            lineswritten += 1
-    linectr += 1
-    if args.debug and linectr == args.stopafterlines:
-        print("DEBUG: stopped after " + str(linectr) + " lines")
-        break
-    if linectr % 10000 == 0:
-        print("{:,} lines parsed, {:,} written".format(linectr, lineswritten), end='\r')
-        fho.flush()
-        fhlog.flush()
-print("{:,} lines parsed, {:,} written".format(linectr, lineswritten), end='\n')
-print("Done. How about that!")
-fh.close()
-fho.close()
-fhlog.close()
+    fs.close()
 
 
 def parse_line(line_number, line, sample_mask, sample_male_mask):
@@ -177,13 +97,13 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
     # check VQSR first
     if is_indel:
         if filter.startswith("VQSR") and args.check_vqsr_indel:
-            if not args.parse_vqsr(filter, is_indel):
+            if not parse_vqsr(filter, is_indel):
                 return [line_number, False, logid + "\tIndelBelowVQSR\t-\n"]
         elif args.remove_non_pass_indel and filter != "PASS":
             return [line_number, False, logid + "\tIndelNonPass\t-\n"]
     else:
         if filter.startswith("VQSR") and args.check_vqsr_snv:
-            if not args.parse_vqsr(filter, is_indel):
+            if not parse_vqsr(filter, is_indel):
                 return [line_number, False, logid + "\tSNVBelowVQSR\t-\n"]
         elif args.remove_non_pass_snv and filter != "PASS":
             return [line_number, False, logid + "\tSNVNonPass\t-\n"]
@@ -268,7 +188,7 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
         cctr += 1
 
     # calculate allele frequency etc before filtering
-    stats = args.get_stats(
+    stats = get_stats(
         dosages=dosages_pre_filter,
         sample_male_mask=sample_male_mask,
         chr=chr
@@ -375,7 +295,7 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
         average_depth = 0
 
     # variant level quals
-    _, _, _, _, _, maf_postfilter = args.get_maf(
+    _, _, _, _, _, maf_postfilter = get_maf(
         dosages=dosages_post_filter,
         sample_male_mask=sample_male_mask,
         chr=chr
@@ -432,7 +352,7 @@ def parse_vqsr(vqsrstring, is_indel):
 
 
 def get_stats(dosages, sample_male_mask, chr):
-    nrcalled, nrdosages, nrhoma, nrhets, nrhomb, maf = args.get_maf(
+    nrcalled, nrdosages, nrhoma, nrhets, nrhomb, maf = get_maf(
         dosages=dosages,
         sample_male_mask=sample_male_mask,
         chr=chr
@@ -444,7 +364,7 @@ def get_stats(dosages, sample_male_mask, chr):
     callrate = nrcalled / nrdosages
     hwe = -1
     if callrate >= args.thresh_cr and maf >= args.thresh_maf:
-        hwe = args.calculate_hwe(
+        hwe = calculate_hwe(
             obs_hets=nrhets,
             obs_hom1=nrhoma,
             obs_hom2=nrhomb
@@ -548,3 +468,93 @@ def calculate_hwe(obs_hets, obs_hom1, obs_hom2):
     if p_hwe > 1:
         p_hwe = 1
     return p_hwe
+
+fh = gzip.open(args.input_path, 'rt')
+fho = gzip.open(args.output_path, 'wt')
+fhlog = gzip.open(args.log_path, 'wt')
+fhlog.write("Id\tReason\tStats\n")
+
+sample_mask = []
+sample_male_mask = []
+
+linectr = 0
+lineswritten = 0
+for line in fh:
+    if line.startswith("#CHROM"):
+        outln = "##{} tresh_GQ={};tresh_AB_lower={};" \
+                "tresh_AB_upper={};tresh_IB={};check_VQSR_SNV={};" \
+                "tresh_VQSR_SNV={};check_VQSR_Indel={};" \
+                "tresh_VQSR_Indel={};remove_multiAllelic={};" \
+                "remove_nonPASS_SNV={};remove_nonPASS_indel={};" \
+                "filter_lowcomplexity={};tresh_MAF={};tresh_CR={};" \
+                "tresh_HWE={};tresh_DP={}" \
+                "strip_INFO_col={}\n".format(args.input_path,
+                                             args.thresh_gq,
+                                             args.thresh_ab_lower,
+                                             args.thresh_ab_upper,
+                                             args.thresh_ib,
+                                             args.check_vqsr_snv,
+                                             args.thresh_vqsr_snv,
+                                             args.check_vqsr_indel,
+                                             args.thresh_vqsr_indel,
+                                             args.remove_multiallelic,
+                                             args.remove_non_pass_snv,
+                                             args.remove_non_pass_indel,
+                                             args.filer_low_complexity,
+                                             args.thresh_maf,
+                                             args.thresh_cr,
+                                             args.thresh_hwe,
+                                             args.thresh_dp,
+                                             args.strip_info_col
+                                             )
+        fho.write(outln)
+
+        # header line with samples
+        elems = line.strip().split("\t")
+        elems[6] = "FILTER"
+        elems[7] = "INFO"
+        headerout = "\t".join(elems[0:9])
+        n_samples_included = 0
+        n_samples_excluded = 0
+        for i in range(9, len(elems)):
+            sample = elems[i]
+            if sample_filter_set is None or sample in sample_filter_set:
+                headerout += "\t" + sample
+                sample_mask.append(True)
+                sample_male_mask.append(None if ismale_dict is None else ismale_dict[sample])
+                n_samples_included += 1
+            else:
+                sample_mask.append(False)
+                n_samples_excluded += 1
+        print("{:,} samples selected from VCF header, {:,} excluded".format(n_samples_included, n_samples_excluded))
+        fho.write(headerout + "\n")
+        lineswritten += 1
+    elif line.startswith("#"):
+        if line.startswith("##FORMAT") and line[13:15] not in ["GT", "DP", "AD", "AB", "GQ"]:
+            continue
+        if line.startswith("##INFO") and args.strip_info_col:
+            continue
+        fho.write(line)
+        lineswritten += 1
+    else:
+        # this can now be potentially multithreaded?
+        parsed = parse_line(
+            line_number=linectr,
+            line=line,
+            sample_mask=sample_mask,
+            sample_male_mask=sample_male_mask
+        )  # returns: [line_number, False, logid+"\PASSQC\t"+stats[1], outln]
+        fhlog.write(parsed[2])
+        if parsed[1]:
+            fho.write(parsed[3])
+            lineswritten += 1
+    linectr += 1
+    if linectr % 10000 == 0:
+        print("{:,} lines parsed, {:,} written".format(linectr, lineswritten), end='\r')
+        fho.flush()
+        fhlog.flush()
+print("{:,} lines parsed, {:,} written".format(linectr, lineswritten), end='\n')
+print("Done. How about that!")
+fh.close()
+fho.close()
+fhlog.close()

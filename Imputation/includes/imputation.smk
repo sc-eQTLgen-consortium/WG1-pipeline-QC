@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-####################################################
-############ hg18, GRCh36, hg19, GRCh37 ############
-####################################################
+##############################################
+############ hg18, b36, hg19, b37 ############
+##############################################
 
 # Converts BIM to BED and converts the BED file via CrossMap.
 # Finds excluded SNPs and removes them from the original plink file.
@@ -50,9 +50,9 @@ rule crossmap:
 
 rule sort_bed:
     input:
-        bed = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.bed" if config["inputs"]["genome_build"] in ["hg18", "GRCh36", "hg19", "GRCh37"] else "subset_ancestry/{ancestry}_subset.pgen"),
-        bim = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.bim" if config["inputs"]["genome_build"] in ["hg18", "GRCh36", "hg19", "GRCh37"] else "subset_ancestry/{ancestry}_subset.bim"),
-        fam = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.fam" if config["inputs"]["genome_build"] in ["hg18", "GRCh36", "hg19", "GRCh37"] else "subset_ancestry/{ancestry}_subset.fam")
+        bed = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.bed" if config["inputs"]["genome_build"] in ["hg18", "b36", "hg19", "b37"] else "subset_ancestry/{ancestry}_subset.pgen"),
+        bim = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.bim" if config["inputs"]["genome_build"] in ["hg18", "b36", "hg19", "b37"] else "subset_ancestry/{ancestry}_subset.bim"),
+        fam = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.fam" if config["inputs"]["genome_build"] in ["hg18", "b36", "hg19", "b37"] else "subset_ancestry/{ancestry}_subset.fam")
     output:
         bed = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bed",
         bim = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bim",
@@ -227,12 +227,12 @@ rule harmonize_hg38_per_chr:
 
 rule plink_per_chr_to_vcf:
     input:
-        bed = lambda wildcards: expand(config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_chr_{chr}.bed", chr = CHROMOSOMES),
-        bim = lambda wildcards: expand(config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_chr_{chr}.bim", chr = CHROMOSOMES),
-        fam = lambda wildcards: expand(config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_chr_{chr}.fam", chr = CHROMOSOMES)
+        bed = expand(config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_chr_{chr}.bed", ancestry=ANCESTRIES, chr=CHROMOSOMES),
+        bim = expand(config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_chr_{chr}.bim", ancestry=ANCESTRIES, chr=CHROMOSOMES),
+        fam = expand(config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_chr_{chr}.fam", ancestry=ANCESTRIES, chr=CHROMOSOMES)
     output:
-        vcf = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz",
-        index = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz.csi"
+        vcf = config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_harmonised_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_harmonised_hg38.vcf.gz.csi"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["plink_to_vcf_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["plink_to_vcf_memory"],
@@ -241,10 +241,10 @@ rule plink_per_chr_to_vcf:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        infiles = lambda wildcards: expand(config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_chr_{chr}", chr = CHROMOSOMES),
+        infiles = lambda wildcards: expand(config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_chr_{chr}", ancestry=ANCESTRIES, chr=CHROMOSOMES),
         mergelist = config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_mergelist.txt",
         chr_list = ",".join(CHROMOSOMES),
-        out = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_harmonised_hg38"
+        out = config["outputs"]["output_dir"] + "harmonize_hg38_per_chr/{ancestry}_harmonised_hg38"
     log: config["outputs"]["output_dir"] + "log/plink_to_vcf.{ancestry}.log"
     shell:
         """
@@ -266,8 +266,8 @@ rule vcf_fixref_hg38:
         ref_fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
         ref_vcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"],
         ref_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"] + ".tbi",
-        vcf = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz",
-        index = config["outputs"]["output_dir"] + "harmonize_hg38/{ancestry}_harmonised_hg38.vcf.gz.csi"
+        vcf = config["outputs"]["output_dir"] + ("harmonize_hg38_per_chr" if config["settings"]["is_wgs"] else "harmonize_hg38") + "/{ancestry}_harmonised_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + ("harmonize_hg38_per_chr" if config["settings"]["is_wgs"] else "harmonize_hg38") + "/{ancestry}_harmonised_hg38.vcf.gz.csi"
     output:
         vcf = config["outputs"]["output_dir"] + "vcf_fixref_hg38/{ancestry}_fixref_hg38.vcf.gz",
         index = config["outputs"]["output_dir"] + "vcf_fixref_hg38/{ancestry}_fixref_hg38.vcf.gz.csi"
@@ -416,7 +416,7 @@ rule calculate_missingness:
 
 rule genotype_donor_annotation:
     input:
-        individuals = expand(config["outputs"]["output_dir"] + "genotype_donor_annotation/{ancestry}_individuals.tsv", ancestry = ANCESTRIES),
+        individuals = expand(config["outputs"]["output_dir"] + "genotype_donor_annotation/{ancestry}_individuals.tsv", ancestry=ANCESTRIES),
     output:
         out_temp = temp(config["outputs"]["output_dir"] + "genotype_donor_annotation/genotype_donor_annotation_temp.tsv"),
         combined_individuals = config["outputs"]["output_dir"] + "genotype_donor_annotation/combined_individuals.tsv",
@@ -500,10 +500,11 @@ rule eagle_prephasing:
         """
 
 
-# TODO: results are slightly different compared to v1.0.2
+# Results are slightly different compared to v1.0.2
 # ID column is rsID in NEW but chr:pos:ref:alt in OLD
 # NEW INFO column contains AVG_CS + values are slightly different
 # NEW FORMAT is reordered as GT:GP:DS
+# temp-prefix parameter fixes issue I had running it on our cluster
 rule minimac_imputation:
     input:
         reference = config["refs"]["ref_dir"] + config["refs_extra"]["relative_imputation_dir"] + "chr{chr}.msav",
@@ -520,17 +521,18 @@ rule minimac_imputation:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "minimac_imputed",
+        temp_prefix = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr_{chr}_m4_",
         chunk = config["imputation"]["minimac_chunk"],
         overlap = config["imputation"]["minimac_overlap"]
     log: config["outputs"]["output_dir"] + "log/minimac_imputation.{ancestry}.chr_{chr}.log"
     shell:
         """
-        mkdir -p {params.out}
         singularity exec --bind {params.bind} {params.sif} minimac4 \
             {input.reference} \
             {input.target} \
             --chunk {params.chunk} \
             --format GT,DS,GP \
+            --temp-prefix {params.temp_prefix} \
             --output {output.vcf} \
             --output-format vcf.gz \
             --threads {threads} \
@@ -540,7 +542,7 @@ rule minimac_imputation:
 
 rule combine_vcfs_ancestry:
     input:
-        vcfs = expand(config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr_{chr}.dose.vcf.gz", ancestry = ANCESTRIES, chr = CHROMOSOMES)
+        vcfs = expand(config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_chr_{chr}.dose.vcf.gz", ancestry=ANCESTRIES, chr=CHROMOSOMES)
     output:
         vcf = config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz",
         index = config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi"
@@ -565,7 +567,7 @@ rule split_per_dataset:
     input:
         vcf = config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz",
         index = config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi",
-        samples = "NA"
+        samples = lambda wildcards: config["inputs"]["dataset_samples"][wildcards.dataset]
     output:
         vcf = config["outputs"]["output_dir"] + "split_per_dataset/{dataset}_{ancestry}_imputed_hg38.vcf.gz",
         index = config["outputs"]["output_dir"] + "split_per_dataset/{dataset}_{ancestry}_imputed_hg38.vcf.gz.csi"

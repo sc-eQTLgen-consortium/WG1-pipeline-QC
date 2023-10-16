@@ -35,6 +35,7 @@ rule indiv_missingness:
         """
 
 
+# Only using chromosome X and Y to reduce space.
 rule check_sex:
     input:
         pgen = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pgen",
@@ -65,6 +66,8 @@ rule check_sex:
             --pgen {input.pgen} \
             --pvar {input.pvar} \
             --psam {input.psam} \
+            --merge-par \
+            --chr X, Y \
             --make-bed \
             --max-alleles 2 \
             --out {params.out}
@@ -80,8 +83,8 @@ rule check_sex:
         """
 
 
-# TODO: might have duplicates
-# Pull just common SNPs between two groups ###
+# Pull just common SNPs between two groups
+# Note: 100G has a duplicate variant 'X_68204280_rs1361839_C_T' that can cause problems if it is in the input data.
 rule common_snps:
     input:
         pgen = config["outputs"]["output_dir"] + "indiv_missingness/indiv_missingness.pgen",
@@ -114,7 +117,7 @@ rule common_snps:
     log: config["outputs"]["output_dir"] + "log/common_snps.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.pvar} {params.pvar_1000g} > {output.snps_1000g}
+        singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.pvar} {params.pvar_1000g} | grep -v "X_68204280_rs1361839_C_T" > {output.snps_1000g}
         singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {params.pvar_1000g} {input.pvar} > {output.snps_data}
         singularity exec --bind {params.bind} {params.sif} plink2 \
             --threads {threads} \

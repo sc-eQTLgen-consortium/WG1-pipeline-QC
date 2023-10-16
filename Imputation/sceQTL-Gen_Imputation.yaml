@@ -8,7 +8,8 @@ refs:
 inputs:
   bind_path: /path/to/bind/to/mount ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
-  genotype_path: /path/to/input_plink/dir/ ### path to directory that contains the genotype input files for pipeline on hg19. Include the filename without extension; accepted are .vcf.gz files or plink2 pgen, pvar and psam. In the cases of a splitted input use CHR to replace the chromosome.
+  genotype_path: /path/to/genotype/file ### path to directory that contains the genotype input files for pipeline on hg19. Include the filename without extension; accepted are .vcf.gz files or plink2 pgen, pvar and psam. In the cases of a splitted input use CHR to replace the chromosome.
+  psam: /path/to/genotype/file.psam
   genome_build: "hg19"
   dataset_samples: {dataset1: /path/to/dataset1/samples, dataset2: /path/to/dataset2/samples}
 
@@ -16,7 +17,7 @@ outputs:
   output_dir: /path/to/parent/out/dir/ ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
 
 settings:
-    is_wgs: False
+  is_wgs: False
 
 cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"}
 
@@ -37,12 +38,16 @@ pre_processing:
   wgs_filter_threads: 1 ### Number of threads to use
   wgs_filter_time: 0 ### The time setting to use.
 
+  wgs_filter_stats_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  wgs_filter_stats_threads: 1 ### Number of threads to use
+  wgs_filter_stats_time: 0 ### The time setting to use.
+
   combine_vcfs_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
   combine_vcfs_threads: 1 ### Number of threads to use
   combine_vcfs_time: 0 ### The time setting to use.
 
-  vcf_to_pgen_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
-  vcf_to_pgen_threads: 1 ### Number of threads to use
+  vcf_to_pgen_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  vcf_to_pgen_threads: 2 ### Number of threads to use
   vcf_to_pgen_time: 0 ### The time setting to use.
 
   combine_plink_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
@@ -187,21 +192,24 @@ refs_extra:
   relative_phasing_dir: "hg38/phasing/phasing_reference/"
   relative_imputation_dir: "hg38/imputation/"
 
+pre_processing_extra:
+  max_allele_len: 500
+
 wgs_filter:
   genotype_quality: 20 ### The genotype quality threshold
   allelic_balance_lower: 0.2 ### The allelic balance lower-bound threshold
   allelic_balance_upper: 0.8 ### The allelic balance upper-bound threshold
   inbreeding_coefficient: -0.3 ### The inbreeding coefficient threshold
-  no_snv_vqsr_check: True ### Add this flag to turn off the VQSR of SNV's
+  no_snv_vqsr_check: False ### Add this flag to turn off the VQSR of SNV's
   vqsr_snv: 99.8 ### The variant_quality_score_recalibration threshold
-  no_indel_vqsr_check: True ### Add this flag to turn off the VQSR of indel's
+  no_indel_vqsr_check: False ### Add this flag to turn off the VQSR of indel's
   vqsr_indel: 99.95 ### The variant_quality_score_recalibration threshold
-  keep_multialleic: True ### Add this flag to remove multiallelic variants
-  keep_non_pass_snv: True ### Add this flag to remove SNV's without PASS label
-  keep_non_pass_indel: True ### Add this flag to remove indel's without PASS label
-  keep_low_complexity: True ### Add this flag to keep low complexity variants
+  keep_multialleic: False ### Add this flag to remove multiallelic variants
+  keep_non_pass_snv: False ### Add this flag to remove SNV's without PASS label
+  keep_non_pass_indel: False ### Add this flag to remove indel's without PASS label
+  keep_low_complexity: False ### Add this flag to keep low complexity variants
   minor_allele_frequency: 0.01 ### The minor allele frequency threshold
   call_rate: 0.99 ### The call rate threshold
   hardy_weinberg_equilibrium: 1e-6 ### The hardy weinberg equilibrium threshold
   filtered_depth: 10 ### The filtered depth threshold
-  keep_info_column: True ### Add this flag to keep the INFO column
+  keep_info_column: False ### Add this flag to keep the INFO column
