@@ -42,7 +42,6 @@ rule crossmap:
             --psam {input.psam} \
             --exclude {output.excluded_ids} \
             --make-bed \
-            --output-chr MT \
             --out {params.out}
         singularity exec --bind {params.bind} {params.sif} awk -F'\t' 'BEGIN {{OFS=FS}} {{print $1,$4,0,$2,$6,$5}}' {output.outbed} > {output.bim}
         """
@@ -51,8 +50,8 @@ rule crossmap:
 rule sort_bed:
     input:
         bed = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.bed" if config["inputs"]["genome_build"] in ["hg18", "b36", "hg19", "b37"] else "subset_ancestry/{ancestry}_subset.pgen"),
-        bim = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.bim" if config["inputs"]["genome_build"] in ["hg18", "b36", "hg19", "b37"] else "subset_ancestry/{ancestry}_subset.bim"),
-        fam = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.fam" if config["inputs"]["genome_build"] in ["hg18", "b36", "hg19", "b37"] else "subset_ancestry/{ancestry}_subset.fam")
+        bim = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.bim" if config["inputs"]["genome_build"] in ["hg18", "b36", "hg19", "b37"] else "subset_ancestry/{ancestry}_subset.pvar"),
+        fam = config["outputs"]["output_dir"] + ("crossmapped/{ancestry}_crossmapped_plink.fam" if config["inputs"]["genome_build"] in ["hg18", "b36", "hg19", "b37"] else "subset_ancestry/{ancestry}_subset.psam")
     output:
         bed = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bed",
         bim = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted.bim",
@@ -65,18 +64,16 @@ rule sort_bed:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
+        input = ("--bfile " + config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink" if config["inputs"]["genome_build"] in ["hg18", "b36", "hg19", "b37"] else "--pfile " + config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset"),
         out = config["outputs"]["output_dir"] + "sorted/{ancestry}_sorted"
     log: config["outputs"]["output_dir"] + "log/sort_bed_after_crossmap.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
             --threads {threads} \
-            --bed {input.bed} \
-            --bim {input.bim} \
-            --fam {input.fam} \
+            {input} \
             --make-bed \
             --max-alleles 2 \
-            --output-chr MT \
             --out {params.out}
         """
 
