@@ -25,14 +25,31 @@ cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"}
 ##### The following arguments are common parameters that may need to be changed depending on the dataset #####
 ##############################################################################################################
 ##### These are the options that will be used for plink QC steps #####
-pre_processing:
-  split_vcf_by_chr_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  split_vcf_by_chr_threads: 1 ### Number of threads to use
-  split_vcf_by_chr_time: 0 ### The time setting to use.
+generic:
+  split_by_chr_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  split_by_chr_threads: 1 ### Number of threads to use
+  split_by_chr_time: 0 ### The time setting to use.
+  
+  vcf_to_plink_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  vcf_to_plink_threads: 2 ### Number of threads to use
+  vcf_to_plink_time: 0 ### The time setting to use.
 
-  normalise_by_chr_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
-  normalise_by_chr_threads: 1 ### Number of threads to use
-  normalise_by_chr_time: 0 ### The time setting to use.
+  process_plink_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  process_plink_threads: 2 ### Number of threads to use
+  process_plink_time: 0 ### The time setting to use.
+
+  plink_to_vcf_memory: 2 ### Amount of gigs that will be used for memory and disk space per thread
+  plink_to_vcf_threads: 2 ### Number of threads to use
+  plink_to_vcf_time: 0 ### The time setting to use.
+
+  combine_vcfs_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  combine_vcfs_threads: 1 ### Number of threads to use
+  combine_vcfs_time: 0 ### The time setting to use.
+
+wgs_filter:
+  bcftools_norm_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  bcftools_norm_threads: 1 ### Number of threads to use
+  bcftools_norm_time: 0 ### The time setting to use.
 
   wgs_filter_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
   wgs_filter_threads: 1 ### Number of threads to use
@@ -42,26 +59,13 @@ pre_processing:
   wgs_filter_stats_threads: 1 ### Number of threads to use
   wgs_filter_stats_time: 0 ### The time setting to use.
 
-  combine_vcfs_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
-  combine_vcfs_threads: 1 ### Number of threads to use
-  combine_vcfs_time: 0 ### The time setting to use.
-
-  vcf_to_pgen_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
-  vcf_to_pgen_threads: 2 ### Number of threads to use
-  vcf_to_pgen_time: 0 ### The time setting to use.
-
-  combine_plink_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
-  combine_plink_threads: 1 ### Number of threads to use
-  combine_plink_time: 0 ### The time setting to use.
+crossmap:
+  crossmap_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
+  crossmap_threads: 1 ### Number of threads to use
+  crossmap_time: 0 ### The time setting to use.
 
 ##### These are the options that will be used for plink QC steps #####
-plink_gender_ancestry_QC:
-  ### Following options for removing individuals missing too many snps with `plink2 --pfile <pfile> --make-pgen --mind <mind> --out <out>`
-  indiv_missingness_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  indiv_missingness_threads: 1 ### Number of threads to use
-  indiv_missingness_time: 0 ### The time setting to use.
-  indiv_missingness_mind: 0.03 ### Missingness rate threshold
-
+ancestry_sex_qc:
   ### Following options for checking the sex reported to the snp-predicted sex with `plink --bfile <bfile> --check-sex --out <out>`
   check_sex_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   check_sex_threads: 1 ### Number of threads to use
@@ -76,11 +80,6 @@ plink_gender_ancestry_QC:
   prune_1000g_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   prune_1000g_threads: 1 ### Number of threads to use
   prune_1000g_time: 0 ### The time setting to use.
-
-  ### Following options for ??? with 'plink2 --rm-dup 'force-first' --pfile <pfile> --make-pgen --out <out>'
-  final_pruning_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  final_pruning_threads: 1 ### Number of threads to use
-  final_pruning_time: 0 ### The time setting to use.
 
   ### Following options for 1000G PCA with `plink2 --pfile <pfile> --freq counts --pca allele-wts --out <out>`
   pca_1000g_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
@@ -102,38 +101,21 @@ plink_gender_ancestry_QC:
   summary_ancestry_sex_threads: 2 ### Number of threads to use
   summary_ancestry_sex_time: 0 ### The time setting to use.
 
-  ### Following options for ?? with 'plink2 --pfile <pfile> --update-sex <> --remove <> --make-pgen --out <out>'
-  update_sex_ancestry_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  update_sex_ancestry_threads: 1 ### Number of threads to use
-  update_sex_ancestry_time: 0 ### The time setting to use.
-
   ### Following options for extracting a specific ancestry with 'plink2 --pfile <pfile> --keep --max-alleles 2 --make-pgen --out <out>'
-  subset_ancestry_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
-  subset_ancestry_threads: 1 ### Number of threads to use
-  subset_ancestry_time: 0 ### The time setting to use.
+  split_by_ancestry_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  split_by_ancestry_threads: 1 ### Number of threads to use
+  split_by_ancestry_time: 0 ### The time setting to use.
 
 ##### These are the options that will be used for imputation steps #####
 imputation:
-  crossmap_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
-  crossmap_threads: 1 ### Number of threads to use
-  crossmap_time: 0 ### The time setting to use.
+  harmonize_java_memory: 25 ### Memory passed to java for GenotypeHarmonizer.jar in GB. 25GB is typically sufficient but if you are getting java memory issues with this rule, increase the java memory (and make sure you have enough memory allocated to the job to cover it)
+  harmonize_memory: 10 ### Amount of gigs that will be used for memory and disk space per thread
+  harmonize_threads: 5 ### Number of threads to use
+  harmonize_time: 0 ### The time setting to use.
 
-  sort_bed_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  sort_bed_threads: 1 ### Number of threads to use
-  sort_bed_time: 0 ### The time setting to use.
-
-  harmonize_hg38_java_memory: 25 ### Memory passed to java for GenotypeHarmonizer.jar in GB. 25GB is typically sufficient but if you are getting java memory issues with this rule, increase the java memory (and make sure you have enough memory allocated to the job to cover it)
-  harmonize_hg38_memory: 10 ### Amount of gigs that will be used for memory and disk space per thread
-  harmonize_hg38_threads: 5 ### Number of threads to use
-  harmonize_hg38_time: 0 ### The time setting to use.
-
-  plink_to_vcf_memory: 2 ### Amount of gigs that will be used for memory and disk space per thread
-  plink_to_vcf_threads: 2 ### Number of threads to use
-  plink_to_vcf_time: 0 ### The time setting to use.
-
-  vcf_fixref_hg38_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  vcf_fixref_hg38_threads: 2 ### Number of threads to use
-  vcf_fixref_hg38_time: 0 ### The time setting to use.
+  fixref_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  fixref_threads: 2 ### Number of threads to use
+  fixref_time: 0 ### The time setting to use.
 
   filter_preimpute_vcf_memory: 10 ### Amount of gigs that will be used for memory and disk space per thread
   filter_preimpute_vcf_threads: 2 ### Number of threads to use
@@ -157,10 +139,6 @@ imputation:
   genotype_donor_annotation_threads: 1 ### Number of threads to use
   genotype_donor_annotation_time: 0 ### The time setting to use.
 
-  split_by_chr_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  split_by_chr_threads: 1 ### Number of threads to use
-  split_by_chr_time: 0 ### The time setting to use.
-
   eagle_prephasing_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
   eagle_prephasing_threads: 8 ### Number of threads to use
   eagle_prephasing_time: 0 ### The time setting to use.
@@ -171,13 +149,9 @@ imputation:
   minimac_chunk: 20000000 ###  Maximum chunk length in base pairs to impute at once (default: 20000000)
   minimac_overlap: 3000000 ### Size (in base pairs) of overlap before and after impute region to use as input to HMM (default: 3000000)
 
-  combine_vcfs_ancestry_memory: 2 ### Amount of gigs that will be used for memory and disk space per thread
-  combine_vcfs_ancestry_threads: 2 ### Number of threads to use
-  combine_vcfs_ancestry_time: 0 ### The time setting to use.
-
-  split_per_dataset_memory: 8 ### Amount of gigs that will be used for memory and disk space per thread
-  split_per_dataset_threads: 1 ### Number of threads to use
-  split_per_dataset_time: 1 ### The time setting to use.
+  split_by_dataset_memory: 8 ### Amount of gigs that will be used for memory and disk space per thread
+  split_by_dataset_threads: 1 ### Number of threads to use
+  split_by_dataset_time: 1 ### The time setting to use.
 
 ############################################################################################################################################
 ##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####
@@ -192,10 +166,19 @@ refs_extra:
   relative_phasing_dir: "hg38/phasing/phasing_reference/"
   relative_imputation_dir: "hg38/imputation/"
 
+settings_extra:
+  exclude_y_chr_in_sex_check: False
+
 pre_processing_extra:
+  mind: 0.03 ### Missingness rate threshold
   max_allele_len: 500
 
-wgs_filter:
+ancestry_sex_qc_extra:
+  indep_window_size: 50
+  indep_step_size: 5
+  pairwise_r2_threshold: 0.5
+
+wgs_filter_extra:
   genotype_quality: 20 ### The genotype quality threshold
   allelic_balance_lower: 0.2 ### The allelic balance lower-bound threshold
   allelic_balance_upper: 0.8 ### The allelic balance upper-bound threshold

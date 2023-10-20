@@ -30,7 +30,7 @@ dir.create(args$out, recursive=TRUE)
 
 ##### Read in Results #####
 data_score <- read_delim(as.character(args$scores), delim = "\t", col_types = cols(.default = "d", "#FID" = "c", "IID" = "c", "Provided_Ancestry" = "c"))
-onekg_score <- read_delim(as.character(args$onekg_scores), delim = "\t", col_types = cols(.default = "d", "#IID" = "c", "SuperPop" = "c", "Population" = "c"))
+onekg_score <- read_delim(as.character(args$onekg_scores), delim = "\t", col_types = cols(.default = "d", "#FID" = "c", "IID" = "c", "#IID" = "c", "SuperPop" = "c", "Population" = "c"))
 data_anc <- read_delim(as.character(args$psam), delim = "\t", col_types = cols(.default = "c", "SEX" = "d"))
 onekg_anc <- read_delim(as.character(args$onekg_psam), delim = "\t", col_types = cols(.default = "c", "SEX" = "d"))
 sex_check <- read_delim(as.character(args$sex_check), delim = "\t", col_types = cols(.default = "c", "PEDSEX" = "d", "SNPSEX" = "d", "F" = "d"))
@@ -60,10 +60,15 @@ print("sex_check")
 print(head(as.data.frame(sex_check)))
 
 ##### Combine PCA Results Together #####
-onekg_score_temp <- onekg_score[, c("IID", colnames(onekg_score)[grep("PC", colnames(onekg_score))])]
-colnames(onekg_score_temp) <- c("IID", paste0("PC", 1:(ncol(onekg_score_temp)-1)))
-onekg_score_temp$FID <- NA
-onekg_score_temp <- onekg_score_temp[, c("FID", "IID", paste0("PC", 1:(ncol(onekg_score_temp)-2)))]
+if (any(grepl("FID", colnames(onekg_score)))){
+  onekg_score_temp <- onekg_score[, c(colnames(onekg_score)[grep("FID", colnames(onekg_score))], colnames(onekg_score)[grep("IID", colnames(onekg_score))], colnames(onekg_score)[grep("PC", colnames(onekg_score))])]
+  colnames(onekg_score_temp) <- c("FID", "IID", paste0("PC", 1:(ncol(onekg_score_temp)-2)))
+} else {
+  onekg_score_temp <- onekg_score[, c("IID", colnames(onekg_score)[grep("PC", colnames(onekg_score))])]
+  colnames(onekg_score_temp) <- c("IID", paste0("PC", 1:(ncol(onekg_score_temp)-1)))
+  onekg_score_temp$FID <- NA
+  onekg_score_temp <- onekg_score_temp[, c("FID", "IID", paste0("PC", 1:(ncol(onekg_score_temp)-2)))]
+}
 print(head(as.data.frame(onekg_score_temp)))
 
 if (any(grepl("FID", colnames(data_score)))){

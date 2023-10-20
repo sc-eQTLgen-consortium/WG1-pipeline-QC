@@ -3,11 +3,13 @@ import numpy as np
 import pandas as pd
 import os
 
+# The chromosome we will impute.
 CHROMOSOMES = [str(chr) for chr in range(1, 23)]
 
-INPUT_CHROMOSOMES = CHROMOSOMES
-if config["settings"]["is_wgs"]:
-    INPUT_CHROMOSOMES = CHROMOSOMES + ["X", "Y"]
+# The chromosomes we need as user input.
+INPUT_CHROMOSOMES = CHROMOSOMES + ["X", "Y"]
+if config["settings_extra"]["exclude_y_chr_in_sex_check"]:
+    INPUT_CHROMOSOMES = CHROMOSOMES + ["X"]
 
 # Add trailing /.
 if not config["refs"]["ref_dir"].endswith("/"):
@@ -20,20 +22,14 @@ if not config["refs_extra"]["relative_imputation_dir"].endswith("/"):
     config["refs_extra"]["relative_imputation_dir"] += "/"
 
 # Check if the input files exist.
-input_option = []
-
-# By default we assume that the input has to be converted to a single PLINK file (i.e. single VCF, VCF per chromosomes, or PLINK per chromosomes).
-plink_gender_ancestry_data = config["outputs"]["output_dir"] + "plink_gender_ancestry_input/data"
-if config["settings"]["is_wgs"]:
-    # If the input data is WGS we need to filter it first.
-    plink_gender_ancestry_data = config["outputs"]["output_dir"] + "wgs_filtered_vcf_to_pgen/data"
+input_options = []
 
 # Option 1: single VCF file.
 if "CHR" not in config["inputs"]["genotype_path"] and os.path.exists(config["inputs"]["genotype_path"] + ".vcf.gz") and os.path.exists(config["inputs"]["genotype_path"] + ".vcf.gz.tbi"):
     logger.info("Found a single VCF file as input:")
     logger.info("\tThe VCF file: {}.vcf.gz".format(config["inputs"]["genotype_path"]))
     logger.info("\tThe VCF index: {}.vcf.gz.tbi\n".format(config["inputs"]["genotype_path"]))
-    input_option.append("single VCF")
+    input_options.append("single VCF")
 
 # Option 2: single plink file.
 if "CHR" not in config["inputs"]["genotype_path"] and os.path.exists(config["inputs"]["genotype_path"] + ".pgen") and os.path.exists(config["inputs"]["genotype_path"] + ".pvar") and os.path.exists(config["inputs"]["genotype_path"] + ".psam"):
@@ -41,11 +37,7 @@ if "CHR" not in config["inputs"]["genotype_path"] and os.path.exists(config["inp
     logger.info("\tThe pgen file: {}.pgen".format(config["inputs"]["genotype_path"]))
     logger.info("\tThe pvar file: {}.pvar".format(config["inputs"]["genotype_path"]))
     logger.info("\tThe psam file: {}.psam\n".format(config["inputs"]["genotype_path"]))
-    input_option.append("single PLINK")
-
-    # If the input is a single PLINK file and not WGS (should never happen) we can skip te pre-processing steps.
-    if not config["settings"]["is_wgs"]:
-        plink_gender_ancestry_data = config["inputs"]["genotype_path"]
+    input_options.append("single PLINK")
 
     # Setting the PSAM to the genotype_path psam.
     if config["inputs"]["psam"] is not None and config["inputs"]["psam"] != config["inputs"]["genotype_path"] + ".psam":
@@ -65,7 +57,7 @@ if "CHR" in config["inputs"]["genotype_path"] and len(config["inputs"]["genotype
         logger.info("Found a VCF file per chromosomes as input:")
         logger.info("\tThe VCF file: {}.vcf.gz".format(config["inputs"]["genotype_path"]))
         logger.info("\tThe VCF index: {}.vcf.gz.tbi\n".format(config["inputs"]["genotype_path"]))
-        input_option.append("VCF per chromosome")
+        input_options.append("VCF per chromosome")
 
 # Option 4: PLINK file per chromosome.
 if "CHR" in config["inputs"]["genotype_path"] and len(config["inputs"]["genotype_path"].split("CHR")) == 2:
@@ -79,22 +71,23 @@ if "CHR" in config["inputs"]["genotype_path"] and len(config["inputs"]["genotype
         logger.info("\tThe pgen file: {}.pgen".format(config["inputs"]["genotype_path"]))
         logger.info("\tThe pvar file: {}.pvar".format(config["inputs"]["genotype_path"]))
         logger.info("\tThe psam file: {}.psam\n".format(config["inputs"]["genotype_path"]))
-        input_option.append("PLINK per chromosome")
+        input_options.append("PLINK per chromosome")
 
 # Check if there is exactly one valid input option.
-if len(input_option) == 0:
+if len(input_options) == 0:
     logger.info("Error, no valid genotype input found for {}.\n\nExiting.".format(config["inputs"]["genotype_path"]))
     exit("WrongGenotypeInput")
-if len(input_option) > 1:
+if len(input_options) > 1:
     logger.info("Error, too many valid genotype inputs found for {}. The following options where valid: {}.\n\nExiting.".format(config["inputs"]["genotype_path"], ", ".join(input_option)))
     exit("WrongGenotypeInput")
+INPUT_OPTION = input_options[0]
 
 # Check if the input is in VCF if WGS is true.
 if config["settings"]["is_wgs"] and "PLINK" in input_option[0]:
     logger.info("Error, a VCF input is required for WGS filtering.\n\nExiting.")
     exit("WrongWGSFilteringInputFile")
 
-# Check if the psam exists.
+# Check if the PSAM exists.
 if not os.path.exists(config["inputs"]["psam"]):
     logger.info("Error, could not find the {} file. Please check that the file exists.\n\nExiting.".format(config["inputs"]["psam"]))
     exit("MissingPSAMFile")
@@ -135,25 +128,14 @@ for chr in CHROMOSOMES:
         exit("MissingImputationFile")
 
 logger.info("Found all the required reference files:")
+logger.info("\tThe 1000G plink files: {}".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_1000g_files"]))
+logger.info("\tThe build 37 to 38 chain file: {}".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_grch37_to_grch38_chain_path"]))
+logger.info("\tThe build 36 to 38 chain file: {}".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_hg18_to_hg38_chain_path"]))
 logger.info("\tThe VCF file: {}".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"]))
 logger.info("\tThe fasta file: {}".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"]))
 logger.info("\tThe map file: {}".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_map_path"]))
 logger.info("\tThe phasing files: {}chrCHR.bcf".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"]))
 logger.info("\tThe imputation files: {}chrCHR.msav\n".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_imputation_dir"]))
-
-
-# TODO: I can't check this anymore since the input might not be a single plink file anymore
-# # Check if the CHR column in the PVAR file contains the word 'chr'.
-# chr_in_pvar = False
-# with open(config["inputs"]["pvar_path"]) as f:
-#     for line in f:
-#         if "chr" in line:
-#             chr_in_pvar = True
-#             break
-# f.close()
-# if chr_in_pvar:
-#     logger.info("Looks like your chromosome encoding uses chr before the chromosome. For this pipeline, the chromosome encoding should not use chr. Please remove the 'chr' from your pvar file and try again. Exiting.")
-#     exit()
 
 
 # Check if the input PSAM is valid.
@@ -192,11 +174,13 @@ required_columns = {
                                        "NA": "unknown pregnancy status or male"})
 }
 
+# Loading the input PSAM.
 logger.info("Validating input PSAM:")
 psam_df = pd.read_csv(config["inputs"]["psam"], sep="\t", dtype=str)
-psam_df.fillna("NA",inplace=True)
+psam_df.fillna("NA", inplace=True)
 psam_is_valid = True
 
+# Check for missing columns.
 missing_columns = [column for column in required_columns.keys() if not column in psam_df.columns]
 if len(missing_columns) > 0:
     logger.info("\tThe column names of your psam file are not correct.\n"
@@ -250,22 +234,18 @@ for female_column in ["hormonal_contraception_use_currently", "menopause", "preg
                     "Please fix this before running the pipeline.".format(female_column))
         psam_is_valid = False
 
-if psam_is_valid:
-    logger.info("\tValid.\n")
-else:
+if not psam_is_valid:
     logger.info("\n\nExiting.")
     exit("InvalidPSAM")
+
+logger.info("\tValid.")
 
 #####################
 ######## ALL ########
 #####################
 input_files = []
 
-# # Add the endpoints for pre_processing.
-# input_files.append(plink_gender_ancestry_data + ".pgen")
-# input_files.append(plink_gender_ancestry_data + ".pvar")
-# input_files.append(plink_gender_ancestry_data + ".psam")
-
+# End point for rule wgs_filter_stats.
 if config["settings"]["is_wgs"]:
     input_files.append(config["outputs"]["output_dir"] + "wgs_filter/wgs_filter_stats.tsv")
 
@@ -274,7 +254,7 @@ sex_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/sex_upda
 ancestry_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv"
 ancestry_maf_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_mafs.tsv"
 
-# Add the manual selection files created by rule pca_projection_assign.
+# Add the end points in ancestry_sex_QC before which manual input is required.
 input_files.append(ancestry_man_select_path)
 input_files.append(ancestry_maf_man_select_path)
 input_files.append(sex_man_select_path)
@@ -284,104 +264,123 @@ remove_samples = []
 ANCESTRIES = []
 ANCESTRY_MAF_DICT = {}
 updated_psam_path = config["outputs"]["output_dir"] + "pca_sex_checks/updated.psam"
+combined_individuals_path = config["outputs"]["output_dir"] + "genotype_donor_annotation/combined_individuals.tsv"
+genotype_donor_annotation_path = config["outputs"]["output_dir"] + "genotype_donor_annotation/genotype_donor_annotation.tsv"
 if os.path.exists(sex_man_select_path) and os.path.exists(ancestry_man_select_path) and os.path.exists(ancestry_maf_man_select_path):
-    updated_psam_df = psam_df.copy()
+    # Make sure we don't constantly overwrite these files every time a rule starts running. We only do this ones
+    # and if the user wants to make new ones he should just delete them.
+    if not os.path.exists(updated_psam_path) and not os.path.exists(combined_individuals_path) and not os.path.exists(genotype_donor_annotation_path):
+        updated_psam_df = psam_df.copy()
 
-    ############################
-    ### SEX MANUAL SELECTION ###
-    ############################
-    logger.info("Applying manual selection in sex_update_remove.tsv to update input PSAM.")
+        ############################
+        ### SEX MANUAL SELECTION ###
+        ############################
+        logger.info("\nApplying manual selection in sex_update_remove.tsv to update input PSAM.")
 
-    manual_sex_select = pd.read_csv(sex_man_select_path, sep="\t", dtype=str)
-    if not manual_sex_select.loc[manual_sex_select["UPDATE/REMOVE/KEEP"].isin(["UPDATE", "REMOVE", "KEEP"]), "UPDATE/REMOVE/KEEP"].count() == len(manual_sex_select):
-        logger.info("\tError, your UPDATE/REMOVE/KEEP column in sex_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
-        exit("WrongSexUpdateRemove")
+        manual_sex_select = pd.read_csv(sex_man_select_path, sep="\t", dtype=str)
+        if not manual_sex_select.loc[manual_sex_select["UPDATE/REMOVE/KEEP"].isin(["UPDATE", "REMOVE", "KEEP"]), "UPDATE/REMOVE/KEEP"].count() == len(manual_sex_select):
+            logger.info("\tError, your UPDATE/REMOVE/KEEP column in sex_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
+            exit("WrongSexUpdateRemove")
 
-    if manual_sex_select["UPDATE/REMOVE/KEEP"].str.contains("REMOVE").any():
-        logger.info("\tYou indicated to remove {:,} individual(s) due to sex assignments.".format(np.sum(manual_sex_select["UPDATE/REMOVE/KEEP"] == "REMOVE")))
-        remove_samples.extend(manual_sex_select.loc[manual_sex_select["UPDATE/REMOVE/KEEP"] == "REMOVE", "IID"].values.tolist())
+        if manual_sex_select["UPDATE/REMOVE/KEEP"].str.contains("REMOVE").any():
+            logger.info("\tYou indicated to remove {:,} individual(s) due to sex assignments.".format(np.sum(manual_sex_select["UPDATE/REMOVE/KEEP"] == "REMOVE")))
+            remove_samples.extend(manual_sex_select.loc[manual_sex_select["UPDATE/REMOVE/KEEP"] == "REMOVE", "IID"].values.tolist())
 
-    if manual_sex_select["UPDATE/REMOVE/KEEP"].str.contains("UPDATE").any():
-        logger.info("\tYou indicated to update the sex of {:,} individual(s).".format(np.sum(manual_sex_select["UPDATE/REMOVE/KEEP"] == "UPDATE")))
-        for _, row in manual_sex_select.iterrows():
-            updated_psam_df.loc[updated_psam_df["IID"] == row["IID"], "SEX"] = row["SNPSEX"]
+        if manual_sex_select["UPDATE/REMOVE/KEEP"].str.contains("UPDATE").any():
+            logger.info("\tYou indicated to update the sex of {:,} individual(s).".format(np.sum(manual_sex_select["UPDATE/REMOVE/KEEP"] == "UPDATE")))
+            for _, row in manual_sex_select.iterrows():
+                updated_psam_df.loc[updated_psam_df["IID"] == row["IID"], "SEX"] = row["SNPSEX"]
 
-    #################################
-    ### ANCESTRY MANUAL SELECTION ###
-    #################################
-    logger.info("Applying manual selection in ancestry_update_remove.tsv to update input PSAM.")
+        #################################
+        ### ANCESTRY MANUAL SELECTION ###
+        #################################
+        logger.info("\nApplying manual selection in ancestry_update_remove.tsv to update input PSAM.")
 
-    manual_anc_select = pd.read_csv(ancestry_man_select_path, sep="\t", dtype=str)
-    if not manual_anc_select.loc[manual_anc_select["UPDATE/REMOVE/KEEP"].isin(["UPDATE", "REMOVE", "KEEP"]), "UPDATE/REMOVE/KEEP"].count() == len(manual_anc_select):
-        logger.info("\tError, your UPDATE/REMOVE/KEEP column in ancestry_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
-        exit("WrongAncestryUpdateFile")
+        manual_anc_select = pd.read_csv(ancestry_man_select_path, sep="\t", dtype=str)
+        if not manual_anc_select.loc[manual_anc_select["UPDATE/REMOVE/KEEP"].isin(["UPDATE", "REMOVE", "KEEP"]), "UPDATE/REMOVE/KEEP"].count() == len(manual_anc_select):
+            logger.info("\tError, your UPDATE/REMOVE/KEEP column in ancestry_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
+            exit("WrongAncestryUpdateFile")
 
-    # if there are any individuals chosen to remove, remove them from the psam.
-    if manual_anc_select["UPDATE/REMOVE/KEEP"].str.contains("REMOVE").any():
-        logger.info("\tYou indicated to remove {:,} individual(s) due to ancestry assignments.".format(np.sum(manual_anc_select["UPDATE/REMOVE/KEEP"] == "REMOVE")))
-        remove_samples.extend(manual_anc_select.loc[manual_anc_select["UPDATE/REMOVE/KEEP"] == "REMOVE", "IID"].values.tolist())
+        # if there are any individuals chosen to remove, remove them from the psam.
+        if manual_anc_select["UPDATE/REMOVE/KEEP"].str.contains("REMOVE").any():
+            logger.info("\tYou indicated to remove {:,} individual(s) due to ancestry assignments.".format(np.sum(manual_anc_select["UPDATE/REMOVE/KEEP"] == "REMOVE")))
+            remove_samples.extend(manual_anc_select.loc[manual_anc_select["UPDATE/REMOVE/KEEP"] == "REMOVE", "IID"].values.tolist())
 
-    # if there are any individuals chosen to update the ancestry, update them in the psam.
-    if manual_anc_select["UPDATE/REMOVE/KEEP"].str.contains("UPDATE").any():
-        logger.info("\tYou indicated to update the ancestry of {:,} individual(s).".format(np.sum(manual_anc_select["UPDATE/REMOVE/KEEP"] == "UPDATE")))
-        for _, row in manual_anc_select.iterrows():
-            updated_psam_df.loc[updated_psam_df["IID"] == row["IID"], "Provided_Ancestry"] = row["PCA_Assignment"]
+        # if there are any individuals chosen to update the ancestry, update them in the psam.
+        if manual_anc_select["UPDATE/REMOVE/KEEP"].str.contains("UPDATE").any():
+            logger.info("\tYou indicated to update the ancestry of {:,} individual(s).".format(np.sum(manual_anc_select["UPDATE/REMOVE/KEEP"] == "UPDATE")))
+            for _, row in manual_anc_select.iterrows():
+                updated_psam_df.loc[updated_psam_df["IID"] == row["IID"], "Provided_Ancestry"] = row["PCA_Assignment"]
 
-    #############################
-    ### REMOVE SAMPLES + SAVE ###
-    #############################
+        #############################
+        ### REMOVE SAMPLES + SAVE ###
+        #############################
 
-    updated_psam_df = updated_psam_df.loc[~updated_psam_df["IID"].isin(remove_samples), :]
-    updated_psam_df.to_csv(updated_psam_path, sep="\t", na_rep="NA", index=False, header=True)
+        updated_psam_df = updated_psam_df.loc[~updated_psam_df["IID"].isin(remove_samples), :]
+        updated_psam_df.to_csv(updated_psam_path, sep="\t", na_rep="NA", index=False, header=True)
+        logger.info("Saved 'pca_sex_checks/updated.psam'.")
+
+        #################################
+        ### GENOTYPE DONOR ANNOTATION ###
+        #################################
+
+        # This is the old genotype_donor_annotation rule.
+        if not os.path.exists(os.path.dirname(combined_individuals_path)):
+            os.makedirs(os.path.dirname(combined_individuals_path))
+
+        updated_psam_df[["IID"]].to_csv(combined_individuals_path, sep="\t", na_rep="NA", index=False, header=True)
+        logger.info("Saved 'genotype_donor_annotation/combined_individuals.tsv'.")
+
+        if not os.path.exists(os.path.dirname(genotype_donor_annotation_path)):
+            os.makedirs(os.path.dirname(genotype_donor_annotation_path))
+
+        geno_donor_annot_df = updated_psam_df[[col for col in updated_psam_df.columns if col not in ["#FID", "PAT", "MAT"]]].copy()
+        geno_donor_annot_df.columns = ["donor_id", "sex", "ethnicity_super_population", "genotyping_platform", "array_available", "wgs_available", "wes_available", "age", "age_range", "Study", "smoking_status", "hormonal_contraception_use_currently", "menopause", "pregnancy_status"]
+        geno_donor_annot_df["sex"] = geno_donor_annot_df["sex"].map({"1": "M", "2": "F"})
+        geno_donor_annot_df["sceQTL-Gen_hg38_imputation_pipeline"] = "sceQTL-Gen_hg38_imputation_pipeline"
+        geno_donor_annot_df["imputation_reference"] = "1000g_30x_GRCh38_ref"
+        geno_donor_annot_df.to_csv(genotype_donor_annotation_path, sep="\t", na_rep="NA", index=False, header=True)
+        logger.info("Saved 'genotype_donor_annotation/genotype_donor_annotation.tsv'.")
+    else:
+        updated_psam_df = pd.read_csv(updated_psam_path, sep="\t", dtype=str)
+        updated_psam_df.fillna("NA",inplace=True)
 
     ############################
     ### MAF MANUAL SELECTION ###
     ############################
+    logger.info("\nValidating imputation settings per ancestry.")
 
     # If the ancestry have been updated we can ask the user for the MAF values.
     counts = updated_psam_df.groupby(["Provided_Ancestry", "SEX"]).size()
-    if os.path.exists(ancestry_maf_man_select_path):
-        logger.info("Validating imputation settings per ancestry.")
 
-        # File already exists, check if the input is valid.
-        maf_df = pd.read_csv(ancestry_maf_man_select_path, sep="\t", index_col=None, header=0)
-        for _, row in maf_df.iterrows():
-            if not updated_psam_df["Provided_Ancestry"].str.contains(row["Ancestry"]).any():
-                continue
+    # File already exists, check if the input is valid.
+    maf_df = pd.read_csv(ancestry_maf_man_select_path, sep="\t", index_col=None, header=0)
+    for _, row in maf_df.iterrows():
+        if not updated_psam_df["Provided_Ancestry"].str.contains(row["Ancestry"]).any():
+            continue
 
-            ancestry_counts = counts.iloc[counts.index.get_level_values("Provided_Ancestry") == row["Ancestry"]]
-            individuals = ancestry_counts.sum()
-            males = ancestry_counts.iloc[ancestry_counts.index.get_level_values("SEX") == "1"].sum()
-            females = ancestry_counts.iloc[ancestry_counts.index.get_level_values("SEX") == "2"].sum()
+        ancestry_counts = counts.iloc[counts.index.get_level_values("Provided_Ancestry") == row["Ancestry"]]
+        individuals = ancestry_counts.sum()
+        males = ancestry_counts.iloc[ancestry_counts.index.get_level_values("SEX") == "1"].sum()
+        females = ancestry_counts.iloc[ancestry_counts.index.get_level_values("SEX") == "2"].sum()
 
-            if np.isnan(row["MAF"]):
-                logger.info("\tYou indicated that you don't want to impute {:,} individual(s) ({:,} male(s) / {:,} female(s)) from {} ancestry.".format(individuals, males, females, row["Ancestry"]))
-                continue
+        if np.isnan(row["MAF"]):
+            logger.info("\tYou indicated that you don't want to impute {:,} individual(s) ({:,} male(s) / {:,} female(s)) from {} ancestry.".format(individuals, males, females, row["Ancestry"]))
+            continue
 
-            if not str(row["MAF"]).replace(".", "").isnumeric():
-                logger.info("\tError, your MAF value for ancestry {} in ancestry_mafs.tsv is not a digit, please make sure all values in this column are valid.\n\nExiting.".format(row["Ancestry"]))
-                exit("WrongMAFInput")
-            else:
-                logger.info("\tYou indicated that you want to impute {:,} individuals ({:,} male(s) / {:,} female(s)) from {} ancestry with MAF {}.".format(individuals, males, females, row["Ancestry"], row["MAF"]))
-                ANCESTRIES.append(row["Ancestry"])
-                ANCESTRY_MAF_DICT[row["Ancestry"]] = float(row["MAF"])
+        if not str(row["MAF"]).replace(".", "").isnumeric():
+            logger.info("\tError, your MAF value for ancestry {} in ancestry_mafs.tsv is not a digit, please make sure all values in this column are valid.\n\nExiting.".format(row["Ancestry"]))
+            exit("WrongMAFInput")
+        else:
+            logger.info("\tYou indicated that you want to impute {:,} individuals ({:,} male(s) / {:,} female(s)) from {} ancestry with MAF {}.".format(individuals, males, females, row["Ancestry"], row["MAF"]))
+            ANCESTRIES.append(row["Ancestry"])
+            ANCESTRY_MAF_DICT[row["Ancestry"]] = float(row["MAF"])
 
-        if len(ANCESTRIES) == 0:
-            logger.info("\tError, please select at least one anceestry to impute.")
-            exit("MissingAncestryToImpute")
+    if len(ANCESTRIES) == 0:
+        logger.info("\tError, please select at least one ancestry to impute.")
+        exit("MissingAncestryToImpute")
 
     ############################
-
-    # Add the endpoints for ancestry_sex_QC.
-    input_files.append(expand(config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.pgen", ancestry=ANCESTRIES))
-    input_files.append(expand(config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.pvar", ancestry=ANCESTRIES))
-    input_files.append(expand(config["outputs"]["output_dir"] + "subset_ancestry/{ancestry}_subset.psam", ancestry=ANCESTRIES))
-
-    # Add the endpoints for crossmap. This forces rule to apply crossmap of not using genome build hg38 or b38.
-    if config["inputs"]["genome_build"] in ["hg18", "b36", "hg19", "b37"]:
-        input_files.append(expand(config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bed", ancestry=ANCESTRIES))
-        input_files.append(expand(config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.bim", ancestry=ANCESTRIES))
-        input_files.append(expand(config["outputs"]["output_dir"] + "crossmapped/{ancestry}_crossmapped_plink.fam", ancestry=ANCESTRIES))
 
     # Add the endpoints for rule summary_ancestry_sex.
     input_files.append(config["outputs"]["output_dir"] + "metrics/sex_summary.png")
@@ -389,19 +388,23 @@ if os.path.exists(sex_man_select_path) and os.path.exists(ancestry_man_select_pa
 
     # Add the endpoints for rule genotype_donor_annotation.
     input_files.append(config["outputs"]["output_dir"] + "genotype_donor_annotation/genotype_donor_annotation.tsv")
-    # Add the endpoints for rule combine_vcfs_ancestry or split_per_dataset.
+
+    # Add the endpoints for rule merge_vcfs.
+    input_files.append(expand(config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_imputed_hg38.vcf.gz", ancestry=ANCESTRIES))
+    input_files.append(expand(config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_imputed_hg38.vcf.gz.csi", ancestry=ANCESTRIES))
+
+    # Add the endpoints for rule split_by_dataset.
     if DATASETS:
-        input_files.append(expand(config["outputs"]["output_dir"] + "split_per_dataset/{dataset}_{ancestry}_imputed_hg38.vcf.gz", dataset=DATASETS, ancestry=ANCESTRIES))
-        input_files.append(expand(config["outputs"]["output_dir"] + "split_per_dataset/{dataset}_{ancestry}_imputed_hg38.vcf.gz.csi", dataset=DATASETS, ancestry=ANCESTRIES))
-    else:
-        input_files.append(expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz", ancestry=ANCESTRIES))
-        input_files.append(expand(config["outputs"]["output_dir"] + "vcf_merged_by_ancestries/{ancestry}_imputed_hg38.vcf.gz.csi", ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "split_by_dataset/{dataset}_{ancestry}_imputed_hg38.vcf.gz", dataset=DATASETS, ancestry=ANCESTRIES))
+        input_files.append(expand(config["outputs"]["output_dir"] + "split_by_dataset/{dataset}_{ancestry}_imputed_hg38.vcf.gz.csi", dataset=DATASETS, ancestry=ANCESTRIES))
 
 rule all:
     input:
         input_files
 
 # Import individual rules
+include: "includes/wgs_filter.smk"
 include: "includes/pre_processing.smk"
-include: "includes/ancestry_sex_QC.smk"
+include: "includes/crossmap.smk"
+include: "includes/ancestry_sex_qc.smk"
 include: "includes/imputation.smk"
