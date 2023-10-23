@@ -23,6 +23,10 @@ parser$add_argument("-o", "--out", required=FALSE, type="character", help="")
 # otherwise if options not found on command line then set defaults, 
 args <- parser$parse_args()
 
+print("Options in effect:")
+paste0("  --input ", args$input)
+paste0("  --out ", args$out)
+
 
 # Import libraries --------------------------------------------------------
 

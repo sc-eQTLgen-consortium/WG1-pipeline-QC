@@ -15,6 +15,11 @@ parser.add_argument("-cr", "--call_rate", type=float, dest='thresh_cr', default=
 parser.add_argument("-hwe", "--hardy_weinberg_equilibrium", type=float, dest='thresh_hwe', default=1E-6, help="The hardy weinberg equilibrium threshold. Default: 1e-6.")
 args = parser.parse_args()
 
+print("Options in effect:")
+for arg in vars(args):
+    print("  --{} {}".format(arg, getattr(args, arg)))
+print("")
+
 if not os.path.isdir(os.path.dirname(args.output_path)):
     os.mkdir(os.path.dirname(args.output_path))
 

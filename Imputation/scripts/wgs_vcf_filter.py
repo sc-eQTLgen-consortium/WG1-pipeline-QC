@@ -31,6 +31,11 @@ parser.add_argument("-dp", "--filtered_depth", type=float, dest='thresh_dp', def
 parser.add_argument("--keep_info_column", dest='strip_info_col', action='store_false', help="Add this flag to keep the INFO column. Default: True.")
 args = parser.parse_args()
 
+print("Options in effect:")
+for arg in vars(args):
+    print("  --{} {}".format(arg, getattr(args, arg)))
+print("")
+
 if not os.path.isdir(os.path.dirname(args.output_path)):
     os.mkdir(os.path.dirname(args.output_path))
 

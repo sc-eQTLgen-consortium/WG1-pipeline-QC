@@ -92,9 +92,9 @@ ancestry_sex_qc:
   pca_project_time: 0 ### The time setting to use.
 
   ### Following options for ??? using PCA_Projection_Plotting.R.
-  pca_projection_assign_memory: 10 ### Amount of gigs that will be used for memory and disk space per thread
-  pca_projection_assign_threads: 2 ### Number of threads to use
-  pca_projection_assign_time: 0 ### The time setting to use.
+  check_ancestry_memory: 10 ### Amount of gigs that will be used for memory and disk space per thread
+  check_ancestry_threads: 2 ### Number of threads to use
+  check_ancestry_time: 0 ### The time setting to use.
 
   ### Following options for ?? using sex_ancestry_summaries.R.
   summary_ancestry_sex_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread

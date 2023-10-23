@@ -250,9 +250,9 @@ if config["settings"]["is_wgs"]:
     input_files.append(config["outputs"]["output_dir"] + "wgs_filter/wgs_filter_stats.tsv")
 
 # Define manual selection paths.
-sex_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv"
-ancestry_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv"
-ancestry_maf_man_select_path = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_mafs.tsv"
+sex_man_select_path = config["outputs"]["output_dir"] + "manual_selection/sex_update_remove.tsv"
+ancestry_man_select_path = config["outputs"]["output_dir"] + "manual_selection/ancestry_update_remove.tsv"
+ancestry_maf_man_select_path = config["outputs"]["output_dir"] + "manual_selection/ancestry_mafs.tsv"
 
 # Add the end points in ancestry_sex_QC before which manual input is required.
 input_files.append(ancestry_man_select_path)
@@ -263,7 +263,7 @@ input_files.append(sex_man_select_path)
 remove_samples = []
 ANCESTRIES = []
 ANCESTRY_MAF_DICT = {}
-updated_psam_path = config["outputs"]["output_dir"] + "pca_sex_checks/updated.psam"
+updated_psam_path = config["outputs"]["output_dir"] + "manual_selection/updated.psam"
 combined_individuals_path = config["outputs"]["output_dir"] + "genotype_donor_annotation/combined_individuals.tsv"
 genotype_donor_annotation_path = config["outputs"]["output_dir"] + "genotype_donor_annotation/genotype_donor_annotation.tsv"
 if os.path.exists(sex_man_select_path) and os.path.exists(ancestry_man_select_path) and os.path.exists(ancestry_maf_man_select_path):
@@ -318,7 +318,7 @@ if os.path.exists(sex_man_select_path) and os.path.exists(ancestry_man_select_pa
 
         updated_psam_df = updated_psam_df.loc[~updated_psam_df["IID"].isin(remove_samples), :]
         updated_psam_df.to_csv(updated_psam_path, sep="\t", na_rep="NA", index=False, header=True)
-        logger.info("Saved 'pca_sex_checks/updated.psam'.")
+        logger.info("Saved 'manual_selection/updated.psam'.")
 
         #################################
         ### GENOTYPE DONOR ANNOTATION ###

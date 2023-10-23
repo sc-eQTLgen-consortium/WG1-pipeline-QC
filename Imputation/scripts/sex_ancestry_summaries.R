@@ -19,6 +19,14 @@ parser$add_argument("-o", "--out", required=TRUE, type="character", help="The ou
 # otherwise if options not found on command line then set defaults, 
 args <- parser$parse_args()
 
+print("Options in effect:")
+paste0("  --psam ", args$psam)
+paste0("  --sex_check ", args$sex_check)
+paste0("  --sex_decisions ", args$sex_decisions)
+paste0("  --ancestry_decisions ", args$ancestry_decisions)
+paste0("  --out ", args$out)
+print("")
+
 suppressMessages(suppressWarnings(library(data.table)))
 suppressMessages(suppressWarnings(library(ggplot2)))
 suppressMessages(suppressWarnings(library(cowplot)))

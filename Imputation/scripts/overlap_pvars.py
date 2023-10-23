@@ -11,10 +11,9 @@ parser.add_argument("--variants2", type=str, required=True, help="The overlappin
 args = parser.parse_args()
 
 print("Options in effect:")
-print("  --pvar1 {}".format(args.pvar1))
-print("  --pvar2 {}".format(args.pvar2))
-print("  --variants1 {}".format(args.variants1))
-print("  --variants2 {}\n".format(args.variants2))
+for arg in vars(args):
+    print("  --{} {}".format(arg, getattr(args, arg)))
+print("")
 
 variants1 = {}
 error = False

@@ -26,7 +26,8 @@ rule check_sex:
         hh = config["outputs"]["output_dir"] + "check_sex/check_sex.hh",
         nosex = config["outputs"]["output_dir"] + "check_sex/check_sex.nosex",
         sexcheck = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck",
-        sex_check = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv"
+        sex_check = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv",
+        man_sex_select = config["outputs"]["output_dir"] + "manual_selection/sex_update_remove.tsv",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["check_sex_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["check_sex_memory"],
@@ -59,6 +60,8 @@ rule check_sex:
             --out {params.out}
         singularity exec --bind {params.bind} {params.sif} touch {output.nosex}
         singularity exec --bind {params.bind} {params.sif} sed 's/^ \+//g; s/ \+/\t/g' {output.sexcheck} > {output.sex_check}
+        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}NR==1{{print "#"$1,$2,$3,$4,$5,$6,"UPDATE/REMOVE/KEEP"}}' {output.sex_check} > {output.man_sex_select}
+        singularity exec --bind {params.bind} {params.sif} grep "PROBLEM" {output.sex_check} | awk 'BEGIN{{FS=OFS="\t"}}{{print $1,$2,$3,$4,$5,$6,""}}' >> {output.man_sex_select}
         """
 
 
@@ -271,37 +274,30 @@ rule pca_project:
        """
 
 
-rule pca_projection_assign:
+rule check_ancestry:
     input:
         projected_scores = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_data_pcs.sscore",
-        projected_1000g_scores = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs_projected.sscore",
-        psam = config["outputs"]["output_dir"] + get_input_path() + "data.psam",
-        psam_1000g = config["outputs"]["output_dir"] + "common_snps/subset_1000g.psam",
-        sex_check = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv",
+        projected_1000g_scores = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs_projected.sscore"
     output:
-        anc_fig = report(config["outputs"]["output_dir"] + "pca_sex_checks/Ancestry_PCAs.png", category="Ancestry", caption="../report_captions/ancestry_pca.rst"),
-        pca_sex_check = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv",
-        pca_anc_check = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv",
-        anc_maf_select = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_mafs.tsv",
+        anc_fig = report(config["outputs"]["output_dir"] + "manual_selection/Ancestry_PCAs.png", category="Ancestry", caption="../report_captions/ancestry_pca.rst"),
+        pca_anc_check = config["outputs"]["output_dir"] + "manual_selection/ancestry_update_remove.tsv",
+        anc_maf_select = config["outputs"]["output_dir"] + "manual_selection/ancestry_mafs.tsv",
     resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["pca_projection_assign_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["pca_projection_assign_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["ancestry_sex_qc"]["pca_projection_assign_time"]]
-    threads: config["ancestry_sex_qc"]["pca_projection_assign_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["check_ancestry_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["check_ancestry_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["ancestry_sex_qc"]["check_ancestry_time"]]
+    threads: config["ancestry_sex_qc"]["check_ancestry_threads"]
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Imputation/scripts/PCA_Projection_Plotting.R",
-        out = config["outputs"]["output_dir"] + "pca_sex_checks/",
+        out = config["outputs"]["output_dir"] + "manual_selection/",
     log: config["outputs"]["output_dir"] + "log/pca_projection_assign.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
             --scores {input.projected_scores} \
             --onekg_scores {input.projected_1000g_scores} \
-            --psam {input.psam} \
-            --onekg_psam {input.psam_1000g} \
-            --sex_check {input.sex_check} \
             --out {params.out}
         """
 
@@ -310,8 +306,8 @@ rule summary_ancestry_sex:
     input:
         psam = config["outputs"]["output_dir"] + get_input_path() + "data.psam",
         sex_check = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv",
-        pca_sex_check = config["outputs"]["output_dir"] + "pca_sex_checks/sex_update_remove.tsv",
-        pca_anc_check = config["outputs"]["output_dir"] + "pca_sex_checks/ancestry_update_remove.tsv"
+        man_sex_select = config["outputs"]["output_dir"] + "manual_selection/sex_update_remove.tsv",
+        man_anc_select = config["outputs"]["output_dir"] + "manual_selection/ancestry_update_remove.tsv"
     output:
         sex_summary = report(config["outputs"]["output_dir"] + "metrics/sex_summary.png", category="Ancestry and Sex Summary", caption="../report_captions/sex_summary.rst"),
         ancestry_summary = report(config["outputs"]["output_dir"] + "metrics/ancestry_summary.png", category="Ancestry and Sex Summary", caption="../report_captions/ancestry_summary.rst")
@@ -331,8 +327,8 @@ rule summary_ancestry_sex:
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
             --psam {input.psam} \
             --sex_check {input.sex_check} \
-            --sex_decisions {input.pca_sex_check} \
-            --ancestry_decisions {input.pca_anc_check} \
+            --sex_decisions {input.man_sex_select} \
+            --ancestry_decisions {input.man_anc_select} \
             --out {params.out}
         """
 
@@ -354,7 +350,7 @@ rule split_by_ancestry:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        psam = config["outputs"]["output_dir"] + "pca_sex_checks/updated.psam",
+        psam = config["outputs"]["output_dir"] + "manual_selection/updated.psam",
         chr_list = ",".join(CHROMOSOMES),
         out = config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_subset"
     log: config["outputs"]["output_dir"] + "log/split_by_ancestry.{ancestry}.log"

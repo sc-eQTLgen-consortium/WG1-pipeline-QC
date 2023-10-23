@@ -17,8 +17,7 @@ def get_chain_file():
 
 # Converts BIM to BED and converts the BED file via CrossMap.
 # Finds excluded SNPs and removes them from the original plink file.
-# Then replaces the BIM with CrossMap's output.
-# This also includes the sort_bed rule.
+# Then replaces the PVAR with CrossMap's output.
 rule crossmap:
     input:
         pgen = config["outputs"]["output_dir"] + ("wgs_filtered/" if config["settings"]["is_wgs"] else "pre_processed/") + "data.pgen",
@@ -29,12 +28,10 @@ rule crossmap:
         outbed = config["outputs"]["output_dir"] + "crossmapped/output.bed",
         outbed_unmap = config["outputs"]["output_dir"] + "crossmapped/output.bed.unmap",
         excluded_ids = config["outputs"]["output_dir"] + "crossmapped/excluded_ids.txt",
-        bed = temp(config["outputs"]["output_dir"] + "crossmapped/data.bed"),
-        bim = temp(config["outputs"]["output_dir"] + "crossmapped/data.bim"),
-        fam = temp(config["outputs"]["output_dir"] + "crossmapped/data.fam"),
         pgen = config["outputs"]["output_dir"] + "crossmapped/data.pgen",
         pvar = config["outputs"]["output_dir"] + "crossmapped/data.pvar",
         psam = config["outputs"]["output_dir"] + "crossmapped/data.psam",
+        original_pvar = config["outputs"]["output_dir"] + "crossmapped/data_original.pvar",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["crossmap"]["crossmap_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["crossmap"]["crossmap_memory"],
@@ -43,8 +40,9 @@ rule crossmap:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
+        chain_file = config["refs"]["ref_dir"] + get_chain_file(),
+        max_allele_len = config["pre_processing_extra"]["max_allele_len"],
         out = config["outputs"]["output_dir"] + "crossmapped/data",
-        chain_file = config["refs"]["ref_dir"] + get_chain_file()
     log: config["outputs"]["output_dir"] + "log/crossmap.log"
     shell:
         """
@@ -57,16 +55,9 @@ rule crossmap:
             --pvar {input.pvar} \
             --psam {input.psam} \
             --exclude {output.excluded_ids} \
-            --make-bed \
-            --out {params.out}
-        singularity exec --bind {params.bind} {params.sif} awk -F'\t' 'BEGIN {{OFS=FS}} {{print $1,$4,0,$2,$6,$5}}' {output.outbed} > {output.bim}
-        singularity exec --bind {params.bind} {params.sif} plink2 \
-            --threads {threads} \
-            --bed {output.bed} \
-            --bim {output.bim} \
-            --fam {output.fam} \
             --make-pgen \
-            --max-alleles 2 \
             --out {params.out}
-        singularity exec --bind {params.bind} {params.sif} cp {input.psam} {output.psam}
+        singularity exec --bind {params.bind} {params.sif} cp {output.pvar} {output.original_pvar}
+        singularity exec --bind {params.bind} {params.sif} echo -e "#CHROM\tPOS\tID\tREF\tALT" > {output.pvar}
+        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print $1,$2,$1":"$2":"$5"_"$6,$5,$6}}' {output.outbed} >> {output.pvar}
         """

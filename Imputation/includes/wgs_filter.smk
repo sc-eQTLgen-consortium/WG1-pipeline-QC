@@ -73,7 +73,7 @@ rule wgs_filter:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/wgs_vcf_filter.py",
+        script = "/groups/umcg-biogen/tmp01/output/2022-09-01-scMetaBrainConsortium/2023-09-06-scMetaBrain-WorkGroup1QC/2023-09-19-Imputation/scripts/wgs_vcf_filter.py",
         out_dir = config["outputs"]["output_dir"] + "wgs_filter",
         sex = lambda wildcards: "--sex {}".format(config["inputs"]["psam"]) if wildcards.chr in ["X", "Y"] else "",
         genotype_quality = config["wgs_filter_extra"]["genotype_quality"],
@@ -167,7 +167,7 @@ rule wgs_filter_stats:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/wgs_vcf_filter_stats.py",
+        script = "/groups/umcg-biogen/tmp01/output/2022-09-01-scMetaBrainConsortium/2023-09-06-scMetaBrain-WorkGroup1QC/2023-09-19-Imputation/scripts/wgs_vcf_filter_stats.py",
         minor_allele_frequency = config["wgs_filter_extra"]["minor_allele_frequency"],
         call_rate = config["wgs_filter_extra"]["call_rate"],
         hardy_weinberg_equilibrium = config["wgs_filter_extra"]["hardy_weinberg_equilibrium"],
