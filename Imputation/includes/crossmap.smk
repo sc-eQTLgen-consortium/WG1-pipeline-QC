@@ -18,6 +18,8 @@ def get_chain_file():
 # Converts BIM to BED and converts the BED file via CrossMap.
 # Finds excluded SNPs and removes them from the original plink file.
 # Then replaces the PVAR with CrossMap's output.
+# This also includes the rule sort_bed.
+# Note: some scary code here: replacing pvar can desynchronize the binary genotype data and the .pvar/.psam indexes if used improperly.
 rule crossmap:
     input:
         pgen = config["outputs"]["output_dir"] + ("wgs_filtered/" if config["settings"]["is_wgs"] else "pre_processed/") + "data.pgen",

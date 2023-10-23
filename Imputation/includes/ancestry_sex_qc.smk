@@ -170,6 +170,9 @@ rule pca_1000g:
         """
 
 
+# Note: some scary code here: replacing pvar can desynchronize the binary genotype data and the .pvar/.psam indexes if used improperly.
+# Sort-vars sort on chromosome code, then position, then ID. Since we checked for duplicates and the ID is the position,
+# sorting both the data and the 1000G files should result in the same order of variants and not desynchronize the files.
 rule prune_data:
     input:
         pgen = config["outputs"]["output_dir"] + get_input_path() + "data.pgen",
