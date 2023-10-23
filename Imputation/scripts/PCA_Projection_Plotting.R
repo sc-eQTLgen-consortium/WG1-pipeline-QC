@@ -17,9 +17,6 @@ parser$add_argument("-o", "--out", required=TRUE, type="character", help="The ou
 # otherwise if options not found on command line then set defaults, 
 args <- parser$parse_args()
 
-args$scores <- "/groups/umcg-biogen/tmp01/output/2022-09-01-scMetaBrainConsortium/2023-09-06-scMetaBrain-WorkGroup1QC/2023-10-20-ImputationTestDataset/Step1-Imputation/pca_projection/subset_pruned_data_pcs.sscore"
-args$onekg_scores <- "/groups/umcg-biogen/tmp01/output/2022-09-01-scMetaBrainConsortium/2023-09-06-scMetaBrain-WorkGroup1QC/2023-10-20-ImputationTestDataset/Step1-Imputation/pca_projection/subset_pruned_1000g_pcs_projected.sscore"
-
 print("Options in effect:")
 paste0("  --scores ", args$scores)
 paste0("  --onekg_scores ", args$onekg_scores)
