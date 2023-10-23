@@ -37,7 +37,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Moved (reference) data download from image to separate download scripts `download_data.sh` / `download_test_dataset.sh`
 - Reduced image size
 - Changed `check_sex` rule to only use `X` (and `Y`) chromosomes to reduce file size 
-- Moved `update_sex_ancestry` rule to `Snakefile` 
+- Moved `update_sex_ancestry` rule to `Snakefile`
 - Moved `genotype_donor_annotation` rule to `Snakefile`
 - Moved `crossmap` rule before the sex and ancestry check
 - Merged `indivindiv_missingness` rule into the `pre_processing.smk` / `wgs_filter.smk` rules
@@ -46,7 +46,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Removed `sort_bed` rule
 - Removed `final_pruning` rule
 - Changed `calculate_missingness` to use gzipped VCF files
-
+- Moved creation of `sex_update_remove.tsv` to `check_sex` rule such that rule `pca_projection_assign` only relates to the ancestry check, and `check_sex` does all the sex check
 
 
 ## [2.0.0] - Demultiplexing - 2023-09-05
