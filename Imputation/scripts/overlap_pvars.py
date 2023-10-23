@@ -26,11 +26,11 @@ with open(args.pvar1, "r") as f:
         values = line.strip("\n").split("\t")
         variant1 = values[0] + ":" + values[1] + ":" + values[3] + "_" + values[4]
         if variant1 in variants1:
-            print("Error, {} is duplicated".format(variant1))
+            print("\tError, {} is duplicated".format(variant1))
             error = True
         variants1[variant1] = values[2]
 f.close()
-print("{} variants loaded".format(len(variants1)))
+print("\t{} variants loaded".format(len(variants1)))
 
 print("Loading variants loaded from {}".format(args.pvar2))
 fh = open(args.pvar2, "r")
@@ -46,7 +46,7 @@ for line in fh:
     values = line.strip("\n").split("\t")
     variant2 = values[0] + ":" + values[1] + ":" + values[3] + "_" + values[4]
     if variant2 in variants2:
-        print("Error, {} is duplicated".format(variant1))
+        print("\tError, {} is duplicated".format(variant1))
         error = True
     variants2.add(variant2)
 
@@ -59,8 +59,8 @@ fh.close()
 fho1.close()
 fho2.close()
 
-print("{} variants loaded".format(len(variants2)))
-print("{} variants written to output".format(n_overlap))
+print("\t{} variants loaded".format(len(variants2)))
+print("\t{} variants written to output".format(n_overlap))
 print("End")
 
 if error:

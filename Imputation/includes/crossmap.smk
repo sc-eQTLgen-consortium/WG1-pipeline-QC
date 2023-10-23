@@ -27,11 +27,11 @@ rule crossmap:
         inbed = config["outputs"]["output_dir"] + "crossmapped/input.bed",
         outbed = config["outputs"]["output_dir"] + "crossmapped/output.bed",
         outbed_unmap = config["outputs"]["output_dir"] + "crossmapped/output.bed.unmap",
+        crossmapped_pvar = config["outputs"]["output_dir"] + "crossmapped/crossmapped.pvar",
         excluded_ids = config["outputs"]["output_dir"] + "crossmapped/excluded_ids.txt",
         pgen = config["outputs"]["output_dir"] + "crossmapped/data.pgen",
         pvar = config["outputs"]["output_dir"] + "crossmapped/data.pvar",
-        psam = config["outputs"]["output_dir"] + "crossmapped/data.psam",
-        original_pvar = config["outputs"]["output_dir"] + "crossmapped/data_original.pvar",
+        psam = config["outputs"]["output_dir"] + "crossmapped/data.psam"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["crossmap"]["crossmap_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["crossmap"]["crossmap_memory"],
@@ -41,23 +41,26 @@ rule crossmap:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         chain_file = config["refs"]["ref_dir"] + get_chain_file(),
-        max_allele_len = config["pre_processing_extra"]["max_allele_len"],
+        out_tmp = config["outputs"]["output_dir"] + "crossmapped/data",
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/crossmap_pvar.py",
         out = config["outputs"]["output_dir"] + "crossmapped/data",
     log: config["outputs"]["output_dir"] + "log/crossmap.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print $1,$2,$2+1,$3,$4,$5}}' {input.pvar} > {output.inbed}
         singularity exec --bind {params.bind} {params.sif} CrossMap.py bed {params.chain_file} {output.inbed} {output.outbed}
-        singularity exec --bind {params.bind} {params.sif} awk '{{print $4}}' {output.outbed_unmap} > {output.excluded_ids}
+        singularity exec --bind {params.bind} {params.sif} python {params.script} \
+            --pvar {input.pvar} \
+            --bed {output.outbed} \
+            --out_pvar {output.crossmapped_pvar} \
+            --out_exclude {output.excluded_ids}
         singularity exec --bind {params.bind} {params.sif} plink2 \
             --threads {threads} \
             --pgen {input.pgen} \
-            --pvar {input.pvar} \
+            --pvar {output.crossmapped_pvar} \
             --psam {input.psam} \
             --exclude {output.excluded_ids} \
+            --sort-vars \
             --make-pgen \
             --out {params.out}
-        singularity exec --bind {params.bind} {params.sif} cp {output.pvar} {output.original_pvar}
-        singularity exec --bind {params.bind} {params.sif} echo -e "#CHROM\tPOS\tID\tREF\tALT" > {output.pvar}
-        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print $1,$2,$1":"$2":"$5"_"$6,$5,$6}}' {output.outbed} >> {output.pvar}
         """
