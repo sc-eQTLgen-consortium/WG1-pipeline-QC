@@ -33,7 +33,8 @@ rule crossmap:
         excluded_ids = config["outputs"]["output_dir"] + "crossmapped/excluded_ids.txt",
         pgen = config["outputs"]["output_dir"] + "crossmapped/data.pgen",
         pvar = config["outputs"]["output_dir"] + "crossmapped/data.pvar",
-        psam = config["outputs"]["output_dir"] + "crossmapped/data.psam"
+        psam = config["outputs"]["output_dir"] + "crossmapped/data.psam",
+        log = config["outputs"]["output_dir"] + "crossmapped/data.log",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["crossmap"]["crossmap_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["crossmap"]["crossmap_memory"],

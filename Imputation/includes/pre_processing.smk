@@ -15,7 +15,8 @@ rule input_vcf_to_pgen:
     output:
         pgen = config["outputs"]["output_dir"] + "pre_processed/data.pgen",
         pvar = config["outputs"]["output_dir"] + "pre_processed/data.pvar",
-        psam = config["outputs"]["output_dir"] + "pre_processed/data.psam"
+        psam = config["outputs"]["output_dir"] + "pre_processed/data.psam",
+        log = config["outputs"]["output_dir"] + "pre_processed/data.log",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["vcf_to_plink_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["vcf_to_plink_memory"],
@@ -64,6 +65,7 @@ rule input_pgen:
         pgen = config["outputs"]["output_dir"] + "pre_processed/data.pgen",
         pvar = config["outputs"]["output_dir"] + "pre_processed/data.pvar",
         psam = config["outputs"]["output_dir"] + "pre_processed/data.psam",
+        log = config["outputs"]["output_dir"] + "pre_processed/data.log",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["process_plink_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["process_plink_memory"],
@@ -111,7 +113,8 @@ rule input_vcf_to_pgen_per_chr:
     output:
         pgen = config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data_{chr}.pgen",
         pvar = config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data_{chr}.pvar",
-        psam = config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data_{chr}.psam"
+        psam = config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data_{chr}.psam",
+        log = config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data_{chr}.log"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["vcf_to_plink_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["vcf_to_plink_memory"],
@@ -146,7 +149,8 @@ rule merge_vcf_to_pgens:
     output:
         pgen = config["outputs"]["output_dir"] + "pre_processed/data.pgen",
         pvar = config["outputs"]["output_dir"] + "pre_processed/data.pvar",
-        psam = config["outputs"]["output_dir"] + "pre_processed/data.psam"
+        psam = config["outputs"]["output_dir"] + "pre_processed/data.psam",
+        log = config["outputs"]["output_dir"] + "pre_processed/data.log"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["process_plink_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["process_plink_memory"],
@@ -190,6 +194,7 @@ rule merge_input_pgens:
         pgen = config["outputs"]["output_dir"] + "pre_processed/data.pgen",
         pvar = config["outputs"]["output_dir"] + "pre_processed/data.pvar",
         psam = config["outputs"]["output_dir"] + "pre_processed/data.psam",
+        log = config["outputs"]["output_dir"] + "pre_processed/data.log",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["process_plink_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["process_plink_memory"],

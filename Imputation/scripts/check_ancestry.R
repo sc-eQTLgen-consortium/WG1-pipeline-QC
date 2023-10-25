@@ -10,8 +10,9 @@ parser <- ArgumentParser()
 # specify our desired options
 # by default ArgumentParser will add an help option
 parser$add_argument("-s", "--scores", required=TRUE, type="character", help="")
-parser$add_argument("-os", "--onekg_scores", required=FALSE, type="character", help="")
-parser$add_argument("-o", "--out", required=TRUE, type="character", help="The output directory where results will be saved.")
+parser$add_argument("-os", "--onekg_scores", required=TRUE, type="character", help="")
+parser$add_argument("-oi", "--out_info", required=TRUE, type="character", help="")
+parser$add_argument("-om", "--out_manual", required=TRUE, type="character", help="")
 
 # get command line options, if help option encountered print help and exit, 
 # otherwise if options not found on command line then set defaults, 
@@ -20,7 +21,8 @@ args <- parser$parse_args()
 print("Options in effect:")
 paste0("  --scores ", args$scores)
 paste0("  --onekg_scores ", args$onekg_scores)
-paste0("  --out ", args$out)
+paste0("  --out_info ", args$out_info)
+paste0("  --out_manual ", args$out_manual)
 print("")
 
 suppressMessages(suppressWarnings(library(tidyverse)))
@@ -29,7 +31,8 @@ suppressMessages(suppressWarnings(library(cluster)))
 suppressMessages(suppressWarnings(library(RColorBrewer)))
 
 ## make sure the directory exists ###
-dir.create(args$out, recursive=TRUE)
+dir.create(args$out_info, recursive=TRUE)
+dir.create(args$out_manual, recursive=TRUE)
 
 ##### Read in Results #####
 data_score <- read_delim(as.character(args$scores), delim = "\t", col_types = cols(.default = "d", "#FID" = "c", "IID" = "c", "Provided_Ancestry" = "c"))
@@ -53,17 +56,20 @@ if (!"FID" %in% colnames(onekg_score)) {
   onekg_score$FID <- NA
 }
 onekg_score$Provided_Ancestry <- NA
-onekg_score <- onekg_score[, c("FID", "IID", colnames(onekg_score)[grep("PC", colnames(onekg_score))], "SuperPop", "Provided_Ancestry")]
+onekg_score$Study <- "1000G"
+onekg_score <- onekg_score[, c("FID", "IID", "Study", colnames(onekg_score)[grep("PC", colnames(onekg_score))], "SuperPop", "Provided_Ancestry")]
 colnames(onekg_score) <- gsub("_AVG", "", colnames(onekg_score))
 
 if (!"FID" %in% colnames(data_score)) {
   data_score$FID <- NA
 }
 data_score$SuperPop <- NA
-data_score <- data_score[, c("FID", "IID", colnames(data_score)[grep("PC", colnames(data_score))], "SuperPop", "Provided_Ancestry")]
+data_score$Study <- "data"
+data_score <- data_score[, c("FID", "IID", "Study", colnames(data_score)[grep("PC", colnames(data_score))], "SuperPop", "Provided_Ancestry")]
 colnames(data_score) <- gsub("_AVG", "", colnames(data_score))
 
 scores <- rbind(onekg_score, data_score)
+print("scores")
 print(head(as.data.frame(scores)))
 
 ##### Calculate Medoids and Assign Clusters #####
@@ -72,9 +78,13 @@ pam_res <- pam(scores[, grep("PC", colnames(scores))], 6)
 
 ##### Assign Ancestries to Individuals #####
 scores$Cluster <- factor(pam_res$clustering)
+print("scores")
 print(head(as.data.frame(scores)))
 
 conversion_table <- table(scores$SuperPop, scores$Cluster)
+print("writing ancestry_cluster_conversion.tsv file")
+write.table(conversion_table, file=paste0(args$out_info, "/ancestry_cluster_conversion.tsv"), sep="\t", na="", col.names = TRUE, row.names = TRUE)
+
 conversion_key <- data.frame(Cluster = colnames(conversion_table), Assignment = rownames(conversion_table)[apply(conversion_table,2, which.max)])
 print(conversion_key)
 
@@ -108,7 +118,7 @@ plot_PCs_medoids <- ggplot(df4plots, aes(PC1, PC2, color = Final_Assignment)) +
   scale_color_manual(values = colors)
 
 
-ggsave(plot_PCs_medoids, filename = paste0(args$out, "Ancestry_PCAs.png"), height = 5, width = 12)
+ggsave(plot_PCs_medoids, filename = paste0(args$out_info, "Ancestry_PCAs.png"), height = 5, width = 12)
 
 ##### Subset the Mismatching Ancestry #####
 anc_mismatch <- df4plots[which(df4plots$Plot == "Projected Data Assignments vs Original Assignments" & df4plots$Final_Assignment != "Matched"), c("FID", "IID", "Provided_Ancestry", "Assignment")]
@@ -120,8 +130,8 @@ if (nrow(anc_mismatch) > 0){
 }
 
 print("writing acestry_update_remove.tsv file")
-write_delim(anc_mismatch, paste0(args$out, "/ancestry_update_remove.tsv"), na = "", delim = "\t")
+write_delim(anc_mismatch, paste0(args$out_manual, "/ancestry_update_remove.tsv"), na = "", delim = "\t")
 
 anc_mafs <- data.frame(Ancestry = rownames(conversion_table), MAF = NA)
 print("writing ancestry_mafs.tsv file")
-write_delim(anc_mafs, paste0(args$out, "/ancestry_mafs.tsv"), na = "", delim = "\t")
+write_delim(anc_mafs, paste0(args$out_manual, "/ancestry_mafs.tsv"), na = "", delim = "\t")

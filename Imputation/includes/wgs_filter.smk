@@ -127,7 +127,8 @@ rule wgs_filtered_vcf_to_pgen:
     output:
         pgen = config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.pgen",
         pvar = config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.pvar",
-        psam = config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.psam"
+        psam = config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.psam",
+        log = config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.log"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["vcf_to_plink_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["vcf_to_plink_memory"],
@@ -192,7 +193,8 @@ rule combine_wgs_filtered_pgens:
     output:
         pgen = config["outputs"]["output_dir"] + "wgs_filtered/data.pgen",
         pvar = config["outputs"]["output_dir"] + "wgs_filtered/data.pvar",
-        psam = config["outputs"]["output_dir"] + "wgs_filtered/data.psam"
+        psam = config["outputs"]["output_dir"] + "wgs_filtered/data.psam",
+        log = config["outputs"]["output_dir"] + "wgs_filtered/data.log"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["process_plink_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["process_plink_memory"],
@@ -202,7 +204,7 @@ rule combine_wgs_filtered_pgens:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         infiles = lambda wildcards: expand(config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered"),
-        pmerge_list = config["outputs"]["output_dir"] + "wgs_filtered_input/pmerge_list.txt",
+        pmerge_list = config["outputs"]["output_dir"] + "wgs_filtered/pmerge_list.txt",
         mind = config["pre_processing_extra"]["mind"],
         psam = config["inputs"]["psam"],
         out = config["outputs"]["output_dir"] + "wgs_filtered/data"

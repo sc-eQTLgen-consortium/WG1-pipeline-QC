@@ -12,7 +12,10 @@ rule harmonize:
     output:
         bed = config["outputs"]["output_dir"] + "harmonize/{ancestry}.bed",
         bim = config["outputs"]["output_dir"] + "harmonize/{ancestry}.bim",
-        fam = config["outputs"]["output_dir"] + "harmonize/{ancestry}.fam"
+        fam = config["outputs"]["output_dir"] + "harmonize/{ancestry}.fam",
+        log = config["outputs"]["output_dir"] + "harmonize/{ancestry}.log",
+        id_updates = config["outputs"]["output_dir"] + "harmonize/{ancestry}_idUpdates.txt",
+        snp_log = config["outputs"]["output_dir"] + "harmonize/{ancestry}_snpLog.log",
     resources:
         java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_java_memory"],
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"],
@@ -45,7 +48,8 @@ rule harmonized_bed_to_vcf:
         fam = config["outputs"]["output_dir"] + "harmonize/{ancestry}.fam"
     output:
         vcf = config["outputs"]["output_dir"] + "harmonized_bed_to_vcf/{ancestry}_harmonised_hg38.vcf.gz",
-        index = config["outputs"]["output_dir"] + "harmonized_bed_to_vcf/{ancestry}_harmonised_hg38.vcf.gz.csi"
+        index = config["outputs"]["output_dir"] + "harmonized_bed_to_vcf/{ancestry}_harmonised_hg38.vcf.gz.csi",
+        log = config["outputs"]["output_dir"] + "harmonized_bed_to_vcf/{ancestry}_harmonised_hg38.log",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["plink_to_vcf_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["plink_to_vcf_memory"],
@@ -82,7 +86,8 @@ rule split_by_chr_for_harmonize:
     output:
         bed = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.bed",
         bim = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.bim",
-        fam = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.fam"
+        fam = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.fam",
+        log = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.log",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["split_by_chr_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["split_by_chr_memory"],
@@ -116,7 +121,10 @@ rule harmonize_per_chr:
     output:
         bed = config["outputs"]["output_dir"] + "harmonize_per_chr/{ancestry}_chr_{chr}.bed",
         bim = config["outputs"]["output_dir"] + "harmonize_per_chr/{ancestry}_chr_{chr}.bim",
-        fam = config["outputs"]["output_dir"] + "harmonize_per_chr/{ancestry}_chr_{chr}.fam"
+        fam = config["outputs"]["output_dir"] + "harmonize_per_chr/{ancestry}_chr_{chr}.fam",
+        log = config["outputs"]["output_dir"] + "harmonize/{ancestry}_chr_{chr}.log",
+        id_updates = config["outputs"]["output_dir"] + "harmonize/{ancestry}_chr_{chr}_idUpdates.txt",
+        snp_log = config["outputs"]["output_dir"] + "harmonize/{ancestry}_chr_{chr}_snpLog.log",
     resources:
         java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_java_memory"],
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"],
@@ -149,7 +157,8 @@ rule harmonized_bed_per_chr_to_vcf:
         fam = expand(config["outputs"]["output_dir"] + "harmonize_per_chr/{ancestry}_chr_{chr}.fam", ancestry=ANCESTRIES, chr=CHROMOSOMES)
     output:
         vcf = config["outputs"]["output_dir"] + "harmonized_bed_per_chr_to_vcf/{ancestry}_harmonised_hg38.vcf.gz",
-        index = config["outputs"]["output_dir"] + "harmonized_bed_per_chr_to_vcf/{ancestry}_harmonised_hg38.vcf.gz.csi"
+        index = config["outputs"]["output_dir"] + "harmonized_bed_per_chr_to_vcf/{ancestry}_harmonised_hg38.vcf.gz.csi",
+        log = config["outputs"]["output_dir"] + "harmonized_bed_per_chr_to_vcf/{ancestry}_harmonised_hg38.log",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["plink_to_vcf_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["plink_to_vcf_memory"],
@@ -162,7 +171,7 @@ rule harmonized_bed_per_chr_to_vcf:
         mergelist = config["outputs"]["output_dir"] + "harmonized_bed_per_chr_to_vcf/{ancestry}_mergelist.txt",
         chr_list = ",".join(CHROMOSOMES),
         out = config["outputs"]["output_dir"] + "harmonized_bed_per_chr_to_vcf/{ancestry}_harmonised_hg38"
-    log: config["outputs"]["output_dir"] + "log/merge_plinks_to_vcf.{ancestry}.log"
+    log: config["outputs"]["output_dir"] + "log/harmonized_bed_per_chr_to_vcf.{ancestry}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.infiles} | sed 's/ /\\n/g' > {params.mergelist}
@@ -255,7 +264,7 @@ rule het:
         vcf = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_filtered.vcf.gz",
         index = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_filtered.vcf.gz.csi"
     output:
-        tmp_vcf = temp(config["outputs"]["output_dir"] + "het/{ancestry}_filtered_temp.vcf"),
+        tmp_vcf = temp(config["outputs"]["output_dir"] + "het/{ancestry}_filtered_temp.vcf.gz"),
         het = config["outputs"]["output_dir"] + "het/{ancestry}_het.het",
         failed_inds = config["outputs"]["output_dir"] + "het/{ancestry}_het_failed.inds",
         passed_inds = config["outputs"]["output_dir"] + "het/{ancestry}_het_passed.inds",
@@ -273,9 +282,9 @@ rule het:
     log: config["outputs"]["output_dir"] + "log/het.{ancestry}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} gunzip -c {input.vcf} | sed 's/^##fileformat=VCFv4.3/##fileformat=VCFv4.2/' > {output.tmp_vcf}
+        singularity exec --bind {params.bind} {params.sif} gunzip -c {input.vcf} | sed 's/^##fileformat=VCFv4.3/##fileformat=VCFv4.2/' | gzip -c > {output.tmp_vcf}
         singularity exec --bind {params.bind} {params.sif} vcftools \
-            --vcf {output.tmp_vcf} \
+            --gzvcf {output.tmp_vcf} \
             --het \
             --out {params.out}
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
@@ -313,7 +322,9 @@ rule calculate_missingness:
         vcf = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz",
         index = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz.csi"
     output:
-        miss = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_genotypes.imiss"
+        tmp_vcf = temp(config["outputs"]["output_dir"] + "calculate_missingness/{ancestry}_het_filtered_temp.vcf.gz"),
+        miss = config["outputs"]["output_dir"] + "calculate_missingness/{ancestry}_genotypes.imiss",
+        log = config["outputs"]["output_dir"] + "calculate_missingness/{ancestry}_genotypes.imiss.log",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["calculate_missingness_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["calculate_missingness_memory"],
@@ -322,14 +333,83 @@ rule calculate_missingness:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        out = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_genotypes"
+        out = config["outputs"]["output_dir"] + "calculate_missingness/{ancestry}_genotypes"
     log: config["outputs"]["output_dir"] + "log/calculate_missingness.{ancestry}.log"
     shell:
         """
+        singularity exec --bind {params.bind} {params.sif} gunzip -c {input.vcf} | sed 's/^##fileformat=VCFv4.3/##fileformat=VCFv4.2/' | gzip -c > {output.tmp_vcf}
         singularity exec --bind {params.bind} {params.sif} vcftools \
-            --gzvcf {input.vcf} \
+            --gzvcf {output.tmp_vcf} \
             --missing-indv \
             --out {params.out}
+        """
+
+
+rule kinship:
+    input:
+        vcf = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz"
+    output:
+        subset_pgen = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset.pgen",
+        subset_pvar = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset.pvar",
+        subset_psam = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset.psam",
+        subset_log = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset.log",
+        prune_in = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruning.prune.in",
+        prune_out = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruning.prune.out",
+        prune_log = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruning.log",
+        pruned_log = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruned.log",
+        king = config["outputs"]["output_dir" ] + "kinship/{ancestry}_subset_pruned.king",
+        king_id = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruned.king.id",
+        kinship = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruned.kinship"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["kinship_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["kinship_memory"],
+        time = lambda wildcards,attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["kinship_time"]]
+    threads: config["imputation"]["kinship_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        genome_build = config["inputs"]["genome_build"],
+        maf = config["imputation_extra"]["kinship_maf"],
+        hwe = config["imputation_extra"]["kinship_hwe"],
+        out_subset = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset",
+        indep_window_size = config["imputation_extra"]["kinship_indep_window_size"],
+        indep_step_size = config["imputation_extra"]["kinship_indep_step_size"],
+        pairwise_r2_threshold = config["imputation_extra"]["kinship_pairwise_r2_threshold"],
+        out_pruning = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruning",
+        out_pruned = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruned",
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/kinship.R",
+    log: config["outputs"]["output_dir"] + "log/kinship.{ancestry}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} plink2 \
+            --threads {threads} \
+            --vcf {input.vcf} \
+            --split-par {params.genome_build} \
+            --maf {params.maf} \
+            --hwe {params.hwe} \
+            --make-pgen \
+            --out {params.out_subset}
+
+        singularity exec --bind {params.bind} {params.sif} plink2 \
+            --pgen {output.subset_pgen} \
+            --pvar {output.subset_pvar} \
+            --psam {output.subset_psam} \
+            --indep-pairwise {params.indep_window_size} {params.indep_step_size} {params.pairwise_r2_threshold} \
+            --bad-ld \
+            --out {params.out_pruning}
+
+        singularity exec --bind {params.bind} {params.sif} plink2 \
+            --pgen {output.subset_pgen} \
+            --pvar {output.subset_pvar} \
+            --psam {output.subset_psam} \
+            --extract {output.prune_in} \
+            --make-king square \
+            --out {params.out_pruned}
+            
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
+            --king {output.king} \
+            --king_id {output.king_id} \
+            --out {output.kinship}
         """
 
 

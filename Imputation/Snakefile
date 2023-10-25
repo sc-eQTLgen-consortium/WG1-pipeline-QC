@@ -83,7 +83,7 @@ if len(input_options) > 1:
 INPUT_OPTION = input_options[0]
 
 # Check if the input is in VCF if WGS is true.
-if config["settings"]["is_wgs"] and "PLINK" in input_option[0]:
+if config["settings"]["is_wgs"] and "PLINK" in INPUT_OPTION:
     logger.info("Error, a VCF input is required for WGS filtering.\n\nExiting.")
     exit("WrongWGSFilteringInputFile")
 
@@ -91,6 +91,9 @@ if config["settings"]["is_wgs"] and "PLINK" in input_option[0]:
 if not os.path.exists(config["inputs"]["psam"]):
     logger.info("Error, could not find the {} file. Please check that the file exists.\n\nExiting.".format(config["inputs"]["psam"]))
     exit("MissingPSAMFile")
+
+# Check if the PSAM matches the genotype input.
+# TODO
 
 # Check if the genome build is valid.
 if not config["inputs"]["genome_build"] in ['hg18', 'b36', 'hg19', 'b37', 'hg38', 'b38']:
@@ -386,8 +389,11 @@ if os.path.exists(sex_man_select_path) and os.path.exists(ancestry_man_select_pa
     input_files.append(config["outputs"]["output_dir"] + "metrics/sex_summary.png")
     input_files.append(config["outputs"]["output_dir"] + "metrics/ancestry_summary.png")
 
-    # Add the endpoints for rule genotype_donor_annotation.
-    input_files.append(config["outputs"]["output_dir"] + "genotype_donor_annotation/genotype_donor_annotation.tsv")
+    # Add the endpoints for rule calculate_missingness.
+    input_files.append(expand(config["outputs"]["output_dir"] + "calculate_missingness/{ancestry}_genotypes.imiss", ancestry=ANCESTRIES))
+
+    # Add the endpoints for rule kinship.
+    input_files.append(expand(config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruned.kinship", ancestry=ANCESTRIES))
 
     # Add the endpoints for rule merge_vcfs.
     input_files.append(expand(config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_imputed_hg38.vcf.gz", ancestry=ANCESTRIES))

@@ -23,6 +23,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Fixed issue where 1000G reference contains a duplicate variant (`X_68204280_rs1361839_C_T`). Fixed by switching to the build 38 reference
 - Fixed issue where the MAF per ancestry selection was limited to two ancestries and any subsequent ancestries overwrote the setting of previous ancestries
 - Fixed issue where `F_MISSING` was missing for rule `filter_preimpute_vcf` to filter on. Fixed by upgrading `bcftools` version to 1.18
+- Fixed issue in `prune_1000g` where the variants in LD were extracted instead of the variants NOT in lD
 
 #### Changes
 - Refactor code to (mostly) PEP8
@@ -43,9 +44,9 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Merged `indivindiv_missingness` rule into the `pre_processing.smk` / `wgs_filter.smk` rules
 - Split `common_snps`, `prune_1000g`  rules into `prune_1000g`, doing all the pruning of the 1000G reference, and then only ones filtering the input data in `prune_data`
 - Translated bash commands in `prune_1000g` into Python script `overlap_pvars.py` for clarity and robustness
-- Removed `sort_bed` rule
-- Removed `final_pruning` rule
-- Changed `calculate_missingness` to use gzipped VCF files
+- Removed `sort_bed` rule; functionality is now part of `crossmap`
+- Removed `final_pruning` rule; duplicates were already removed earlier
+- Changed `calculate_missingness` and `het` to use gzipped VCF files
 - Moved creation of `sex_update_remove.tsv` to `check_sex` rule such that rule `pca_projection_assign` only relates to the ancestry check, and `check_sex` does all the sex check
 
 
