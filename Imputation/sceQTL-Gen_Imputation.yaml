@@ -149,7 +149,7 @@ imputation:
 ##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####
 ############################################################################################################################################
 refs_extra:
-  relative_1000g_files: "1000G/all_phase3_filtered"
+  relative_1000g_files: "1000G/20220422_3202_phased_SNV_INDEL_SV_b38"
   relative_grch37_to_grch38_chain_path: "GRCh37_to_GRCh38.chain"
   relative_hg18_to_hg38_chain_path: "hg18ToHg38.over.chain"
   relative_vcf_path: "hg38/ref_panel_QC/30x-GRCh38_NoSamplesSorted.vcf.gz"

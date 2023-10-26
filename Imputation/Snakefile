@@ -92,8 +92,65 @@ if not os.path.exists(config["inputs"]["psam"]):
     logger.info("Error, could not find the {} file. Please check that the file exists.\n\nExiting.".format(config["inputs"]["psam"]))
     exit("MissingPSAMFile")
 
+def get_samples_from_vcf(vcf_filepath):
+    samples = None
+    with open(vcf_filepath, 'r') as f:
+        for line in f:
+            if line.startswith("#CHROM"):
+                samples = [column for column in line.strip("\n").split("\t") if column not in ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"]]
+                break
+    f.close()
+    return samples
+
+def get_samples_from_psam(psam_filepath):
+    iid_index = None
+    samples = []
+    with open(psam_filepath, 'r') as f:
+        for i, line in enumerate(f):
+            if i == 0:
+                iid_index = [column.replace("#", "") for column in line.strip("\n").split("\t")].index("IID")
+            else:
+                samples.append(line.strip("\n").split("\t")[iid_index])
+    f.close()
+    return samples
+
+def get_genotype_path_samples(input_path, input_option):
+    if input_option == "single VCF":
+        return get_samples_from_vcf(input_path + ".vcf.gz")
+    elif input_option == "single PLINK":
+        return get_samples_from_psam(input_path + ".psam")
+    elif input_option == "VCF per chromosome":
+        samples = None
+        for chr in INPUT_CHROMOSOMES:
+            chr_samples = get_samples_from_vcf(input_path.replace("CHR", chr) + ".vcf.gz")
+            if samples is None:
+                samples = chr_samples
+            else:
+                if samples != chr_samples:
+                    logger.info("Error, not all chromosome VCF files contain the same samples.\n\nExiting.")
+                    exit("WrongGenotypeInput")
+        return samples
+    elif input_option == "PLINK per chromosome":
+        samples = None
+        for chr in INPUT_CHROMOSOMES:
+            chr_samples = get_samples_from_psam(input_path.replace("CHR", chr) + ".psam")
+            if samples is None:
+                samples = chr_samples
+            else:
+                if samples != chr_samples:
+                    logger.info("Error, not all chromosome PSAM files contain the same samples.\n\nExiting.")
+                    exit("WrongGenotypeInput")
+        return samples
+    else:
+        logger.info("Error, unexpected input_option.\n\nExiting.")
+        exit("UnexpectedInputOption")
+
 # Check if the PSAM matches the genotype input.
-# TODO
+psam_samples = get_samples_from_psam(config["inputs"]["psam"])
+genotype_input_samples = get_genotype_path_samples(config["inputs"]["genotype_path"], INPUT_OPTION)
+if psam_samples != genotype_input_samples:
+    logger.info("Error, the {} file does not match the genotype input {}. Please check that the same samples are given in the same order.\n\nExiting.".format(config["inputs"]["psam"], config["inputs"]["genotype_path"]))
+    exit("PSAMFileDoesNotMatchGenotypeInput")
 
 # Check if the genome build is valid.
 if not config["inputs"]["genome_build"] in ['hg18', 'b36', 'hg19', 'b37', 'hg38', 'b38']:
