@@ -2,6 +2,8 @@
 
 # Input: PLINK binary on genome build 38 with updated sex, ancestry and split per ancestry
 # Output: PLINK binary imputed (possibly per split per dataset)
+
+
 rule harmonize:
     input:
         bed = config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_subset.bed",
@@ -17,7 +19,7 @@ rule harmonize:
         id_updates = config["outputs"]["output_dir"] + "harmonize/{ancestry}_idUpdates.txt",
         snp_log = config["outputs"]["output_dir"] + "harmonize/{ancestry}_snpLog.log",
     resources:
-        java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_java_memory"],
+        java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"] * config["imputation"]["harmonize_threads"] + config["settings_extra"]["java_memory_buffer"],
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["harmonize_time"]]
@@ -126,7 +128,7 @@ rule harmonize_per_chr:
         id_updates = config["outputs"]["output_dir"] + "harmonize/{ancestry}_chr_{chr}_idUpdates.txt",
         snp_log = config["outputs"]["output_dir"] + "harmonize/{ancestry}_chr_{chr}_snpLog.log",
     resources:
-        java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_java_memory"],
+        java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"] * config["imputation"]["harmonize_threads"] + config["settings_extra"]["java_memory_buffer"],
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["harmonize_time"]]
@@ -213,14 +215,12 @@ rule fixref:
                 --check-ref x \
                 --fasta-ref {input.ref_fasta} \
                 -Oz \
-                --output {output.vcf}
+                --output {output.vcf} > {log}
 
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
         """
 
 
-# Add tags
-# Filter rare and non-HWE variants and those with abnormal alleles and duplicates
 rule filter_preimpute_vcf:
     input:
         vcf = config["outputs"]["output_dir"] + "fixref/{ancestry}_fixref_hg38.vcf.gz",
@@ -317,14 +317,16 @@ rule het_filter:
         """
 
 
+# Note, downgrading VCF version in the header to prevent the following error:
+# Error: VCF version must be v4.0, v4.1 or v4.2:
+# You are using version VCFv4.3
 rule calculate_missingness:
     input:
         vcf = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz",
         index = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz.csi"
     output:
         tmp_vcf = temp(config["outputs"]["output_dir"] + "calculate_missingness/{ancestry}_het_filtered_temp.vcf.gz"),
-        miss = config["outputs"]["output_dir"] + "calculate_missingness/{ancestry}_genotypes.imiss",
-        log = config["outputs"]["output_dir"] + "calculate_missingness/{ancestry}_genotypes.imiss.log",
+        miss = config["outputs"]["output_dir"] + "calculate_missingness/{ancestry}_genotypes.imiss"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["calculate_missingness_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["calculate_missingness_memory"],
@@ -463,8 +465,31 @@ rule eagle_prephasing:
             --geneticMapFile={input.map_file} \
             --chrom={wildcards.chr} \
             --outPrefix={params.out} \
-            --numThreads={threads}
+            --numThreads={threads} > {log}
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
+        """
+
+
+rule merge_eagle_prephasing_stats:
+    input:
+        logs = expand(config["outputs"]["output_dir"] + "log/eagle_prephasing.{ancestry}.chr_{chr}.log", ancestry=ANCESTRIES, chr=CHROMOSOMES)
+    output:
+        stats = config["outputs"]["output_dir"] + "eagle_prephasing/{ancestry}_phase_confidence.tsv",
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["merge_eagle_prephasing_stats_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["merge_eagle_prephasing_stats_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["merge_eagle_prephasing_stats_time"]]
+    threads: config["imputation"]["merge_eagle_prephasing_stats_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"],
+        script = "/opt/WG1-pipeline-QC/Imputation/scripts/merge_eagle_prephasing_stats.py",
+    log: config["outputs"]["output_dir"] + "log/merge_eagle_prephasing_stats.{ancestry}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} python {params.script} \
+            --logs {input.logs} \
+            --out {output.stats}
         """
 
 
@@ -529,14 +554,15 @@ rule merge_vcfs:
         """
 
 
+# --force-samples required since samples may have been removed in the het_filter
 rule split_by_dataset:
     input:
         vcf = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_imputed_hg38.vcf.gz",
         index = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_imputed_hg38.vcf.gz.csi",
         samples = lambda wildcards: config["inputs"]["dataset_samples"][wildcards.dataset]
     output:
-        vcf = config["outputs"]["output_dir"] + "minimac_imputed/{dataset}_{ancestry}_imputed_hg38.vcf.gz",
-        index = config["outputs"]["output_dir"] + "minimac_imputed/{dataset}_{ancestry}_imputed_hg38.vcf.gz.csi"
+        vcf = config["outputs"]["output_dir"] + "minimac_imputed_by_datatset/{dataset}_{ancestry}_imputed_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + "minimac_imputed_by_datatset/{dataset}_{ancestry}_imputed_hg38.vcf.gz.csi"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_dataset_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_dataset_memory"],
@@ -548,6 +574,6 @@ rule split_by_dataset:
     log: config["outputs"]["output_dir"] + "log/split_by_dataset.{dataset}.{ancestry}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} bcftools view -S {input.samples} {input.vcf} -Oz -o {output.vcf}
+        singularity exec --bind {params.bind} {params.sif} bcftools view -S {input.samples} {input.vcf} --force-samples -Oz -o {output.vcf}
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
         """

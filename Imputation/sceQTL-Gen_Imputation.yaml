@@ -26,20 +26,20 @@ cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"}
 ##############################################################################################################
 ##### These are the options that will be used for plink QC steps #####
 generic:
-  split_by_chr_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  split_by_chr_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   split_by_chr_threads: 1 ### Number of threads to use
   split_by_chr_time: 0 ### The time setting to use.
   
   vcf_to_plink_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
-  vcf_to_plink_threads: 2 ### Number of threads to use
+  vcf_to_plink_threads: 1 ### Number of threads to use
   vcf_to_plink_time: 0 ### The time setting to use.
 
   process_plink_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
-  process_plink_threads: 2 ### Number of threads to use
+  process_plink_threads: 1 ### Number of threads to use
   process_plink_time: 0 ### The time setting to use.
 
-  plink_to_vcf_memory: 2 ### Amount of gigs that will be used for memory and disk space per thread
-  plink_to_vcf_threads: 2 ### Number of threads to use
+  plink_to_vcf_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  plink_to_vcf_threads: 1 ### Number of threads to use
   plink_to_vcf_time: 0 ### The time setting to use.
 
   combine_vcfs_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
@@ -60,90 +60,93 @@ wgs_filter:
   wgs_filter_stats_time: 0 ### The time setting to use.
 
 crossmap:
-  crossmap_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
+  crossmap_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   crossmap_threads: 1 ### Number of threads to use
   crossmap_time: 0 ### The time setting to use.
 
 ##### These are the options that will be used for plink QC steps #####
 ancestry_sex_qc:
-  check_sex_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  check_sex_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   check_sex_threads: 1 ### Number of threads to use
   check_sex_time: 0 ### The time setting to use.
 
-  prune_1000g_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  prune_1000g_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   prune_1000g_threads: 1 ### Number of threads to use
   prune_1000g_time: 0 ### The time setting to use.
 
-  pca_1000g_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
-  pca_1000g_threads: 2 ### Number of threads to use
+  pca_1000g_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  pca_1000g_threads: 1 ### Number of threads to use
   pca_1000g_time: 0 ### The time setting to use.
 
-  pca_project_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
+  pca_project_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   pca_project_threads: 1 ### Number of threads to use
   pca_project_time: 0 ### The time setting to use.
 
-  check_ancestry_memory: 10 ### Amount of gigs that will be used for memory and disk space per thread
-  check_ancestry_threads: 2 ### Number of threads to use
+  check_ancestry_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  check_ancestry_threads: 1 ### Number of threads to use
   check_ancestry_time: 0 ### The time setting to use.
 
-  summary_ancestry_sex_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
-  summary_ancestry_sex_threads: 2 ### Number of threads to use
+  summary_ancestry_sex_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  summary_ancestry_sex_threads: 1 ### Number of threads to use
   summary_ancestry_sex_time: 0 ### The time setting to use.
 
-  split_by_ancestry_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  split_by_ancestry_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   split_by_ancestry_threads: 1 ### Number of threads to use
   split_by_ancestry_time: 0 ### The time setting to use.
 
 ##### These are the options that will be used for imputation steps #####
 imputation:
-  harmonize_java_memory: 25 ### Memory passed to java for GenotypeHarmonizer.jar in GB. 25GB is typically sufficient but if you are getting java memory issues with this rule, increase the java memory (and make sure you have enough memory allocated to the job to cover it)
-  harmonize_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  harmonize_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   harmonize_threads: 4 ### Number of threads to use
   harmonize_time: 0 ### The time setting to use.
 
-  fixref_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  fixref_threads: 2 ### Number of threads to use
+  fixref_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  fixref_threads: 1 ### Number of threads to use
   fixref_time: 0 ### The time setting to use.
 
-  filter_preimpute_vcf_memory: 10 ### Amount of gigs that will be used for memory and disk space per thread
-  filter_preimpute_vcf_threads: 2 ### Number of threads to use
+  filter_preimpute_vcf_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  filter_preimpute_vcf_threads: 1 ### Number of threads to use
   filter_preimpute_vcf_time: 0 ### The time setting to use.
   filter_preimpute_vcf_snp_hwe: 1e-6 ### the threshold used for calling a SNP outside of HWE
   filter_preimpute_vcf_snp_missing_pct: 0.05 ### the minimum proportion that can be missing for a snp to be included (5% by default)
 
-  het_memory: 15 ### Amount of gigs that will be used for memory and disk space per thread
-  het_threads: 2 ### Amount of gigs that will be used for memory and disk space per thread
+  het_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  het_threads: 1 ### Amount of gigs that will be used for memory and disk space per thread
   het_time: 0 ### The time setting to use.
 
-  het_filter_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  het_filter_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   het_filter_threads: 1 ### Number of threads to use
   het_filter_time: 0 ### The time setting to use.
 
-  calculate_missingness_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  calculate_missingness_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   calculate_missingness_threads: 1 ### Number of threads to use
   calculate_missingness_time: 0 ### The time setting to use.
 
-  genotype_donor_annotation_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  genotype_donor_annotation_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   genotype_donor_annotation_threads: 1 ### Number of threads to use
   genotype_donor_annotation_time: 0 ### The time setting to use.
 
-  kinship_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  kinship_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   kinship_threads: 1 ### Number of threads to use
   kinship_time: 0 ### The time setting to use.
 
-  eagle_prephasing_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
-  eagle_prephasing_threads: 8 ### Number of threads to use
+  eagle_prephasing_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  eagle_prephasing_threads: 2 ### Number of threads to use
   eagle_prephasing_time: 0 ### The time setting to use.
 
-  minimac_imputation_memory: 10 ### Amount of gigs that will be used for memory and disk space per thread
-  minimac_imputation_threads: 5 ### Number of threads to use
+  merge_eagle_prephasing_stats_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  merge_eagle_prephasing_stats_threads: 1 ### Number of threads to use
+  merge_eagle_prephasing_stats_time: 0 ### The time setting to use.
+
+  minimac_imputation_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  minimac_imputation_threads: 2 ### Number of threads to use
   minimac_imputation_time: 0 ### The time setting to use.
   minimac_chunk: 20000000 ###  Maximum chunk length in base pairs to impute at once (default: 20000000)
   minimac_overlap: 3000000 ### Size (in base pairs) of overlap before and after impute region to use as input to HMM (default: 3000000)
 
-  split_by_dataset_memory: 8 ### Amount of gigs that will be used for memory and disk space per thread
+  split_by_dataset_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   split_by_dataset_threads: 1 ### Number of threads to use
-  split_by_dataset_time: 1 ### The time setting to use.
+  split_by_dataset_time: 0 ### The time setting to use.
 
 ############################################################################################################################################
 ##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####
@@ -160,6 +163,7 @@ refs_extra:
 
 settings_extra:
   exclude_y_chr_in_sex_check: False
+  java_memory_buffer: 2  ### Amount of gigs to add to the Java memory for buffer
 
 wgs_filter_extra:
   genotype_quality: 20 ### The genotype quality threshold
