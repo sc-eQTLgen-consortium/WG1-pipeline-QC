@@ -320,7 +320,7 @@ input_files = []
 
 # End point for rule wgs_filter_stats.
 if config["settings"]["is_wgs"]:
-    input_files.append(config["outputs"]["output_dir"] + "wgs_filter/wgs_filter_stats.tsv")
+    input_files.append(config["outputs"]["output_dir"] + "wgs_filtered/wgs_filter_stats.tsv")
 
 # Define manual selection paths.
 sex_man_select_path = config["outputs"]["output_dir"] + "manual_selection/sex_update_remove.tsv"

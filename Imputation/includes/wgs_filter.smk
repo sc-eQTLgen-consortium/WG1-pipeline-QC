@@ -203,7 +203,7 @@ rule combine_wgs_filtered_pgens:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        infiles = lambda wildcards: expand(config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered"),
+        infiles = lambda wildcards: expand(config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered", chr=INPUT_CHROMOSOMES),
         pmerge_list = config["outputs"]["output_dir"] + "wgs_filtered/pmerge_list.txt",
         mind = config["pre_processing_extra"]["mind"],
         psam = config["inputs"]["psam"],
