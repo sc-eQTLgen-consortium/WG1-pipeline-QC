@@ -16,8 +16,14 @@ rm ImputationTestDataset_plink.tar.gz
 
 cd ../Demultiplexing || exit
 
-echo "Downloading TestData4PipelineFull.tar.gz"
-wget https://www.dropbox.com/s/3oujqq98y400rzz/TestData4PipelineFull.tar.gz \
-  && md5sum -c - <<<"137afb046237d6b205023b1205287d78  TestData4PipelineFull.tar.gz" \
+echo "Downloading TestData4PipelineSmall.tar.gz"
+wget https://www.dropbox.com/s/m8u61jn4i1mcktp/TestData4PipelineSmall.tar.gz \
+  && md5sum -c - <<<"d2d5f1c2d405588de8e88b2419eebffa  TestData4PipelineSmall.tar.gz" \
   && tar -xzf TestData4PipelineSmall.tar.gz
 rm TestData4PipelineSmall.tar.gz
+
+#echo "Downloading TestData4PipelineFull.tar.gz"
+#wget https://www.dropbox.com/s/3oujqq98y400rzz/TestData4PipelineFull.tar.gz \
+#  && md5sum -c - <<<"137afb046237d6b205023b1205287d78  TestData4PipelineFull.tar.gz" \
+#  && tar -xzf TestData4PipelineSmall.tar.gz
+#rm TestData4PipelineSmall.tar.gz
