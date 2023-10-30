@@ -56,11 +56,12 @@ rule input_vcf_to_pgen:
 #################################################################
 
 # This also includes the indiv_missingness rule.
+# Note that the PSAM is already been validated for being in the same order as the 'config["inputs"]["genotype_path"].psam'
+# in the SnakeFile preprocessing checks.
 rule input_pgen:
     input:
         pgen = config["inputs"]["genotype_path"] + ".pgen",
-        pvar = config["inputs"]["genotype_path"] + ".pvar",
-        psam = config["inputs"]["genotype_path"] + ".psam"
+        pvar = config["inputs"]["genotype_path"] + ".pvar"
     output:
         pgen = config["outputs"]["output_dir"] + "pre_processed/data.pgen",
         pvar = config["outputs"]["output_dir"] + "pre_processed/data.pvar",
@@ -74,7 +75,6 @@ rule input_pgen:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        genome_build = config["inputs"]["genome_build"],
         max_allele_len = config["pre_processing_extra"]["max_allele_len"],
         out = config["outputs"]["output_dir"] + "pre_processed/data",
         mind = config["pre_processing_extra"]["mind"],
@@ -87,8 +87,7 @@ rule input_pgen:
             --threads {threads} \
             --pgen {input.pgen} \
             --pvar {input.pvar} \
-            --psam {input.psam} \
-            --split-par {params.genome_build} \
+            --psam {params.psam} \
             --max-alleles 2 \
             --new-id-max-allele-len {params.max_allele_len} \
             --mind {params.mind} \
@@ -97,8 +96,6 @@ rule input_pgen:
             --set-all-var-ids @:#:\$r_\$a \
             --make-pgen \
             --out {params.out}
-
-        singularity exec --bind {params.bind} {params.sif} cp {params.psam} {output.psam}
         """
 
 
@@ -123,7 +120,8 @@ rule input_vcf_to_pgen_per_chr:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        genome_build = config["inputs"]["genome_build"],
+        psam = config["inputs"]["psam"],
+        split_par_flag = lambda wildcards: "--split-par " + config["inputs"]["genome_build"] if wildcards.chr == "X" else "",
         max_allele_len = config["pre_processing_extra"]["max_allele_len"],
         out = config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data"
     log: config["outputs"]["output_dir"] + "log/input_vcf_to_pgen_per_chr.{chr}.log"
@@ -132,7 +130,8 @@ rule input_vcf_to_pgen_per_chr:
         singularity exec --bind {params.bind} {params.sif} plink2 \
             --threads {threads} \
             --vcf {input.vcf} \
-            --split-par {params.genome_build} \
+            --psam {params.psam} \
+            {params.split_par_flag} \
             --max-alleles 2 \
             --new-id-max-allele-len {params.max_allele_len} \
             --set-all-var-ids @:#:\$r_\$a \
@@ -205,7 +204,6 @@ rule merge_input_pgens:
         sif = config["inputs"]["singularity_image"],
         infiles = lambda wildcards: expand(config["inputs"]["genotype_path"].replace("CHR", wildcards.chr), chr=INPUT_CHROMOSOMES),
         pmerge_list = config["outputs"]["output_dir"] + "pre_processed/pmerge_list.txt",
-        genome_build = config["inputs"]["genome_build"],
         max_allele_len = config["pre_processing_extra"]["max_allele_len"],
         mind = config["pre_processing_extra"]["mind"],
         out = config["outputs"]["output_dir"] + "pre_processed/data",
@@ -217,7 +215,6 @@ rule merge_input_pgens:
         singularity exec --bind {params.bind} {params.sif} plink2 \
             --threads {threads} \
             --pmerge-list {params.pmerge_list} bfile \
-            --split-par {params.genome_build} \
             --max-alleles 2 \
             --new-id-max-allele-len {params.max_allele_len} \
             --mind {params.mind} \

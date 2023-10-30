@@ -137,7 +137,8 @@ rule wgs_filtered_vcf_to_pgen:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        genome_build = config["inputs"]["genome_build"],
+        psam = config["inputs"]["psam"],
+        split_par_flag = lambda wildcards: "--split-par " + config["inputs"]["genome_build"] if wildcards.chr == "X" else "",
         max_allele_len = config["pre_processing_extra"]["max_allele_len"],
         out = config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered"
     log: config["outputs"]["output_dir"] + "log/wgs_filtered_vcf_to_pgen.{chr}.log"
@@ -146,7 +147,8 @@ rule wgs_filtered_vcf_to_pgen:
         singularity exec --bind {params.bind} {params.sif} plink2 \
             --threads {threads} \
             --vcf {input.vcf} \
-            --split-par {params.genome_build} \
+            --psam {params.psam} \
+            {params.split_par_flag} \
             --max-alleles 2 \
             --new-id-max-allele-len {params.max_allele_len} \
             --set-all-var-ids @:#:\$r_\$a \

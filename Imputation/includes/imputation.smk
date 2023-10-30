@@ -19,7 +19,7 @@ rule harmonize:
         id_updates = config["outputs"]["output_dir"] + "harmonize/{ancestry}_idUpdates.txt",
         snp_log = config["outputs"]["output_dir"] + "harmonize/{ancestry}_snpLog.log",
     resources:
-        java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"] * config["imputation"]["harmonize_threads"] + config["settings_extra"]["java_memory_buffer"],
+        java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"] * config["imputation"]["harmonize_threads"] - config["settings_extra"]["java_memory_buffer"],
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["harmonize_time"]]
@@ -128,7 +128,7 @@ rule harmonize_per_chr:
         id_updates = config["outputs"]["output_dir"] + "harmonize/{ancestry}_chr_{chr}_idUpdates.txt",
         snp_log = config["outputs"]["output_dir"] + "harmonize/{ancestry}_chr_{chr}_snpLog.log",
     resources:
-        java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"] * config["imputation"]["harmonize_threads"] + config["settings_extra"]["java_memory_buffer"],
+        java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"] * config["imputation"]["harmonize_threads"] - config["settings_extra"]["java_memory_buffer"],
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["harmonize_time"]]
