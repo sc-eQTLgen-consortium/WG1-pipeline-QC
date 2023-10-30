@@ -169,7 +169,7 @@ rule merge_vcf_to_pgens:
         singularity exec --bind {params.bind} {params.sif} echo {params.infiles} | sed 's/ /\\n/g' > {params.pmerge_list}
         singularity exec --bind {params.bind} {params.sif} plink2 \
             --threads {threads} \
-            --pmerge-list {params.pmerge_list} bfile \
+            --pmerge-list {params.pmerge_list} pfile \
             --mind {params.mind} \
             --rm-dup 'force-first' \
             --make-pgen \
@@ -214,7 +214,7 @@ rule merge_input_pgens:
         singularity exec --bind {params.bind} {params.sif} echo {params.infiles} | sed 's/ /\\n/g' > {params.pmerge_list}
         singularity exec --bind {params.bind} {params.sif} plink2 \
             --threads {threads} \
-            --pmerge-list {params.pmerge_list} bfile \
+            --pmerge-list {params.pmerge_list} pfile \
             --max-alleles 2 \
             --new-id-max-allele-len {params.max_allele_len} \
             --mind {params.mind} \

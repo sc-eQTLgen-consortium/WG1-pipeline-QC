@@ -216,7 +216,7 @@ rule combine_wgs_filtered_pgens:
         singularity exec --bind {params.bind} {params.sif} echo {params.infiles} | sed 's/ /\\n/g' > {params.pmerge_list}
         singularity exec --bind {params.bind} {params.sif} plink2 \
             --threads {threads} \
-            --pmerge-list {params.pmerge_list} bfile \
+            --pmerge-list {params.pmerge_list} pfile \
             --mind {params.mind} \
             --rm-dup 'force-first' \
             --make-pgen \
