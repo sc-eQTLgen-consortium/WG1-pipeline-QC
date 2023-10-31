@@ -17,7 +17,7 @@ print("")
 
 variants1 = {}
 error = False
-print("Loading variants loaded from {}".format(args.pvar1))
+print("Loading variants from {}".format(args.pvar1))
 with open(args.pvar1, "r") as f:
     for line in f:
         if line.startswith("#"):
@@ -32,7 +32,7 @@ with open(args.pvar1, "r") as f:
 f.close()
 print("\t{} variants loaded".format(len(variants1)))
 
-print("Loading variants loaded from {}".format(args.pvar2))
+print("Loading variants from {}".format(args.pvar2))
 fh = open(args.pvar2, "r")
 fho1 = open(args.variants1, "w")
 fho2 = open(args.variants2, "w")

@@ -17,7 +17,7 @@ print("")
 
 crossmapped_info = {}
 error = False
-print("Loading variants loaded from {}".format(args.bed))
+print("Loading variants from {}".format(args.bed))
 with open(args.bed, "r") as f:
     for line in f:
         values = line.strip("\n").split("\t")
@@ -31,7 +31,7 @@ print("\t{} variants loaded".format(len(crossmapped_info)))
 if error:
     exit()
 
-print("Loading variants loaded from {}".format(args.pvar))
+print("Loading variants from {}".format(args.pvar))
 fh = open(args.pvar, "r")
 fho_pvar = open(args.out_pvar, "w")
 fho_excl = open(args.out_exclude, "w")
@@ -42,41 +42,53 @@ n_unmapped = 0
 n_duplicated = 0
 n_exclude = 0
 for line in fh:
-    if line.startswith("#"):
+    if line.startswith("##"):
+        fho_pvar.write(line)
+        continue
+    elif line.startswith("#CHROM"):
+        # Validate header.
+        values = line.strip("\n").split("\t")
+        if (values[0] != "#CHROM") or (values[1] != "POS") or (values[2] != "ID") or (values[3] != "REF") or (values[4] != "ALT"):
+            print("\tError, unexpected header.")
+            exit()
         fho_pvar.write(line)
         continue
 
-    chr, pos, variant_id, ref, alt = line.strip("\n").split("\t")
+    values = line.strip("\n").split("\t")
 
     crossmapped = False
-    if variant_id in crossmapped_info:
+    if values[2] in crossmapped_info:
         crossmapped = True
-        chr, pos, ref, alt = crossmapped_info[variant_id]
-        variant_id = chr + ":" + pos + ":" + ref + "_" + alt
+        chr, pos, ref, alt = crossmapped_info[values[2]]
+        values[0] = chr
+        values[1] = pos
+        values[2] = chr + ":" + pos + ":" + ref + "_" + alt
+        values[3] = ref
+        values[4] = alt
     else:
         n_unmapped += 1
 
     duplicated = False
-    if variant_id in variants:
+    if values[2] in variants:
         for i in range(1, 100):
-            if variant_id + "_" + str(i) not in variants:
-                variant_id = variant_id + "_" + str(i)
+            if values[2] + "_" + str(i) not in variants:
+                values[2] = values[2] + "_" + str(i)
                 duplicated = True
                 n_duplicated += 1
                 break
 
         if not duplicated:
-            print("\tError, could not make unique ID for {}".format(variant_id))
+            print("\tError, could not make unique ID for {}".format(values[2]))
             exit()
 
     if not crossmapped or duplicated:
-        fho_excl.write(variant_id + "\n")
+        fho_excl.write(values[2] + "\n")
         n_exclude += 1
 
-    fho_pvar.write("\t".join([chr, pos, variant_id, ref, alt]) + "\n")
+    fho_pvar.write("\t".join(values) + "\n")
     n_written += 1
 
-    variants.add(variant_id)
+    variants.add(values[2])
 
 fh.close()
 fho_pvar.close()
