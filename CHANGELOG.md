@@ -19,7 +19,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 #### Fixes
 - Fixed issue where some rules did not have dynamic time / memory usage
 - Fixed issue where folders containing only numbers are read as integers instead of strings
-- Fixed issue where `NA` ancestry was not allowed in the PSAM
+- Fixed issue where missing values were not allowed in the PSAM for categorical variables
 - Fixed issue where the number of samples printed was from the old PSAM instead of the updated PSAM
 - Fixed issue where 1000G reference contains a duplicate variant (`X_68204280_rs1361839_C_T`). Fixed by switching to the build 38 reference
 - Fixed issue where the MAF per ancestry selection was limited to two ancestries and any subsequent ancestries overwrote the setting of previous ancestries
@@ -38,7 +38,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Merged singularity image with `Demultiplexing`
 - Moved (reference) data download from image to separate download scripts `download_data.sh` / `download_test_dataset.sh`
 - Reduced image size
-- Changed `check_sex` rule to only use `X` (and `Y`) chromosomes to reduce file size 
+- Changed `check_sex` rule to only use `X` chromosomes to reduce file size 
 - Moved `update_sex_ancestry` rule to `Snakefile`
 - Moved `genotype_donor_annotation` rule to `Snakefile`
 - Moved `crossmap` rule before the sex and ancestry check

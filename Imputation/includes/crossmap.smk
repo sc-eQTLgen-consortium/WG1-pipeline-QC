@@ -36,6 +36,7 @@ rule crossmap:
         psam = config["outputs"]["output_dir"] + "crossmapped/data.psam",
         log = config["outputs"]["output_dir"] + "crossmapped/data.log",
     resources:
+        plink_mem_mb = lambda wildcards, attempt: (attempt * config["crossmap"]["crossmap_memory"] * config["crossmap"]["crossmap_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["crossmap"]["crossmap_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["crossmap"]["crossmap_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["crossmap"]["crossmap_time"]]
@@ -58,12 +59,13 @@ rule crossmap:
             --out_pvar {output.crossmapped_pvar} \
             --out_exclude {output.excluded_ids}
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --pgen {input.pgen} \
             --pvar {output.crossmapped_pvar} \
             --psam {input.psam} \
             --exclude {output.excluded_ids} \
             --sort-vars \
-            --make-pgen \
+            --make-pgen 'psam-cols='fid,parents,sex,phenos \
             --out {params.out}
         """

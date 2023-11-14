@@ -2,9 +2,6 @@
 ##############################################################################################################
 ##### The following arguments need to be changed by the user to indicating file locations on your system #####
 ##############################################################################################################
-refs:
-  ref_dir: /path/to/provided/ref/dir/ ### This is the path to the directory containing the imputation references provided for the SNP processing and imputation
-
 inputs:
   bind_path: /path/to/bind/to/mount ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
@@ -13,11 +10,14 @@ inputs:
   genome_build: "hg19"
   dataset_samples: {dataset1: /path/to/dataset1/samples, dataset2: /path/to/dataset2/samples}
 
+refs:
+  ref_dir: /path/to/provided/ref/dir/ ### This is the path to the directory containing the imputation references provided for the SNP processing and imputation
+
 outputs:
   output_dir: /path/to/parent/out/dir/ ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
 
 settings:
-  is_wgs: False
+  is_wgs: False ### whether or not the input genotype is from whole genome sequencing
 
 cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"}
 
@@ -30,7 +30,7 @@ generic:
   split_by_chr_threads: 1 ### Number of threads to use
   split_by_chr_time: 0 ### The time setting to use.
   
-  vcf_to_plink_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  vcf_to_plink_memory: 6 ### Amount of gigs that will be used for memory and disk space per thread
   vcf_to_plink_threads: 1 ### Number of threads to use
   vcf_to_plink_time: 0 ### The time setting to use.
 
@@ -53,14 +53,14 @@ wgs_filter:
 
   wgs_filter_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
   wgs_filter_threads: 1 ### Number of threads to use
-  wgs_filter_time: 0 ### The time setting to use.
+  wgs_filter_time: 1 ### The time setting to use.
 
   wgs_filter_stats_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
   wgs_filter_stats_threads: 1 ### Number of threads to use
   wgs_filter_stats_time: 0 ### The time setting to use.
 
 crossmap:
-  crossmap_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  crossmap_memory: 6 ### Amount of gigs that will be used for memory and disk space per thread
   crossmap_threads: 1 ### Number of threads to use
   crossmap_time: 0 ### The time setting to use.
 
@@ -89,10 +89,6 @@ ancestry_sex_qc:
   summary_ancestry_sex_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   summary_ancestry_sex_threads: 1 ### Number of threads to use
   summary_ancestry_sex_time: 0 ### The time setting to use.
-
-  split_by_ancestry_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
-  split_by_ancestry_threads: 1 ### Number of threads to use
-  split_by_ancestry_time: 0 ### The time setting to use.
 
 ##### These are the options that will be used for imputation steps #####
 imputation:
@@ -130,21 +126,21 @@ imputation:
   kinship_threads: 1 ### Number of threads to use
   kinship_time: 0 ### The time setting to use.
 
-  eagle_prephasing_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
-  eagle_prephasing_threads: 2 ### Number of threads to use
-  eagle_prephasing_time: 0 ### The time setting to use.
+  eagle_prephasing_memory: 8 ### Amount of gigs that will be used for memory and disk space per thread
+  eagle_prephasing_threads: 4 ### Number of threads to use
+  eagle_prephasing_time: 1 ### The time setting to use.
 
   merge_eagle_prephasing_stats_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
   merge_eagle_prephasing_stats_threads: 1 ### Number of threads to use
   merge_eagle_prephasing_stats_time: 0 ### The time setting to use.
 
-  minimac_imputation_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
-  minimac_imputation_threads: 2 ### Number of threads to use
-  minimac_imputation_time: 0 ### The time setting to use.
+  minimac_imputation_memory: 8 ### Amount of gigs that will be used for memory and disk space per thread
+  minimac_imputation_threads: 4 ### Number of threads to use
+  minimac_imputation_time: 1 ### The time setting to use.
   minimac_chunk: 20000000 ###  Maximum chunk length in base pairs to impute at once (default: 20000000)
   minimac_overlap: 3000000 ### Size (in base pairs) of overlap before and after impute region to use as input to HMM (default: 3000000)
 
-  split_by_dataset_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  split_by_dataset_memory: 8 ### Amount of gigs that will be used for memory and disk space per thread
   split_by_dataset_threads: 1 ### Number of threads to use
   split_by_dataset_time: 0 ### The time setting to use.
 
@@ -162,8 +158,8 @@ refs_extra:
   relative_imputation_dir: "hg38/imputation/"
 
 settings_extra:
-  exclude_y_chr_in_sex_check: False
-  java_memory_buffer: 2  ### Amount of gigs to add to the Java memory for buffer
+  plink_memory_buffer: 1 ### Amount of gigs to reduce for the Java memory for buffer
+  java_memory_buffer: 2  ### Amount of gigs to reduce for the Java memory for buffer
 
 wgs_filter_extra:
   genotype_quality: 20 ### The genotype quality threshold
@@ -186,16 +182,16 @@ wgs_filter_extra:
 
 pre_processing_extra:
   mind: 0.03 ### Missingness rate threshold
-  max_allele_len: 500
+  max_allele_len: 500 ### When an allele name exceeds this many characters, it is automatically truncated.
 
 ancestry_sex_qc_extra:
-  prune_1000g_indep_window_size: 50
-  prune_1000g_indep_step_size: 5
-  prune_1000g_pairwise_r2_threshold: 0.5
+  prune_1000g_indep_window_size: 50 ### a window size in variant count or kilobase (if the 'kb' modifier is present) units
+  prune_1000g_indep_step_size: 5 ### a variant count to shift the window at the end of each step
+  prune_1000g_pairwise_r2_threshold: 0.5 ### pairwise r2 threshold
 
 imputation_extra:
-  kinship_maf: 0.05
-  kinship_hwe: 1e-6
-  kinship_indep_window_size: 250
-  kinship_indep_step_size: 50
-  kinship_pairwise_r2_threshold: 0.2
+  kinship_maf: 0.05 ### filters out all variants with allele frequency below the provided threshold
+  kinship_hwe: 1e-6 ### filters out all variants which have Hardy-Weinberg equilibrium exact test p-value below the provided threshold
+  kinship_indep_window_size: 250 ### a window size in variant count or kilobase (if the 'kb' modifier is present) units
+  kinship_indep_step_size: 50 ### a variant count to shift the window at the end of each step
+  kinship_pairwise_r2_threshold: 0.2 ### pairwise r2 threshold

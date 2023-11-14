@@ -31,6 +31,7 @@ rule check_sex:
         sex_check_tab = config["outputs"]["output_dir"] + "check_sex/check_sex.sexcheck.tsv",
         man_sex_select = config["outputs"]["output_dir"] + "manual_selection/sex_update_remove.tsv",
     resources:
+        plink_mem_mb = lambda wildcards, attempt: (attempt * config["ancestry_sex_qc"]["check_sex_memory"] * config["ancestry_sex_qc"]["check_sex_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["check_sex_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["check_sex_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["ancestry_sex_qc"]["check_sex_time"]]
@@ -38,23 +39,23 @@ rule check_sex:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        chr = "X" if config["settings_extra"]["exclude_y_chr_in_sex_check"] else "X, Y",
         out_conversion = config["outputs"]["output_dir"] + "check_sex/data",
         out_secheck = config["outputs"]["output_dir"] + "check_sex/check_sex",
     log: config["outputs"]["output_dir"] + "log/check_sex.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --pgen {input.pgen} \
             --pvar {input.pvar} \
             --psam {input.psam} \
             --merge-par \
-            --chr {params.chr} \
+            --chr X \
             --make-bed \
-            --max-alleles 2 \
             --out {params.out_conversion}
         singularity exec --bind {params.bind} {params.sif} plink \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --bed {output.bed} \
             --bim {output.bim} \
@@ -86,6 +87,7 @@ rule prune_1000g:
         pruned_psam = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.psam",
         pruned_log = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.log",
     resources:
+        plink_mem_mb = lambda wildcards, attempt: (attempt * config["ancestry_sex_qc"]["prune_1000g_memory"] * config["ancestry_sex_qc"]["prune_1000g_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["prune_1000g_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["prune_1000g_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["ancestry_sex_qc"]["prune_1000g_time"]]
@@ -113,15 +115,17 @@ rule prune_1000g:
             --variants2 {output.snps_1000g}
 
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --pgen {params.pgen_1000g} \
             --pvar {params.pvar_1000g} \
             --psam {params.psam_1000g} \
             --extract {output.snps_1000g} \
-            --make-pgen \
+            --make-pgen 'psam-cols='fid,parents,sex,phenos \
             --out {params.out_common}
         
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --pgen {output.common_pgen} \
             --pvar {output.common_pvar} \
@@ -130,12 +134,13 @@ rule prune_1000g:
             --out {params.out_pruning}
 
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --pgen {output.common_pgen} \
             --pvar {output.common_pvar} \
             --psam {output.common_psam} \
             --extract {output.prune_in_1000g} \
-            --make-pgen \
+            --make-pgen 'psam-cols='fid,parents,sex,phenos \
             --out {params.out_pruned}
         """
 
@@ -154,6 +159,7 @@ rule pca_1000g:
         eig = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.eigenval",
         log = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.log"
     resources:
+        plink_mem_mb = lambda wildcards, attempt: (attempt * config["ancestry_sex_qc"]["pca_1000g_memory"] * config["ancestry_sex_qc"]["pca_1000g_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["pca_1000g_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["pca_1000g_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["ancestry_sex_qc"]["pca_1000g_time"]]
@@ -166,6 +172,7 @@ rule pca_1000g:
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --pgen {input.pgen_1000g} \
             --pvar {input.pvar_1000g} \
@@ -191,6 +198,7 @@ rule prune_data:
         psam = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.psam",
         log = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.log",
     resources:
+        plink_mem_mb = lambda wildcards, attempt: (attempt * config["ancestry_sex_qc"]["prune_1000g_memory"] * config["ancestry_sex_qc"]["prune_1000g_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["prune_1000g_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["prune_1000g_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["ancestry_sex_qc"]["prune_1000g_time"]]
@@ -210,12 +218,13 @@ rule prune_data:
             --variants2 {output.snps_1000g}
 
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --pgen {input.pgen} \
             --pvar {input.pvar} \
             --psam {input.psam} \
             --extract {output.snps_data} \
-            --make-pgen \
+            --make-pgen 'psam-cols='fid,parents,sex,phenos \
             --out {params.out}
         """
 
@@ -238,6 +247,7 @@ rule pca_project:
         projected_1000g_scores = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs_projected.sscore",
         log_1000g = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs_projected.log",
     resources:
+        plink_mem_mb = lambda wildcards, attempt: (attempt * config["ancestry_sex_qc"]["pca_project_memory"] * config["ancestry_sex_qc"]["pca_project_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["pca_project_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["pca_project_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["ancestry_sex_qc"]["pca_project_time"]]
@@ -252,6 +262,7 @@ rule pca_project:
         """
         export OMP_NUM_THREADS={threads}
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --pgen {input.pgen} \
             --pvar {input.pvar} \
@@ -261,6 +272,7 @@ rule pca_project:
             --score-col-nums 6-15 \
             --out {params.out}
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --pgen {input.pgen_1000g} \
             --pvar {input.pvar_1000g} \
@@ -334,6 +346,10 @@ rule summary_ancestry_sex:
         """
 
 
+# Note that we use the updated PSAM which was created in the Snakefile using
+# config["outputs"]["output_dir"] + get_input_path() + "data.psam"
+# as input.
+# Still, some scary code here: replacing psam can desynchronize the binary genotype data and the .pgen/.pvar indexes if used improperly.
 rule split_by_ancestry:
     input:
         pgen = config["outputs"]["output_dir"] + get_input_path() + "data.pgen",
@@ -345,10 +361,11 @@ rule split_by_ancestry:
         fam = config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_subset.fam",
         log = config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_subset.log"
     resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["split_by_ancestry_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["split_by_ancestry_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["ancestry_sex_qc"]["split_by_ancestry_time"]]
-    threads: config["ancestry_sex_qc"]["split_by_ancestry_threads"]
+        plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["process_plink_memory"] * config["generic"]["process_plink_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["process_plink_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["process_plink_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["generic"]["process_plink_time"]]
+    threads: config["generic"]["process_plink_threads"]
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
@@ -360,6 +377,7 @@ rule split_by_ancestry:
         """
         singularity exec --bind {params.bind} {params.sif} grep {wildcards.ancestry} {params.psam} > {output.keep}
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --pgen {input.pgen} \
             --pvar {input.pvar} \

@@ -2,7 +2,7 @@
 
 # Input: PLINK binary on genome build 38 with updated sex, ancestry and split per ancestry
 # Output: PLINK binary imputed (possibly per split per dataset)
-
+# IMPORTANT: be careful here, we can no longer assume the same order PSAM as the one we initially validated in the Snakefile.
 
 rule harmonize:
     input:
@@ -19,7 +19,7 @@ rule harmonize:
         id_updates = config["outputs"]["output_dir"] + "harmonize/{ancestry}_idUpdates.txt",
         snp_log = config["outputs"]["output_dir"] + "harmonize/{ancestry}_snpLog.log",
     resources:
-        java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"] * config["imputation"]["harmonize_threads"] - config["settings_extra"]["java_memory_buffer"],
+        java_mem_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"] * config["imputation"]["harmonize_threads"] - config["settings_extra"]["java_memory_buffer"],
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["harmonize_time"]]
@@ -33,13 +33,16 @@ rule harmonize:
     log: config["outputs"]["output_dir"] + "log/harmonize.{ancestry}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.java_mem}g -jar {params.jar}\
+        singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.java_mem_gb}g -jar {params.jar}\
             --input {params.infile} \
             --inputType PLINK_BED \
             --ref {input.ref_vcf} \
             --refType VCF \
             --update-id \
             --output {params.out}
+        singularity exec --bind {params.bind} {params.sif} touch {output.log}
+        singularity exec --bind {params.bind} {params.sif} touch {output.id_updates}
+        singularity exec --bind {params.bind} {params.sif} touch {output.snp_log}
         """
 
 
@@ -53,6 +56,7 @@ rule harmonized_bed_to_vcf:
         index = config["outputs"]["output_dir"] + "harmonized_bed_to_vcf/{ancestry}_harmonised_hg38.vcf.gz.csi",
         log = config["outputs"]["output_dir"] + "harmonized_bed_to_vcf/{ancestry}_harmonised_hg38.log",
     resources:
+        plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["plink_to_vcf_memory"] * config["generic"]["plink_to_vcf_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["plink_to_vcf_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["plink_to_vcf_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["generic"]["plink_to_vcf_time"]]
@@ -65,6 +69,7 @@ rule harmonized_bed_to_vcf:
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --bed {input.bed} \
             --bim {input.bim} \
@@ -91,6 +96,7 @@ rule split_by_chr_for_harmonize:
         fam = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.fam",
         log = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.log",
     resources:
+        plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["split_by_chr_memory"] * config["generic"]["split_by_chr_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["split_by_chr_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["split_by_chr_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["generic"]["split_by_chr_time"]]
@@ -103,6 +109,7 @@ rule split_by_chr_for_harmonize:
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --bed {input.bed} \
             --bim {input.bim} \
@@ -149,6 +156,9 @@ rule harmonize_per_chr:
             --refType VCF \
             --update-id \
             --output {params.out}
+        singularity exec --bind {params.bind} {params.sif} touch {output.log}
+        singularity exec --bind {params.bind} {params.sif} touch {output.id_updates}
+        singularity exec --bind {params.bind} {params.sif} touch {output.snp_log}
         """
 
 
@@ -162,6 +172,7 @@ rule harmonized_bed_per_chr_to_vcf:
         index = config["outputs"]["output_dir"] + "harmonized_bed_per_chr_to_vcf/{ancestry}_harmonised_hg38.vcf.gz.csi",
         log = config["outputs"]["output_dir"] + "harmonized_bed_per_chr_to_vcf/{ancestry}_harmonised_hg38.log",
     resources:
+        plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["plink_to_vcf_memory"] * config["generic"]["plink_to_vcf_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["plink_to_vcf_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["plink_to_vcf_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["generic"]["plink_to_vcf_time"]]
@@ -178,6 +189,7 @@ rule harmonized_bed_per_chr_to_vcf:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.infiles} | sed 's/ /\\n/g' > {params.mergelist}
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --pmerge-list {params.mergelist} bfile \
             --recode vcf id-paste=iid \
             --chr {params.chr_list} \
@@ -194,8 +206,8 @@ rule fixref:
         ref_fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
         ref_vcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"],
         ref_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"] + ".tbi",
-        vcf = config["outputs"]["output_dir"] + ("harmonized_bed_per_chr_to_vcf" if config["settings"]["is_wgs"] else "harmonized_bed_to_vcf") + "/{ancestry}_harmonised_hg38.vcf.gz",
-        index = config["outputs"]["output_dir"] + ("harmonized_bed_per_chr_to_vcf" if config["settings"]["is_wgs"] else "harmonized_bed_to_vcf") + "/{ancestry}_harmonised_hg38.vcf.gz.csi"
+        vcf = config["outputs"]["output_dir"] + ("harmonized_bed_per_chr_to_vcf/" if config["settings"]["is_wgs"] else "harmonized_bed_to_vcf/") + "{ancestry}_harmonised_hg38.vcf.gz",
+        index = config["outputs"]["output_dir"] + ("harmonized_bed_per_chr_to_vcf/" if config["settings"]["is_wgs"] else "harmonized_bed_to_vcf/") + "{ancestry}_harmonised_hg38.vcf.gz.csi"
     output:
         vcf = config["outputs"]["output_dir"] + "fixref/{ancestry}_fixref_hg38.vcf.gz",
         index = config["outputs"]["output_dir"] + "fixref/{ancestry}_fixref_hg38.vcf.gz.csi"
@@ -363,6 +375,7 @@ rule kinship:
         king_id = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruned.king.id",
         kinship = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruned.kinship"
     resources:
+        plink_mem_mb = lambda wildcards, attempt: (attempt * config["imputation"]["kinship_memory"] * config["imputation"]["kinship_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["kinship_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["kinship_memory"],
         time = lambda wildcards,attempt: config["cluster_time"][(attempt - 1) + config["imputation"]["kinship_time"]]
@@ -384,6 +397,7 @@ rule kinship:
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --vcf {input.vcf} \
             --split-par {params.genome_build} \
@@ -393,6 +407,7 @@ rule kinship:
             --out {params.out_subset}
 
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --pgen {output.subset_pgen} \
             --pvar {output.subset_pvar} \
             --psam {output.subset_psam} \
@@ -401,6 +416,7 @@ rule kinship:
             --out {params.out_pruning}
 
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --pgen {output.subset_pgen} \
             --pvar {output.subset_pvar} \
             --psam {output.subset_psam} \

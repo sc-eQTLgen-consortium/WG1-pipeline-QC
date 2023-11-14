@@ -22,7 +22,7 @@ rule split_input_vcf_by_chr:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"]
-    log: config["outputs"]["output_dir"] + "log/split_input_vcf_by_chr.{chr}.log"
+    log: config["outputs"]["output_dir"] + "log/split_input_vcf_by_chr.chr_{chr}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools view -r {wildcards.chr} {input.vcf} -Oz -o {output.vcf}
@@ -47,7 +47,7 @@ rule bcftools_norm:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"]
-    log: config["outputs"]["output_dir"] + "log/bcftools_norm.{chr}.log"
+    log: config["outputs"]["output_dir"] + "log/bcftools_norm.chr_{chr}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools norm -m -any {input.vcf} -o {output.vcf}
@@ -93,7 +93,7 @@ rule wgs_filter:
         hardy_weinberg_equilibrium = config["wgs_filter_extra"]["hardy_weinberg_equilibrium"],
         filtered_depth = config["wgs_filter_extra"]["filtered_depth"],
         keep_info_column = "--keep_info_column" if config["wgs_filter_extra"]["keep_info_column"]  else ""
-    log: config["outputs"]["output_dir"] + "log/wgs_filter.{chr}.log"
+    log: config["outputs"]["output_dir"] + "log/wgs_filter.chr_{chr}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \
@@ -130,6 +130,7 @@ rule wgs_filtered_vcf_to_pgen:
         psam = config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.psam",
         log = config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.log"
     resources:
+        plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["vcf_to_plink_memory"] * config["generic"]["vcf_to_plink_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["vcf_to_plink_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["vcf_to_plink_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["generic"]["vcf_to_plink_time"]]
@@ -141,10 +142,11 @@ rule wgs_filtered_vcf_to_pgen:
         split_par_flag = lambda wildcards: "--split-par " + config["inputs"]["genome_build"] if wildcards.chr == "X" else "",
         max_allele_len = config["pre_processing_extra"]["max_allele_len"],
         out = config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered"
-    log: config["outputs"]["output_dir"] + "log/wgs_filtered_vcf_to_pgen.{chr}.log"
+    log: config["outputs"]["output_dir"] + "log/wgs_filtered_vcf_to_pgen.chr_{chr}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --vcf {input.vcf} \
             --psam {params.psam} \
@@ -152,7 +154,7 @@ rule wgs_filtered_vcf_to_pgen:
             --max-alleles 2 \
             --new-id-max-allele-len {params.max_allele_len} \
             --set-all-var-ids @:#:\$r_\$a \
-            --make-pgen \
+            --make-pgen 'psam-cols='fid,parents,sex,phenos \
             --out {params.out}
         """
 
@@ -187,17 +189,22 @@ rule wgs_filter_stats:
 
 
 # This also includes the indiv_missingness rule.
+# IMPORTANT: --pmerge-list reorders to psam file so '--indiv-sort f' is very important here.
 rule combine_wgs_filtered_pgens:
     input:
         pgen = lambda wildcards: expand(config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.pgen", chr=INPUT_CHROMOSOMES),
         pvar = lambda wildcards: expand(config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.pvar", chr=INPUT_CHROMOSOMES),
         psam = lambda wildcards: expand(config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.psam", chr=INPUT_CHROMOSOMES),
     output:
+        merge_pgen = temp(config["outputs"]["output_dir"] + "wgs_filtered/normalised_filtered.pgen"),
+        merge_pvar = temp(config["outputs"]["output_dir"] + "wgs_filtered/normalised_filtered.pvar"),
+        merge_psam = temp(config["outputs"]["output_dir"] + "wgs_filtered/normalised_filtered.psam"),
         pgen = config["outputs"]["output_dir"] + "wgs_filtered/data.pgen",
         pvar = config["outputs"]["output_dir"] + "wgs_filtered/data.pvar",
         psam = config["outputs"]["output_dir"] + "wgs_filtered/data.psam",
         log = config["outputs"]["output_dir"] + "wgs_filtered/data.log"
     resources:
+        plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["process_plink_memory"] * config["generic"]["process_plink_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["process_plink_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["process_plink_memory"],
         time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["generic"]["process_plink_time"]]
@@ -208,6 +215,7 @@ rule combine_wgs_filtered_pgens:
         infiles = lambda wildcards: expand(config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered", chr=INPUT_CHROMOSOMES),
         pmerge_list = config["outputs"]["output_dir"] + "wgs_filtered/pmerge_list.txt",
         mind = config["pre_processing_extra"]["mind"],
+        merge_out = config["outputs"]["output_dir"] + "wgs_filtered/normalised_filtered",
         psam = config["inputs"]["psam"],
         out = config["outputs"]["output_dir"] + "wgs_filtered/data"
     log: config["outputs"]["output_dir"] + "log/combine_wgs_filtered_pgens.log"
@@ -215,12 +223,21 @@ rule combine_wgs_filtered_pgens:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.infiles} | sed 's/ /\\n/g' > {params.pmerge_list}
         singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
             --threads {threads} \
             --pmerge-list {params.pmerge_list} pfile \
+            --make-pgen 'psam-cols='fid,parents,sex,phenos \
+            --out {params.merge_out}
+
+        singularity exec --bind {params.bind} {params.sif} plink2 \
+            --memory {resources.plink_mem_mb} \
+            --threads {threads} \
+            --pgen {output.merge_pgen} \
+            --pvar {output.merge_pvar} \
+            --psam {output.merge_psam} \
+            --indiv-sort f {params.psam} \
             --mind {params.mind} \
             --rm-dup 'force-first' \
-            --make-pgen \
+            --make-pgen 'psam-cols='fid,parents,sex,phenos \
             --out {params.out}
-
-        singularity exec --bind {params.bind} {params.sif} cp {params.psam} {output.psam}
         """
