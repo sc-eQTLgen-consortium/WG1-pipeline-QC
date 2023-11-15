@@ -16,6 +16,15 @@ parser$add_argument("-o", "--out", required=TRUE, help="The output directory whe
 # otherwise if options not found on command line then set defaults,
 args <- parser$parse_args()
 
+## make sure the directory exists ###
+dir.create(args$out, recursive = TRUE)
+
+print("Options in effect:")
+for (name in names(args)) {
+	print(paste0("  --", name, " ", args[[name]]))
+}
+print("")
+
 suppressMessages(suppressWarnings(library(tidyr)))
 suppressMessages(suppressWarnings(library(tidyverse)))
 suppressMessages(suppressWarnings(library(dplyr)))
@@ -24,9 +33,6 @@ suppressMessages(suppressWarnings(library(ggpubr)))
 suppressMessages(suppressWarnings(library(RColorBrewer)))
 suppressMessages(suppressWarnings(library(data.table)))
 suppressMessages(suppressWarnings(library(cowplot)))
-
-## make sure the directory exists ###
-dir.create(args$out, recursive = TRUE)
 
 ##### Read in sample sheet #####
 sample_sheet_dt <- fread(args$sample_sheet, sep = "\t")

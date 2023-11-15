@@ -9,7 +9,6 @@ parser <- ArgumentParser()
 
 # specify our desired options
 # by default ArgumentParser will add an help option
-parser$add_argument("-o", "--out", required=TRUE, type="character", help="The file where results will be saved")
 parser$add_argument("-d", "--demuxlet", required=FALSE, type="character", default=NULL, help="Path to demuxlet results. Only use this option if you want to include the demuxlet results.")
 parser$add_argument("-f", "--freemuxlet", required=FALSE, type="character", default=NULL, help="Path to freemuxlet results. Only use this option if you want to include the freemuxlet results.")
 parser$add_argument("-g", "--freemuxlet_assignments", required=FALSE, type="character", default=NULL, help="Path to freemuxlet cluster-to-individual assignments. Only use this option if have used reference SNP genotypes to assign individuals to clusters for the freemuxlet results.")
@@ -31,12 +30,20 @@ parser$add_argument("-l", "--solo", required=FALSE, type="character", default=NU
 parser$add_argument("-b", "--ref", required=FALSE, type="character", default=NULL, help="Which demultiplexing software to use as a reference for individuals when you do not have assignment key for all demultiplexing method. Options are 'Demuxlet', 'Freemuxlet', 'scSplit', 'Souporcell' and 'Vireo'. If blank when assignment keys are missing, default softwares to use if present are Vireo, then Demuxlet, then Freemuxlet, then Souporcell, then scSplit.")
 parser$add_argument("-p", "--pct_agreement", required=FALSE, type="double", default=0.7, help="The proportion of a cluster that match the 'ref' assignment to assign that cluster the individual assignment from the reference. Can be between 0.5 and 1. Default is 0.9.")
 parser$add_argument("-m", "--method", required=FALSE, type="character", default=NULL, help="Combination method. Options are 'MajoritySinglet'. 'AtLeastHalfSinglet', 'AnySinglet' or 'AnyDoublet'. We have found that 'MajoritySinglet' provides the most accurate results in most situations and therefore recommend this method. See https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/latest/CombineResults.html for detailed explanation of each intersectional method. Leave blank if you just want all the softwares to be merged into a single dataframe.")
-
+parser$add_argument("-o", "--out", required=TRUE, type="character", help="The folder where results will be saved")
 
 # get command line options, if help option encountered print help and exit,
 # otherwise if options not found on command line then set defaults,
 args <- parser$parse_args()
 
+## make sure the directory exists ###
+dir.create(args$out, recursive=TRUE)
+
+print("Options in effect:")
+for (name in names(args)) {
+	print(paste0("  --", name, " ", args[[name]]))
+}
+print("")
 
 suppressMessages(suppressWarnings(library(data.table)))
 suppressMessages(suppressWarnings(library(tidyverse)))
@@ -153,11 +160,11 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 			results_list[["scSplit"]] <- fread(args$scSplit, sep="\t")
 		} else {
 			tryCatch({
-				results_list[["scSplit"]] <- fread(paste0(args$scSplit, "/scSplit_result.csv"), sep="\t")
+				results_list[["scSplit"]] <- fread(paste0(args$scSplit, "/scSplit_result.csv.gz"), sep="\t")
 			},
 			error=function(e) {
 				message(e)
-				message("Can't read in the scSplit report either from the file you provided or to find the 'scSplit_result.csv' file in the directory you provided. Please double check your path and provide the full path to the scSplit file. Exiting.")
+				message("Can't read in the scSplit report either from the file you provided or to find the 'scSplit_result.csv.gz' file in the directory you provided. Please double check your path and provide the full path to the scSplit file. Exiting.")
 				q()
 			})
 		}
@@ -177,11 +184,11 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 			results_list[["Souporcell"]] <- fread(args$souporcell, sep="\t")
 		} else {
 			tryCatch({
-				results_list[["Souporcell"]] <- fread(paste0(args$souporcell, "/clusters.tsv"), sep="\t")
+				results_list[["Souporcell"]] <- fread(paste0(args$souporcell, "/clusters.tsv.gz"), sep="\t")
 			},
 			error=function(e) {
 				message(e)
-				message("Can't read in the souporcell report either from the file you provided or to find the 'clusters.tsv' file in the directory you provided. Please double check your path and provide the full path to the souporcell file. Exiting.")
+				message("Can't read in the souporcell report either from the file you provided or to find the 'clusters.tsv.gz' file in the directory you provided. Please double check your path and provide the full path to the souporcell file. Exiting.")
 				q()
 			})
 		}
@@ -199,11 +206,11 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 			results_list[["Vireo"]] <- fread(args$vireo, sep="\t")
 		} else {
 			tryCatch({
-				results_list[["Vireo"]] <- fread(paste0(args$vireo, "/donor_ids.tsv"), sep="\t")
+				results_list[["Vireo"]] <- fread(paste0(args$vireo, "/donor_ids.tsv.gz"), sep="\t")
 			},
 			error=function(e) {
 				message(e)
-				message("Can't read in the vireo report either from the file you provided or to find the 'donor_ids.tsv' file in the directory you provided. Please double check your path and provide the full path to the vireo file. Exiting.")
+				message("Can't read in the vireo report either from the file you provided or to find the 'donor_ids.tsv.gz' file in the directory you provided. Please double check your path and provide the full path to the vireo file. Exiting.")
 				q()
 			})
 		}
@@ -221,11 +228,11 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 			results_list[["DoubletDecon"]] <- fread(args$DoubletDecon, sep="\t")
 		} else {
 			tryCatch({
-				results_list[["DoubletDecon"]] <- fread(paste0(args$DoubletDecon, "/DoubletDecon_doublets_singlets.tsv"), sep="\t")
+				results_list[["DoubletDecon"]] <- fread(paste0(args$DoubletDecon, "/DoubletDecon_doublets_singlets.tsv.gz"), sep="\t")
 			},
 			error=function(e) {
 				message(e)
-				message("Can't read in the DoubletDecon report either from the file you provided or to find the 'DoubletDecon_doublets_singlets.tsv' file in the directory you provided. Please double check your path and provide the full path to the DoubletDecon file. Exiting.")
+				message("Can't read in the DoubletDecon report either from the file you provided or to find the 'DoubletDecon_doublets_singlets.tsv.gz' file in the directory you provided. Please double check your path and provide the full path to the DoubletDecon file. Exiting.")
 				q()
 			})
 		}
@@ -237,11 +244,11 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 			results_list[["DoubletDetection"]] <- fread(args$DoubletDetection, sep="\t")
 		} else {
 			tryCatch({
-				results_list[["DoubletDetection"]] <- fread(paste0(args$DoubletDetection, "/DoubletDetection_doublets_singlets.tsv"), sep="\t")
+				results_list[["DoubletDetection"]] <- fread(paste0(args$DoubletDetection, "/DoubletDetection_doublets_singlets.tsv.gz"), sep="\t")
 			},
 			error=function(e) {
 				message(e)
-				message("Can't read in the DoubletDetection report either from the file you provided or to find the 'DoubletDetection_doublets_singlets.tsv' file in the directory you provided. Please double check your path and provide the full path to the DoubletDetection file. Exiting.")
+				message("Can't read in the DoubletDetection report either from the file you provided or to find the 'DoubletDetection_doublets_singlets.tsv.gz' file in the directory you provided. Please double check your path and provide the full path to the DoubletDetection file. Exiting.")
 				q()
 			})
 		}
@@ -253,10 +260,10 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 			results_list[["DoubletFinder"]] <- fread(args$DoubletFinder, sep="\t")
 		} else {
 			tryCatch({
-				results_list[["DoubletFinder"]] <- fread(paste0(args$DoubletFinder, "/DoubletFinder_doublets_singlets.tsv"), sep="\t")
+				results_list[["DoubletFinder"]] <- fread(paste0(args$DoubletFinder, "/DoubletFinder_doublets_singlets.tsv.gz"), sep="\t")
 			},
 			error=function(e) {
-				message("Can't read in the DoubletFinder report either from the file you provided or to find the 'DoubletFinder_doublets_singlets.tsv' file in the directory you provided. Please double check your path and provide the full path to the DoubletFinder file. Exiting.")
+				message("Can't read in the DoubletFinder report either from the file you provided or to find the 'DoubletFinder_doublets_singlets.tsv.gz' file in the directory you provided. Please double check your path and provide the full path to the DoubletFinder file. Exiting.")
 				q()
 			})
 		}
@@ -268,10 +275,10 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 			results_list[["scDblFinder"]] <- fread(args$scDblFinder, sep="\t")
 		} else {
 			tryCatch({
-				results_list[["scDblFinder"]] <- fread(paste0(args$scDblFinder, "/scDblFinder_doublets_singlets.tsv"), sep="\t")
+				results_list[["scDblFinder"]] <- fread(paste0(args$scDblFinder, "/scDblFinder_doublets_singlets.tsv.gz"), sep="\t")
 			},
 			error=function(e) {
-				message("Can't read in the scDblFinder report either from the file you provided or to find the 'scDblFinder_doublets_singlets.tsv' file in the directory you provided. Please double check your path and provide the full path to the scDblFinder file. Exiting.")
+				message("Can't read in the scDblFinder report either from the file you provided or to find the 'scDblFinder_doublets_singlets.tsv.gz' file in the directory you provided. Please double check your path and provide the full path to the scDblFinder file. Exiting.")
 				q()
 			})
 		}
@@ -283,10 +290,10 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 			results_list[["scds"]] <- fread(args$scds, sep="\t")
 		} else {
 			tryCatch({
-				results_list[["scds"]] <- fread(paste0(args$scds, "/scds_doublets_singlets.tsv"), sep="\t")
+				results_list[["scds"]] <- fread(paste0(args$scds, "/scds_doublets_singlets.tsv.gz"), sep="\t")
 			},
 			error=function(e) {
-				message("Can't read in the scds report either from the file you provided or to find the 'scds_doublets_singlets.tsv' file in the directory you provided. Please double check your path and provide the full path to the scds file. Exiting.")
+				message("Can't read in the scds report either from the file you provided or to find the 'scds_doublets_singlets.tsv.gz' file in the directory you provided. Please double check your path and provide the full path to the scds file. Exiting.")
 				q()
 			})
 		}
@@ -298,10 +305,10 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 			results_list[["scrublet"]] <- fread(args$scrublet, sep="\t")
 		} else {
 			tryCatch({
-				results_list[["scrublet"]] <- fread(paste0(args$scrublet, "/scrublet_doublets_singlets.tsv"), sep="\t")
+				results_list[["scrublet"]] <- fread(paste0(args$scrublet, "/scrublet_doublets_singlets.tsv.gz"), sep="\t")
 			},
 			error=function(e) {
-				message("Can't read in the scrublet report either from the file you provided or to find the 'scrublet_results.tsv' file in the directory you provided. Please double check your path and provide the full path to the scrublet file. Exiting.")
+				message("Can't read in the scrublet report either from the file you provided or to find the 'scrublet_results.tsv.gz' file in the directory you provided. Please double check your path and provide the full path to the scrublet file. Exiting.")
 				q()
 			})
 		}
@@ -313,10 +320,10 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 			results_list[["solo"]] <- fread(args$solo, sep="\t")
 		} else {
 			tryCatch({
-				results_list[["solo"]] <- fread(paste0(args$solo, "/solo_results.tsv"), sep="\t")
+				results_list[["solo"]] <- fread(paste0(args$solo, "/solo_results.tsv.gz"), sep="\t")
 			},
 			error=function(e) {
-				message("Can't read in the solo report either from the file you provided or to find the 'solo_results.tsv' file in the directory you provided. Please double check your path and provide the full path to the solo file. Exiting.")
+				message("Can't read in the solo report either from the file you provided or to find the 'solo_results.tsv.gz' file in the directory you provided. Please double check your path and provide the full path to the solo file. Exiting.")
 				q()
 			})
 		}
@@ -335,10 +342,10 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 				results_assignments_list[["Freemuxlet"]] <- fread(args$freemuxlet_assignments, sep="\t")
 			} else {
 				tryCatch({
-					results_assignments_list[["Freemuxlet"]] <- fread(paste0(args$freemuxlet_assignments, "/Genotype_ID_key.txt"), sep="\t")
+					results_assignments_list[["Freemuxlet"]] <- fread(paste0(args$freemuxlet_assignments, "/Genotype_ID_key.txt.gz"), sep="\t")
 				},
 				error=function(e) {
-					message("Can't read in the freemuxlet cluster-to-indiviudal assignments report either from the file you provided or to find the 'Genotype_ID_key.tsv' file in the directory you provided. Please double check your path and provide the full path to the freemuxlet cluster-to-indiviudal key file. Exiting.")
+					message("Can't read in the freemuxlet cluster-to-indiviudal assignments report either from the file you provided or to find the 'Genotype_ID_key.txt.gz' file in the directory you provided. Please double check your path and provide the full path to the freemuxlet cluster-to-indiviudal key file. Exiting.")
 					q()
 				})
 			}
@@ -386,10 +393,10 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 				results_assignments_list[["scSplit"]] <- fread(args$scSplit_assignments, sep="\t")
 			} else {
 				tryCatch({
-					results_assignments_list[["scSplit"]] <- fread(paste0(args$scSplit_assignments, "/Genotype_ID_key.txt"), sep="\t")
+					results_assignments_list[["scSplit"]] <- fread(paste0(args$scSplit_assignments, "/Genotype_ID_key.txt.gz"), sep="\t")
 				},
 				error=function(e) {
-					message("Can't read in the scSplit cluster-to-indiviudal assignments report either from the file you provided or to find the 'Genotype_ID_key.tsv' file in the directory you provided. Please double check your path and provide the full path to the scSplit cluster-to-indiviudal key file. Exiting.")
+					message("Can't read in the scSplit cluster-to-indiviudal assignments report either from the file you provided or to find the 'Genotype_ID_key.txt.gz' file in the directory you provided. Please double check your path and provide the full path to the scSplit cluster-to-indiviudal key file. Exiting.")
 					q()
 				})
 			}
@@ -433,10 +440,10 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 				results_assignments_list[["Souporcell"]] <- fread(args$souporcell_assignments, sep="\t")
 			} else {
 				tryCatch({
-					results_assignments_list[["Souporcell"]] <- fread(paste0(args$souporcell_assignments, "/Genotype_ID_key.txt"), sep="\t")
+					results_assignments_list[["Souporcell"]] <- fread(paste0(args$souporcell_assignments, "/Genotype_ID_key.txt.gz"), sep="\t")
 				},
 				error=function(e) {
-					message("Can't read in the souporcell cluster-to-indiviudal assignments report either from the file you provided or to find the 'Genotype_ID_key.tsv' file in the directory you provided. Please double check your path and provide the full path to the souporcell cluster-to-indiviudal key file. Exiting.")
+					message("Can't read in the souporcell cluster-to-indiviudal assignments report either from the file you provided or to find the 'Genotype_ID_key.txt.gz' file in the directory you provided. Please double check your path and provide the full path to the souporcell cluster-to-indiviudal key file. Exiting.")
 					q()
 				})
 			}
@@ -637,7 +644,7 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 	combined_results[is.na(combined_results)] <- "unassigned"
 
 	message("\nWriting output.\n")
-	fwrite(combined_results, args$out, sep="\t", append=FALSE)
+	fwrite(combined_results, paste0(args$out, "combined_results.tsv"), sep="\t", append=FALSE)
 
 	message("\nMaking and writing summary files.\n")
 	combined_results_summary <- combined_results[,.(N=.N), by=c(grep("DropletType",colnames(combined_results), value=TRUE))]
@@ -656,12 +663,12 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 		print(columns)
 		demultiplex_combined_results_summary <- combined_results[,.(N=.N), by=c(columns)]
 		demultiplex_combined_results_summary <- demultiplex_combined_results_summary[order(-N)]
-		fwrite(demultiplex_combined_results_summary, paste0(tools::file_path_sans_ext(args$out),"_demultiplexing_summary.tsv"), sep="\t", append=FALSE)
+		fwrite(demultiplex_combined_results_summary, paste0(args$out, "combined_results_demultiplexing_summary.tsv"), sep="\t", append=FALSE)
 	}
 
 	combined_results_summary <- combined_results_summary[order(-N)]
 
-	fwrite(combined_results_summary, paste0(tools::file_path_sans_ext(args$out),"_summary.tsv"), sep="\t", append=FALSE)
+	fwrite(combined_results_summary, paste0(args$out, "combined_results_summary.tsv"), sep="\t", append=FALSE)
 
 
 	## Call singlets and doublets using combined intersectional methods ##
@@ -753,7 +760,7 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 			}
 		}
 	message("\nWriting output with combined calls.\n")
-	fwrite(combined_results, paste0(tools::file_path_sans_ext(args$out),"_w_combined_assignments.tsv"), sep="\t", append=FALSE)
+	fwrite(combined_results, paste0(args$out,"combined_results_w_combined_assignments.tsv"), sep="\t", append=FALSE)
 	}
 
 	##### Make an upset plot for the results to visualize the agreement between different softwares #####
@@ -808,7 +815,7 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 
 		message("\nMaking figures of software and final assignments.\n")
 
-		pdf(file= paste0(tools::file_path_sans_ext(args$out),"Singlets_upset.pdf"), height=5, width=10) # or other device
+		pdf(file= paste0(args$out, "Singlets_upset.pdf"), height=5, width=10) # or other device
 		print(pUpset)
 		dev.off()
 
@@ -852,7 +859,7 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 
 		message("\nMaking figures of software and final assignments.\n")
 
-		pdf(file= paste0(tools::file_path_sans_ext(args$out),"Singlets_upset.pdf"), height=5, width=10) # or other device
+		pdf(file= paste0(args$out, "Singlets_upset.pdf"), height=5, width=10) # or other device
 		print(pUpset)
 		dev.off()
 
@@ -885,7 +892,7 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 
 		message("\nMaking figures of final assignments.\n")
 
-		pdf(file= paste0(tools::file_path_sans_ext(args$out),"Singlets_upset.pdf"), height=5, width=10) # or other device
+		pdf(file= paste0(args$out, "Singlets_upset.pdf"), height=5, width=10) # or other device
 		print(pUpset)
 		dev.off()
 

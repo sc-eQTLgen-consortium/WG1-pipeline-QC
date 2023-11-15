@@ -2,23 +2,21 @@
 ##############################################################################################################
 ##### The following arguments need to be changed by the user to indicating file locations on your system #####
 ##############################################################################################################
-refs:
-  ref_dir: /path/to/provided/ref/dir ### This is the path to the directory containing the imputation references provided for the SNP processing and imputation
-
 inputs:
   bind_path: /path/to/bind/to/mount ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
-  samplesheet_filepath: /path/to/sample/metadata/file.tsv ### tab separated file that has a header. Each line has a pool name used for the scRNA-seq directories and the number of individuals in each pool
-  sample_file_paths: /path/to/scRNAseq/parent/directory ###
-  vcf: [] ### the path to the genotype file(s) per ancestry
+  poolsheet_filepath: /path/to/sample/metadata/file.tsv ### tab separated file that has a header. Each line has a pool name used for the scRNA-seq directories and the number of individuals in each pool
   individual_list_dir: /path/to/individual_list/directory/ ### Directory that has a different file for each pool. Each file contains a list of the individuals IDs that are in the pool separated by line (match the genotype individual IDs)
+  vcf: [] ### the path to the genotype file(s) per ancestry
+
+refs:
+  ref_dir: /path/to/provided/ref/dir ### This is the path to the directory containing the imputation references provided for the SNP processing and imputation
 
 outputs: 
   output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
 
 settings:
-    is_multiplexed: False
-    is_ambient_corrected: False
+    is_multiplexed: True
     sc_data_type: "single-cell"
 
 cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"}
@@ -27,57 +25,107 @@ cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"}
 ##### The following arguments are common parameters that may need to be changed depending on the dataset #####
 ##############################################################################################################
 demultiplex_preprocessing:
-  combine_vcfs_all_memory: 2 ### Amount of gigs that will be used for memory and disk space per thread
-  combine_vcfs_all_threads: 2 ### Number of threads to use
+  combine_vcfs_all_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  combine_vcfs_all_threads: 1 ### Number of threads to use
   combine_vcfs_all_time: 0 ### The time setting to use.
 
   filter4demultiplexing_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  filter4demultiplexing_threads: 4 ### Number of threads to use
+  filter4demultiplexing_threads: 1 ### Number of threads to use
   filter4demultiplexing_time: 0 ### The time setting to use.
 
-  sort4demultiplexing_java_memory: 10 ### Memory passed to java for picard.jar in GB.
   sort4demultiplexing_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  sort4demultiplexing_threads: 5 ### Number of threads to use
+  sort4demultiplexing_threads: 1 ### Number of threads to use
   sort4demultiplexing_time: 0 ### The time setting to use.
 
-  count_snps_memory: 20 ### Amount of gigs that will be used for memory and disk space per thread
-  count_snps_threads: 2 ### Number of threads to use
-  count_snps_time: 0 ### The time setting to use.
-
 popscle:
-  popscle_bam_filter_memory: 10 ### This is the number of gigs that will be used for memory when subsetting the bam file.
-  popscle_bam_filter_threads : 4 ### This is the number of threads that will be used for memory when subsetting the bam file.
+  popscle_bam_filter_memory: 5 ### This is the number of gigs that will be used for memory when subsetting the bam file.
+  popscle_bam_filter_threads : 2 ### This is the number of threads that will be used for memory when subsetting the bam file.
   popscle_bam_filter_time: 0 ### The time setting to use.
+
   popscle_pileup_memory: 10 ### This is the number of gigs that will be used for memory and disk space per thread for the pileup step.
   popscle_pileup_threads: 10 ### The number threads that will be used for the pileup step
   popscle_pileup_time: 0 ### The time setting to use.
-  popscle_demuxlet_memory: 25 ### This is the number of gigs that will be used for memory and disk space per thread for the demuxlet step
-  popscle_demuxlet_threads: 4 ### The number threads that will be used for the demuxlet step
+  popscle_pileup_tag_group: "CB" ### Tag representing readgroup or cell barcodes, in the case to partition the BAM file into multiple groups. For 10x genomics, use CB
+  popscle_pileup_tag_UMI: "UB" ### Tag representing UMIs. For 10x genomiucs, use UB
+
+  popscle_demuxlet_memory: 5 ### This is the number of gigs that will be used for memory and disk space per thread for the demuxlet step
+  popscle_demuxlet_threads: 2 ### The number threads that will be used for the demuxlet step
   popscle_demuxlet_time: 0 ### The time setting to use.
-  popscle_genotype_field: "GP" ### This is the field that will be used to determing the genotype, could be GP or GT or another option
-  popscle_tag_group: "CB" ### The tag for the readgroup or barcode. For 10x scRNA-seq this is the correct cell barcode tag, for others, you may have to alter accordingly
-  popscle_tag_UMI: "UB" ### The tag for the UMIs. For 10x, UB should be correct
+  popscle_demuxlet_field: "GP" ### FORMAT field to extract the genotype, likelihood, or posterior from
 
 souporcell:
-  souporcell_memory: 10  ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell step
-  souporcell_threads: 8 ### The number threads that will be used for the souporcell step
-  souporcell_time: 0 ### The time setting to use.
+  souporcell_preflights_memory: 4
+  souporcell_preflights_threads: 1
+  souporcell_preflights_time: 0
+
+  souporcell_get_bam_regions_memory: 4
+  souporcell_get_bam_regions_threads: 1
+  souporcell_get_bam_regions_time: 0
+
+  souporcell_remap_splits: 4 ### number of jobs to use for make_fastqs, remap, and retag. Each job gets the memory / threads / time as specified per rule.
+
+  souporcell_make_fastqs_memory: 4
+  souporcell_make_fastqs_threads: 1
+  souporcell_make_fastqs_time: 0
+
+  souporcell_remap_memory: 16 ### using
+  souporcell_remap_threads: 1
+  souporcell_remap_time: 0
+
+  souporcell_retag_memory: 4
+  souporcell_retag_threads: 1
+  souporcell_retag_time: 0
+
+  souporcell_freebayes_memory: 4
+  souporcell_freebayes_threads: 1
+  souporcell_freebayes_time: 0
+  souporcell_freebayes_splits: 4 ### number of jobs to use for Freebayes. Each job gets the memory / threads / time as specified above.
+
+  souporcell_freebayes_combine_memory: 4
+  souporcell_freebayes_combine_threads: 1
+  souporcell_freebayes_combine_time: 0
+
+  souporcell_common_variants_memory: 4
+  souporcell_common_variants_threads: 1
+  souporcell_common_variants_time: 0
+
+  souporcell_vartrix_memory: 4
+  souporcell_vartrix_threads: 1
+  souporcell_vartrix_time: 0
+
+  souporcell_souporcell_memory: 2 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell step
+  souporcell_souporcell_threads: 4 ### The number threads that will be used for the souporcell step
+  souporcell_souporcell_time: 0 ### The time setting to use.
+
+  souporcell_doublets_memory: 4
+  souporcell_doublets_threads: 1
+  souporcell_doublets_time: 0
+
+  souporcell_consensus_memory: 4
+  souporcell_consensus_threads: 1
+  souporcell_consensus_time: 0
+
   souporcell_summary_memory: 4 ###
   souporcell_summary_threads: 1 ###
   souporcell_summary_time: 0 ### The time setting to use.
-  souporcell_pool_vcf_memory: 5 ###
+
+  souporcell_pool_vcf_memory: 4 ###
   souporcell_pool_vcf_threads: 1 ###
   souporcell_pool_vcf_time: 0 ### The time setting to use.
-  souporcell_correlations_memory: 20 ### Amount of memory (in GB) that will be allocated for each thread
+
+  souporcell_correlations_memory: 5 ### Amount of memory (in GB) that will be allocated for each thread
   souporcell_correlations_threads: 2 ### The number of threads to be used to run R script that will correlate the souporcell cluster genotypes wiht the reference genotypes
   souporcell_correlations_time: 0 ### The time setting to use.
-  souporcell_genotype_correlation_threshold: 0.7 ### The minimum correlation between a cluster and provided SNP genotypes to consider that cluster assigned to that individual
 
 scrublet:
   scrublet_memory: 5 ### The number amount of memory that will be used for scrublet doublet detection (in GB)
   scrublet_threads: 1 ### The number threads that will be used for the scrublet step
   scrublet_time: 0 ### The time setting to use.
-  percentile: [80, 85, 90, 95] ### The percentile cutoff for the most variable genes. Scrublet will be run with each of these percentile limits for each pool and saved into a different directory as pool/scrublet_{percentile}/
+  scrublet_min_gene_variability_pctl: [80, 85, 90, 95] ### Used for gene filtering prior to PCA. Keep the most highly variable genes in the top min_gene_variability_pctl percentile), as measured by the v-statistic [Klein et al., Cell 2015]
+
+  plot_scrublet_memory: 4 ### The number amount of memory that will be used for plot scrublet doublet detection (in GB)
+  plot_scrublet_threads: 1 ### The number threads that will be used for the plot scrublet step
+  plot_scrublet_time: 0 ### The time setting to use.
 
 scds:
   scds_memory: 10 ### The amount of memeory (GB) per thread for the scds step
@@ -88,6 +136,11 @@ doubletdetection:
   doubletdetection_memory: 10 ### The amount of memory (GB) used per thread for the DoubletDetection step
   doubletdetection_threads: 2 ### The number threads that will be used for the DoubletDetection step
   doubletdetection_time: 0 ### The time setting to use.
+  doubletdetection_n_iters: [50] ###  Number of fit operations from which to collect p-values
+
+  plot_doubletdetection_memory: 4 ### The amount of memory (GB) used per thread for the plot DoubletDetection step
+  plot_doubletdetection_threads: 1 ### The number threads that will be used for the plot DoubletDetection step
+  plot_doubletdetection_time: 0 ### The time setting to use.
 
 scdblfinder:
   scfblfinder_memory: 10 ### The amount of memeory (GB) per thread for the scDblFinder step
@@ -99,82 +152,121 @@ doubletfinder:
   doubletfinder_threads: 1 ### The number threads that will be used for the DoubletFinder step
   doubletfinder_time: 0 ### The time setting to use.
 
+  plot_doubletfinder_memory: 4 ### The amount of memory (GB) used per thread for the plot DoubletFinder step
+  plot_doubletfinder_threads: 1 ### The number threads that will be used for the plot DoubletFinder step
+  plot_doubletfinder_time: 0 ### The time setting to use.
+
 combine_results:
   combine_results_memory: 20 ###
   combine_results_threads: 2 ###
   combine_results_time: 0 ### The time setting to use.
 
-
-###############################################################################################################################################
-##### The following arguments are for manually running/rerunning specific pools with specific arguments for scrublet and DoubletDetection #####
-###############################################################################################################################################
-scrublet_manual:
-  run_scrublet_manual: False ### logical whether or not to run scrublet with manual thresholding. This is only used if there are pools where the automatically chosen threshold is incorrect. In that case, you can manually select and use the below variables to assign the desired percentile and threshold
-  scrublet_manual_threshold_pools: None ### List of the pools that need manual threshold setting for scrublet. ex [Pool1,Pool7]
-  scrublet_manual_threshold_percentiles: None ### List of the percentile of variable genes to use for the manual threshold setting for scrublet. Note that the location in this vector is directly relational to the scrublet_manual_threshold_pools vector. ex [85,95]
-  scrublet_manual_threshold_thresholds: None ### List of the manually set thresholds for scrublet. Note that the location in this vector is directly relational to the scrublet_manual_threshold_pools vector. ex [0.2,0.24]
-
-doubletdetection_manual:
-  run_doubletdetection_manual: False ### logical whether or not to run scrublet with manual thresholding. This is only used if the number of doublets didn't reach a convergence. This will only rerun the pools indicated below
-  doubletdetection_manual_pools: None ### List of the pools that need manual threshold setting for scrublet. ex [Pool1,Pool7]
-  doubletdetection_manual_n_iterations: None ### List of the number of fit operations from which to collect p-values to use for the manual threshold setting for DoubletDetection. Note that the location in this vector is directly relational to the doubletdetection_manual_pools vector. ex [50, 60]
-  doubletdetection_manual_phenograph: None ### List of booleans whether to disable PhenoGraph clustering in exchange for louvain clustering for the manual threshold setting for DoubletDetection. Note that the location in this vector is directly relational to the doubletdetection_manual_pools vector. ex [True, False]
-  doubletdetection_manual_standard_scaling: None ### List of booleans whether to enable standard scaling of normalized count matrix prior to PCA for the manual threshold setting for DoubletDetection. Note that the location in this vector is directly relational to the doubletdetection_manual_pools vector. ex [True, False]
-  doubletdetection_manual_p_thresh: None ### List of hypergeometric test p-value threshold that determines per iteration doublet calls for the manual threshold setting for DoubletDetection. Note that the location in this vector is directly relational to the doubletdetection_manual_pools vector. ex [1e-16, 1e-16]
-  doubletdetection_manual_voter_thresh: None ### List of fractions of iterations a cell must be called a doublet for the manual threshold setting for DoubletDetection. Note that the location in this vector is directly relational to the doubletdetection_manual_pools vector. ex [0.5, 0.5]
-
 ############################################################################################################################################
 ##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####
 ############################################################################################################################################
 refs_extra:
-  relative_fasta_path: "ref_genome_QC/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+  relative_fasta_path: "hg38/ref_genome_QC/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+  relative_hg38_exons_ucsc_bed_path: "hg38exonsUCSC.bed"
 
 settings_extra:
-    multiplexing_methods: ["popscle", "souporcell"]
-    sc_doubletdetection_methods: ["DoubletDetection", "scds", "Scrublet"]
-    sn_doubletdetection_methods: ["DoubletFinder", "scDblFinder"]
+  java_memory_buffer: 2 ### Amount of gigs to add to the Java memory for buffer
+  multiplexing_methods: ["popscle", "souporcell"]
+  sc_doubletdetection_methods: ["DoubletDetection", "scds", "Scrublet"]
+  sn_doubletdetection_methods: ["DoubletFinder", "scDblFinder"]
 
 demultiplex_preprocessing_extra:
   filter4demultiplexing_maf: 0.05
   filter4demultiplexing_r2: 0.3
 
 popscle_extra:
-  cap_bq: 40 ### Maximum base quality (higher BQ will be capped)
+  exclude_flag: 1796 ### SAM/BAM flag to exclude
+  sam_verbose: 1000000 ### Verbose message frequency for SAM/BAM/CRAM
+  vcf_verbose: 10000 ### Verbose message frequency for VCF/BCF
+  skip_umi: False ### Do not generate [prefix].umi.gz file, which stores the regions covered by each barcode/UMI pair
+  cap_bq: 40 ### (Default demuxlet: 20 but for pileup: 40) Maximum base quality (higher BQ will be capped)
   min_bq: 13 ### Minimum base quality to consider (lower BQ will be skipped)
   min_mq: 20 ### Minimum mapping quality to consider (lower MQ will be ignored)
   min_td: 0 ### Minimum distance to the tail (lower will be ignored)
   excl_flag: 3844 ### SAM/BAM FLAGs to be excluded
   min_total: 0 ### Minimum number of total reads for a droplet/cell to be considered
+  min_uniq: 0 ### Minimum number of unique reads (determined by UMI/SNP pair) for a droplet/cell to be considered
   min_snp: 0 ### Minimum number of SNPs with coverage for a droplet/cell to be considered
   geno_error_offset: 0.1 ### Offset of genotype error rate. [error] = [offset] + [1-offset]*[coeff]*[1-r2]
-  geno_error_coeff: 0 ### Slope of genotype error rate. [error] = [offset] + [1-offset]*[coeff]*[1-r2]
+  geno_error_coeff: 0.0 ### Slope of genotype error rate. [error] = [offset] + [1-offset]*[coeff]*[1-r2]
   r2_info: "R2" ### INFO field name representing R2 value. Used for representing imputation quality
   min_mac: 1 ### Minimum minor allele frequency
   min_callrate: 0.5 ### Minimum call rate
+  alpha: null ### Grid of alpha to search for (default is 0.1, 0.2, 0.3, 0.4, 0.5)
   doublet_prior: 0.5 ###  Prior of doublet
+  min_umi: 0 ### Minimum number of UMIs for a droplet/cell to be considered
 
 souporcell_extra:
-  min_alt: 10 ### default: 10
-  min_ref: 10 ### default: 10; 
-  max_loci: 2048 ### default: 10; maximum number of loci to use, limiting this decreases the running time
-  
-scrublet_extra:
-  sim_dbl: 2 ### Number of doublets to simulate relative to the number of observed transcriptomes.
-  min_counts: 3 ### Used for gene filtering prior to PCA. Genes expressed at fewer than min_counts in fewer than min_cells are excluded.
-  min_cells: 3 ### Used for gene filtering prior to PCA. Genes expressed at fewer than min_counts in fewer than are excluded.")
-  n_prin_comps: 30 ### Number of principal components used to embed the transcriptomes priorto k-nearest-neighbor graph construction
-
-doubletdetection_extra:
-  n_iterations: 50 ### Number of fit operations from which to collect p-values.
-  phenograph: False ### Set to False to disable PhenoGraph clustering in exchange for louvain clustering implemented in scanpy
-  standard_scaling: True ### Set to True to enable standard scaling of normalized count matrix prior to PCA. Recommended when not using Phenograph. 
-  p_thresh: 1e-16 ### hypergeometric test p-value threshold that determines per iteration doublet calls
-  voter_thresh: 0.5 ### fraction of iterations a cell must be called a doublet
+  no_umi: False ### set to True if your bam has no UMI tag, will ignore/override --umi_tag
+  umi_tag: "UB" ### set if your umi tag is not UB
+  min_ref: 10 ### min ref to use locus
+  min_alt: 10 ### min alt to use locus
+  max_loci: 2048 ### max loci per cell, affects speed
+  restarts: 100 ### number of restarts in clustering, when there are > 12 clusters we recommend increasing this to avoid local minima
+  ploidy: 2 ### ploidy, must be 1 or 2
 
 doubletfinder_extra:
-  find_clusters_resolution: 0.1 ### FindClusters() resolution paramter; use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities. Seurat default is set to 0.8.
-  n_generated_artificial_doublets: 0.25 ### The number of generated artificial doublets, expressed as a proportion of the merged real-artificial data. Default is set to 0.25, based on observation that DoubletFinder performance is largely pN-invariant (see McGinnis, Murrow and Gartner 2019, Cell Systems).
+  dims: 10 ### Number of PCs to use. Estimate significant PCs if null
+  resolution: 0.1 ### Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities
+  expected_doublet_scaling_factor: 8e-06 ### The fraction of droublets expected based on the number of nuclei recovered
+  pn: 0.25 ### Number of doublets to simulate as a proportion of the pool size
+
+scdblfinder_extra:
+  expected_doublet_scaling_factor: 8e-06 ### The fraction of droublets expected based on the number of nuclei recovered
+  stdev_doublet_rate: null ### The uncertainty range in the doublet rate, interpreted as a +/- around `dbr`. During thresholding, deviation from the expected doublet rate will be calculated from these boundaries, and will be considered null within these boundaries. If NULL, will be 40\% of `dbr`. Set to `dbr.sd=0` to disable the uncertainty around the doublet rate, or to `dbr.sd=1` to disable any expectation of the number of doublets (thus letting the thresholding be entirely driven by the misclassification of artificial doublets)
+  nfeatures: 1352 ### The number of top features to use
+  dims: 20 ### The number of dimensions used
+  removeUnidentifiable: True ### Whether to remove artificial doublets of a combination that is generally found to be unidentifiable
+  include_pcs: 19 ### The number of top components to use (e.g. `includePCs=10`, equivalent to 1:10)
+  prop_markers: 0 ### The proportion of features to select based on marker identification
+  score: "xgb" ### Score to use for final classification
+  processing: "default" ### processing Counts (real and artificial) processing before KNN. Either 'default' (normal \code{scater}-based normalization and PCA), 'rawPCA' (PCA without normalization), 'rawFeatures' (no normalization/dimensional reduction), 'normFeatures' (uses normalized features, without PCA), returning a named matrix with cells as rows and components as columns
+  metric: "logloss" ###Error metric to optimize during training
+  nrounds: 0.25 ### Maximum rounds of boosting
+  max_depth: 4 ### Maximum depths of each tree
+  iter: 3 ### A positive integer indicating the number of scoring iterations (ignored if `score` isn't based on classifiers). At each iteration, real cells that would be called as doublets are excluding from the training, and new scores are calculated. Recommended values are 1 or 2
+  multi_sample_mode: "split" ### Either 'split' (recommended if there is heterogeneity across samples), 'singleModel', 'singleModelSplitThres', or 'asOne'")
+
+doubletdetection_extra:
+  boost_rate: 0.25 ### Proportion of cell population size to produce as synthetic doublets
+  n_components: 30 ### Number of principal components used for clustering
+  n_top_var_genes: 10000 ### Number of highest variance genes to use; other genes discarded. Will use all genes when zero
+  replace: False ### If False, a cell will be selected as a synthetic doublet's parent no more than once
+  clustering_algorithm: "louvain" # (Default: phenograph) One of `["louvain", "leiden", "phenograph"]`. `"louvain"` and `leiden` refer to the scanpy implementations.
+  n_iters: 50 ### (Default: 10) Number of fit operations from which to collect p-values
+  pseudocount: 0.1 ### Pseudocount used in normalize_counts. If `1` is used, and `standard_scaling=False`, the classifier is much more memory efficient; however, this may result in fewer doublets detected
+  standard_scaling: True ### (Default: False) Set to True to enable standard scaling of normalized count matrix prior to PCA. Recommended when not using Phenograph. Defaults to False
+  p_thresh: 1e-16 ### (Default: 1e-7) Hypergeometric test p-value threshold that determines per iteration doublet calls
+  voter_thresh: 0.5 ### (Default: 0.9) Fraction of iterations a cell must be called a doublet
+
+scds_extra:
+  bcds_ntop: 500 ### Indicating number of top variance genes to consider
+  bcds_srat: 1 ### indicating ratio between orginal number of 'cells' and simulated doublets
+  bcds_nmax: "tune" ### maximum number of training rounds; integer or 'tune'
+  cxds_ntop: 500 ### Indimessageing number of top variance genes to consider
+  cxds_binthresh: 0 ### Minimum counts to consider a gene 'present' in a cell
+
+scrublet_extra:
+  sim_doublet_ratio: 2.0 ### Number of doublets to simulate relative to the number of observed transcriptomes
+  n_neighbors: null ### Number of neighbors used to construct the KNN graph of observed transcriptomes and simulated doublets. If `None`, this is set to round(0.5 * sqrt(n_cells))")
+  expected_doublet_scaling_factor: 8e-06 ### The fraction of droublets expected based on the number of nuclei recovered
+  stdev_doublet_rate: 0.02 ### Uncertainty in the expected doublet rate
+  synthetic_doublet_umi_subsampling: 1.0 ### Rate for sampling UMIs when creating synthetic doublets. If 1.0, each doublet is created by simply adding the UMIs from two randomly  sampled observed transcriptomes. For values less than 1, the  UMI counts are added and then randomly sampled at the specified rate
+  get_doublet_neighbor_parents: False ### If True, return the parent transcriptomes that generated the  doublet neighbors of each observed transcriptome. This information can  be used to infer the cell states that generated a given  doublet state
+  min_counts: 3 ### Used for gene filtering prior to PCA. Genes expressed at fewer than min_counts in fewer than min_cells are excluded
+  min_cells: 3 ### Used for gene filtering prior to PCA. Genes expressed at fewer than min_counts in fewer than are excluded
+  min_gene_variability_pctl: 85 ### Used for gene filtering prior to PCA. Keep the most highly variable genes in the top min_gene_variability_pctl percentile), as measured by the v-statistic [Klein et al., Cell 2015]
+  log_transform: False ### If True, log-transform the counts matrix (log10(1+TPM)). `sklearn.decomposition.TruncatedSVD` will be used for dimensionality reduction, unless `mean_center` is True
+  mean_center: True ### If True, center the data such that each gene has a mean of 0. `sklearn.decomposition.PCA` will be used for dimensionality reduction
+  normalize_variance: True ### If True, normalize the data such that each gene has a variance of 1. `sklearn.decomposition.TruncatedSVD` will be used for dimensionality reduction, unless `mean_center` is True
+  n_prin_comps: 30 ### Number of principal components used to embed the transcriptomes priorto k-nearest-neighbor graph construction
+  doublet_threshold: null ### Manually set the scrublet doublet threshold location. For running a second time if scrublet incorrectly places the threshold the first time
 
 combine_results_extra:
-  pct_agreement: 0.9 ### The proportion of a cluster that match the 'ref' assignment to assign that cluster the individual assignment from the reference. Can be between 0.5 and 1. Default is 0.9.
-  method: None ### Combination method. Options are 'MajoritySinglet'. 'AtLeastHalfSinglet', 'AnySinglet' or 'AnyDoublet'. We have found that 'MajoritySinglet' provides the most accurate results in most situations and therefore recommend this method. Leave blank if you just want all the softwares to be merged into a single dataframe.
+  souporcell_correlation_limit: 0.7 ### The minimum correlation between a cluster and provided SNP genotypes to consider that cluster assigned to that individual
+  pct_agreement: 0.7 ### The proportion of a cluster that match the 'ref' assignment to assign that cluster the individual assignment from the reference. Can be between 0.5 and 1. Default is 0.9.
+  method: "MajoritySinglet" ### Combination method. Options are 'MajoritySinglet'. 'AtLeastHalfSinglet', 'AnySinglet' or 'AnyDoublet'. We have found that 'MajoritySinglet' provides the most accurate results in most situations and therefore recommend this method. Leave blank if you just want all the softwares to be merged into a single dataframe.

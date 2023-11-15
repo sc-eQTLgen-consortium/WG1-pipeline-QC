@@ -28,8 +28,7 @@ MAINTAINER Drew Neavin <d.neavin@garvan.org.au>, Martijn Vochteloo <m.vochteloo@
 ADD . /tmp/repo
 WORKDIR /tmp/repo
 
-ENV PATH=/opt:/usr/games:/opt/conda/envs/py311/bin:/opt/conda/bin:/opt/minimap2-2.26:/opt/bedtools2/bin:/opt/.cargo/bin:/opt/souporcell:/opt/souporcell/troublet/target/release:/opt/vartrix-1.1.22:/opt/freebayes-1.3.7:/opt/freebayes-1.3.7/scripts:/opt/popscle/bin:/opt/DoubletDetection:/opt/Eagle_v2.4.1:/opt/bin/:/opt/GenotypeHarmonizer-1.4.27:/opt/plink:/opt/plink2:$PATH
-ENV PYTHONPATH=/opt/conda/envs/py311/lib/python3.11/site-packages/
+ENV PATH=/opt:/usr/games:/opt/conda/envs/py311/bin:/opt/conda/bin:/opt/minimap2-2.26:/opt/bedtools2-2.31.0/bin:/opt/.cargo/bin:/opt/souporcell/souporcell/target/release/souporcell:/opt/souporcell:/opt/souporcell/troublet/target/release:/opt/vartrix-1.1.22:/opt/freebayes-1.3.7:/opt/freebayes-1.3.7/scripts:/opt/popscle/bin:/opt/DoubletDetection:/opt/Eagle_v2.4.1:/opt/bin/:/opt/GenotypeHarmonizer-1.4.27:/opt/plink:/opt/plink2:$PATH
 ENV BCFTOOLS_PLUGINS=/opt/bcftools-1.18/plugins
 ENV SHELL=/bin/bash
 ENV LC_ALL=C
@@ -87,7 +86,6 @@ RUN cd /opt \
     && rm miniconda.sh \
     && ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh \
     && echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc \
-    && echo "conda activate base" >> ~/.bashrc \
     && find /opt/conda/ -follow -type f -name '*.a' -delete \
     && find /opt/conda/ -follow -type f -name '*.js.map' -delete \
     && /opt/conda/bin/conda clean -afy
@@ -100,10 +98,6 @@ RUN cd /opt \
 # Uses 3.1 GB, mainly in /opt/conda/envs/py311/lib/ (2.9 GB)
 RUN eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)" \
     && conda create -n py311 python=3.11.5 \
-    && conda init bash \
-    && conda activate py311 \
-    # Downgrade setuptools for pyvcf.
-    && /opt/conda/envs/py311/bin/pip install --force-reinstall -v "setuptools==58.0.1" \
     # MarkupSafe-2.1.3 appdirs-1.4.4 attrs-23.1.0 certifi-2023.7.22 charset-normalizer-3.2.0 configargparse-1.7
     # connection-pool-0.0.3 datrie-0.8.2 docutils-0.20.1 dpath-2.1.6 fastjsonschema-2.18.0 gitdb-4.0.10
     # gitpython-3.1.37 humanfriendly-10.0 idna-3.4 jinja2-3.1.2 jsonschema-4.19.1 jsonschema-specifications-2023.7.1
@@ -115,21 +109,6 @@ RUN eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)" \
     # Requirements for souporcell.
     # None
     && /opt/conda/envs/py311/bin/pip install numpy==1.26.0 \
-    # absl-py-2.0.0 astunparse-1.6.3 cachetools-5.3.1 flatbuffers-23.5.26 gast-0.5.4 google-auth-2.23.2
-    # google-auth-oauthlib-1.0.0 google-pasta-0.2.0 grpcio-1.58.0 h5py-3.9.0 keras-2.14.0 libclang-16.0.6
-    # markdown-3.4.4 ml-dtypes-0.2.0 oauthlib-3.2.2 opt-einsum-3.3.0 protobuf-4.24.3 pyasn1-0.5.0
-    # pyasn1-modules-0.3.0 requests-oauthlib-1.3.1 rsa-4.9 six-1.16.0 tensorboard-2.14.1
-    # tensorboard-data-server-0.7.1 tensorflow-2.14.0 tensorflow-estimator-2.14.0 tensorflow-io-gcs-filesystem-0.34.0
-    # termcolor-2.3.0 typing-extensions-4.8.0 werkzeug-2.3.7 wrapt-1.14.1
-    && /opt/conda/envs/py311/bin/pip install tensorflow==2.14.0 \
-    # None
-    && /opt/conda/envs/py311/bin/pip install pyvcf==0.6.8 \
-    # aiohttp-3.8.5 aiosignal-1.3.1 async-timeout-4.0.3 clikit-0.6.2 crashtest-0.3.1 frozenlist-1.4.0
-    # httpstan-4.10.1 marshmallow-3.20.1 multidict-6.0.4 pastel-0.2.1 pylev-1.4.0 pysimdjson-5.0.2
-    # pystan-3.7.0 webargs-8.3.0 yarl-1.9.2
-    && /opt/conda/envs/py311/bin/pip install pystan==3.7.0 \
-    # importlib-metadata-6.8.0 pyfaidx-0.7.2.2 zipp-3.17.0
-    && /opt/conda/envs/py311/bin/pip install pyfaidx==0.7.2.2 \
     # None
     && /opt/conda/envs/py311/bin/pip install scipy==1.11.3 \
     # Requirements for Scrublet.
@@ -152,9 +131,21 @@ RUN eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)" \
     # ptyprocess-0.7.0 pure-eval-0.2.2 pygments-2.16.1 scanpy-1.9.5 seaborn-0.12.2 session-info-1.0.0
     # stack-data-0.6.2 statsmodels-0.14.0 stdlib_list-0.9.0 texttable-1.6.7 wcwidth-0.2.7 widgetsnbextension-4.0.9
     && /opt/conda/envs/py311/bin/pip install doubletdetection==4.2 \
-    && conda clean -y --all \
-    && conda deactivate \
     && /opt/conda/envs/py311/bin/pip cache purge
+
+# Creating a conda environment for souporcell using the specific versions as specified by the author.
+# numpy==1.16.4 (previous image used; 1.19.2)
+# scipy==1.3.0 (previous image used; 1.5.2)
+# pystan==2.19.1.1 (previous image used; 2.17.1.0)
+# pyvcf==0.6.8 (previous image used; ?? .__version__ not implemented)
+# pysam==0.15.2 (previous image used; 0.16.0.1)
+# pyfaidx=0.5.8=py_1 (previous image used; 0.5.9.1)
+RUN eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)" \
+    && wget https://raw.githubusercontent.com/wheaton5/souporcell/master/souporcell_env.yaml \
+    && conda env create -f souporcell_env.yaml \
+    && rm souporcell_env.yaml
+
+RUN conda clean -y --all
 
 #############################
 ############# R #############
@@ -217,7 +208,8 @@ RUN apt-get install -y --no-install-recommends cmake \
     # libpcrecpp0v5 libpng-dev libreadline-dev libxmuu1 pkg-config r-base-dev
     # xauth zlib1g-dev
     && apt-get install -y --no-install-recommends r-base-dev \
-    # This needs to be in front of installing the R package tidyverse due to dependencies systemfonts, curl, xml2, openssl, and textshaping. \
+    # This needs to be in front of installing the R package tidyverse due to dependencies
+    # systemfonts, curl, xml2, openssl, and textshaping.
     # libbrotli-dev libexpat1-dev libfontconfig-dev libfontconfig1-dev
     # libfreetype-dev libfreetype6-dev uuid-dev
     && apt-get install -y --no-install-recommends libfontconfig1-dev \
@@ -235,7 +227,15 @@ RUN apt-get install -y --no-install-recommends cmake \
     # libfribidi-dev
     && apt-get install -y --no-install-recommends libfribidi-dev \
     # libdeflate-dev libjbig-dev libtiff-dev libtiffxx5
-    && apt-get install -y --no-install-recommends libtiff-dev
+    && apt-get install -y --no-install-recommends libtiff-dev \
+    # Required for hdf5r
+    && apt-get install -y --no-install-recommends libhdf5-dev \
+    # Required for scCustomize
+    # libcairo-gobject2 libcairo-script-interpreter2 libcairo2-dev libice-dev liblzo2-2
+    # libpixman-1-dev libpthread-stubs0-dev libsm-dev libx11-dev libxau-dev libxcb-render0-dev
+    # libxcb-shm0-dev libxcb1-dev libxdmcp-dev libxext-dev libxrender-dev x11proto-dev
+    # xorg-sgml-doctools xtrans-dev
+    && apt-get install -y --no-install-recommends libcairo2-dev
 
 # remotes_2.4.2.1
 # Uses 791 MB, mainly in /usr/local/lib/R/BH/ (130 MB), xgboost (100 MB), RcppEigen (37 MB), lme4 (29MB), igraph (20 MB), vroom (20 MB), uwot (20 MB)
@@ -300,6 +300,7 @@ RUN R --slave -e 'install.packages("remotes")' \
     # maps -> 3.4.1, spam -> 2.9-1, ROCR -> 1.0-11, fields -> 15.2
     && R --slave -e 'remotes::install_github("chris-mcginnis-ucsf/DoubletFinder@1b1d4e2d7f893a3552d9f8f791ab868ee4c782e6")' \
     # depends on future.apply
+    && R --slave -e 'remotes::install_version("hdf5r", version = "1.3.8")' \
     # progressr -> 0.14.0, sp -> 2.0-0
     && R --slave -e 'remotes::install_version("SeuratObject", version = "4.1.4")' \
     # depends on future.apply, RColorBrewer, ggplot2, cowplot, SeuratObject
@@ -314,10 +315,10 @@ RUN R --slave -e 'install.packages("remotes")' \
     # miniUI -> 0.1.1.1, lmtest -> 0.9-40, leiden -> 0.4.3, ica -> 1.0-3, ggridges -> 0.5.4, fitdistrplus -> 1.1-11
     && R --slave -e 'remotes::install_version("Seurat", version = "4.4.0")' \
     # depends on Seurat
-    # textshaping -> 0.3.6, vipor -> 0.4.5, beeswarm -> 0.4.0, prismatic -> 1.1.1, snakecase -> 0.11.1
-    # ragg -> 1.2.5, ggbeeswarm -> 0.7.2, Cairo -> 1.6-1, shape -> 1.4.6, GlobalOptions -> 0.1.2, paletteer -> 1.5.0
+    # vipor -> 0.4.5, beeswarm -> 0.4.0, xfun 0.40 -> 0.41, evaluate 0.22 -> 0.23, prismatic -> 1.1.1, skecase -> 0.11.1
+    # ggbeeswarm -> 0.7.2, Cairo -> 1.6-1, shape -> 1.4.6, GlobalOptions -> 0.1.2, paletteer -> 1.5.0
     # janitor -> 2.2.0, ggrastr -> 1.0.2, ggprism -> 1.0.4, circlize -> 0.4.15
-    && R --slave -e 'remotes::install_version ("scCustomize", version = "1.1.3")'
+    && R --slave -e 'remotes::install_version("scCustomize", version = "1.1.3")'
 
 # BiocManager 1.30.22
 # Uses 179 MB, mainly in /usr/local/lib/R/site-library/BiocNeighbors (18 MB), GenomeInfoDbData (11 MB), edgeR (11 MB), scran (12 MB), scuttle (12 MB)
@@ -367,7 +368,7 @@ RUN R --slave -e 'install.packages("BiocManager")' \
 # libxxf86vm1 openjdk-17-jdk openjdk-17-jdk-headless openjdk-17-jre
 # openjdk-17-jre-headless shared-mime-info ubuntu-mono ucf x11-common
 # Uses 468 MB, mainly in /usr/lib/ (221 MB), /var/ (50 MB), /usr/share/ (22 MB), and /usr/include/ (20 MB)
- RUN apt-get install -y --no-install-recommends openjdk-17-jdk
+RUN apt-get install -y --no-install-recommends openjdk-17-jdk
 
 ##################################
 ############## OTHER #############
@@ -449,12 +450,13 @@ RUN cd /opt \
     && tar -xzf v1.3.7.tar.gz \
     && rm v1.3.7.tar.gz
 
-# Uses 0.241 MB, mainly in /opt/vartrix-1.1.22/VarTrix_WorkFlow.png (0.119 MB)
+#
 RUN cd /opt \
-    && wget https://github.com/10XGenomics/vartrix/archive/refs/tags/v1.1.22.tar.gz \
-    && tar -xzf v1.1.22.tar.gz \
-    && rm v1.1.22.tar.gz \
-    && rm -rf /opt/vartrix-1.1.22/test
+    && mkdir vartrix-1.1.22 \
+    && cd vartrix-1.1.22 \
+    && wget https://github.com/10XGenomics/vartrix/releases/download/v1.1.22/vartrix_linux \
+    && mv vartrix_linux vartrix \
+    && chmod 775 vartrix
 
 # Uses 5.4 MB, mainly in /opt/minimap2-2.26/libminimap2.a/ (1.7 MB)
 RUN cd /opt \
@@ -483,7 +485,7 @@ RUN cd /opt \
 # Using tips from https://github.com/johnthagen/min-sized-rust to reduce the binary size.
 # Uses 529 MB, mainly in /root/.cargo/registry/index/ (384 MB)
 RUN cd /opt \
-    && git clone --single-branch --branch RoyOelen/add-fastq-gzipping https://github.com/sc-eQTLgen-consortium/souporcell.git \
+    && git clone --single-branch --branch MVochteloo/gzipped-barcodes-input https://github.com/sc-eQTLgen-consortium/souporcell.git \
     && cd /opt/souporcell/souporcell \
       && echo "\n[profile.release]\nopt-level = 'z'\nlto = true\ncodegen-units = 1\npanic = 'abort'\nstrip = true" >> Cargo.toml \
       && cargo build --release \
@@ -496,7 +498,8 @@ RUN cd /opt \
 # Uses 14 MB, mainly in /opt/bin/ (11 MB)
 RUN cd /opt \
     && wget https://github.com/statgen/Minimac4/releases/download/v4.1.4/minimac4-4.1.4-Linux-x86_64.sh \
-    && bash minimac4-4.1.4-Linux-x86_64.sh --prefix=/opt/ --skip-license
+    && bash minimac4-4.1.4-Linux-x86_64.sh --prefix=/opt/ --skip-license \
+    && rm minimac4-4.1.4-Linux-x86_64.sh
 
 # Uses 84 MB, mainly in /opt/vcftools-0.1.16/src (64 MB)
 RUN cd /opt \
@@ -546,9 +549,9 @@ RUN cd /opt \
 RUN cd /opt \
     && mkdir plink2 \
     && cd plink2 \
-      && wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20231003.zip \
-      && unzip -q plink2_linux_x86_64_20231003.zip \
-      && rm plink2_linux_x86_64_20231003.zip
+      && wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20231005.zip \
+      && unzip -q plink2_linux_x86_64_20231005.zip \
+      && rm plink2_linux_x86_64_20231005.zip
 
 # Requires openjdk-17-jdk.
 # Uses 62 MB, mainly in /opt/picard-3.1.0/build/libs/picard.jar (62 MB)

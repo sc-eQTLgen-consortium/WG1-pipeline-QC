@@ -16,6 +16,14 @@ parser$add_argument("-o", "--out", required=TRUE, type="character", help="The ou
 # otherwise if options not found on command line then set defaults,
 args <- parser$parse_args()
 
+## make sure the directory exists ###
+dir.create(args$out, recursive=TRUE)
+
+print("Options in effect:")
+for (name in names(args)) {
+	print(paste0("  --", name, " ", args[[name]]))
+}
+print("")
 
 suppressMessages(suppressWarnings(library(tidyr)))
 suppressMessages(suppressWarnings(library(tidyverse)))
@@ -23,9 +31,6 @@ suppressMessages(suppressWarnings(library(dplyr)))
 suppressMessages(suppressWarnings(library(vcfR)))
 suppressMessages(suppressWarnings(library(lsa)))
 suppressMessages(suppressWarnings(library(ComplexHeatmap)))
-
-## make sure the directory exists ###
-dir.create(paste0(args$basedir, "/", args$pool, "/souporcell/genotype_correlations/"))
 
 
 ########## Set up functions ##########
@@ -218,7 +223,7 @@ cluster <- data.frame("Cluster"=rownames(pearson_correlations))
 pearson_correlations_out <- cbind(cluster, pearson_correlations)
 
 ########## Save the correlation dataframes ##########
-write_delim(pearson_correlations_out, file=paste0(args$out, "/ref_clust_pearson_correlations.tsv"), delim="\t" )
+write_delim(pearson_correlations_out, file=gzfile(paste0(args$out, "/ref_clust_pearson_correlations.tsv.gz")), delim="\t" )
 
 
 ########## Create correlation figures ##########
@@ -244,6 +249,6 @@ for (id in key$Genotype_ID){
     }
 }
 
-write_delim(key, file=paste0(args$out, "/Genotype_ID_key.txt"), delim="\t")
+write_delim(key, file=gzfile(paste0(args$out, "/Genotype_ID_key.txt.gz")), delim="\t")
 
 

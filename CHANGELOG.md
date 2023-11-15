@@ -58,10 +58,14 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Added `DoubletFinder` doublet detection method
 - Added `scDblFinder` doublet detection method
 - Added Flag `is_multiplexed` to skip demultiplexing
-- Added parallel (re-)processing of `DoubletDetection` and `Scrublet` runs with fully dynamic settings per run without overwriting previous results
 - Added Flag `sc_data_type` denoting the single-cell data type to automatically select doublet detection method
 - Added fixes by Roy Oelen and Dan Kaptijn improving performance of `souporcell` including reduced memory usage and allowing gzipped barcodes as input
+- Added parallel (re-)processing of all method with fully dynamic settings per run without overwriting previous results
+- Added `plot_DoubletDetection`, `plot_DoubletFinder` and `plot_Scrublet` rule to create combined plots for multiple runs 
 - Added demultiplexing rules from the `Imputation` pipeline
+- Added adaptive `combine_results` rule from `[Demuxafy](https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/v0.0.4/) v0.0.4 using the results of whichever doublet detection methods was used
+- Split `souporcell_pipeline.py` into separate rules and refactored to use gzipped files for computational efficiency
+- Made parameter `expected_doublet_rate` for `DoubletFinder` and `Scrublet` variable dependend on expected doublet rate
 
 #### Fixes
 - Fixed issue where some rules did not have dynamic time / memory usage
@@ -79,6 +83,8 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Merged singularity image with `Imputation`
 - Moved (reference) data download from image to separate download scripts `download_data.sh` / `download_test_dataset.sh`
 - Reduced image size
+- Using official souporcell conda environment
 - Doublet detection methods now use the `h5` file as input (required to align with new `WG0-Propocessing` pipeline)
 - Changed scripts to align with `[Demuxafy](https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/v0.0.4/) v0.0.4 code
-- Added adaptive `combine_results` rule using the results of whichever doublet detection methods was used
+- Update rules `filter4demultiplexing`, `sort4demultiplexing`, `popscle_pileup`, `popscle_demuxlet`, `souporcell` to use / output gzipped VCF files
+- Made all `*_doublets_singlets.tsv` files gzipped
