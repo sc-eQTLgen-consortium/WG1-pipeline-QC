@@ -8,7 +8,7 @@ import math
 import os
 
 # TODO: remove
-# config["settings"]["is_multiplexed"] = True
+# config["settings"]["is_multiplexed"] = False
 # config["scrublet"]["scrublet_min_gene_variability_pctl"] = [85]
 
 # Add trailing /.
@@ -37,7 +37,7 @@ else:
 # DoubletDetection = SUCCESS
 # scds = SUCCESS
 # Scrublet = SUCCESS
-METHODS = ["souporcell"]
+METHODS = ["scDblFinder", "DoubletDetection", "scds", "Scrublet"]
 
 # Check if all methods are supported.
 supp_methods = {
@@ -250,8 +250,8 @@ def process_manual_selection_method(name, settings=None, extra_settings=None, se
 
         # Check if each pool has exactly one FINISHED run with a PASSED flag, if so: we are done.
         passed_select_df = select_df.loc[(select_df["FINISHED"]) & (select_df["PASSED"]), :].copy()
-        if passed_select_df.shape[0] == len(POOLS) and set(passed_select_df["Pool"].values).symmetric_difference(set(POOLS)) == 0:
-            return True, [], {},  dict(zip(passed_select_df["Pool"], passed_select_df["Run"])), {}
+        if passed_select_df.shape[0] == len(POOLS) and len(set(passed_select_df["Pool"].values).symmetric_difference(set(POOLS))) == 0:
+            return True, [], dict(zip(passed_select_df["Pool"], passed_select_df["Run"])), {}
 
         del passed_select_df
     else:
@@ -493,8 +493,16 @@ if "Scrublet" in METHODS:
         input_files.append(expand(config["outputs"]["output_dir"] + "figures/{pool}/Scrublet_histograms_and_UMAPs.png", pool=POOLS))
         all_passed = False
 
-# if all_passed:
-#     input_files = expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv", pool=POOLS)
+if all_passed:
+    input_files = [
+        expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results.tsv", pool=POOLS),
+        expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_summary.tsv", pool=POOLS),
+        expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_w_combined_assignments.tsv", pool=POOLS),
+        expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/Singlets_upset.pdf", pool=POOLS)
+    ]
+    if "popscle" in METHODS or "souporcell" in METHODS:
+        input_files.append(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv")
+
 
 rule all:
     input:

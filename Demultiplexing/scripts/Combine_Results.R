@@ -45,6 +45,7 @@ for (name in names(args)) {
 }
 print("")
 
+suppressMessages(suppressWarnings(library(R.utils)))
 suppressMessages(suppressWarnings(library(data.table)))
 suppressMessages(suppressWarnings(library(tidyverse)))
 suppressMessages(suppressWarnings(library(future.apply)))
@@ -780,7 +781,7 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 
 
 		colourCount=length(unique(upset_df$Final_Individual_Assignment)[!unique(upset_df$Final_Individual_Assignment) %in% c("unassigned", "doublet")])
-		getPalette=colorRampPalette(c("#f44336", "#e81e63", "#9c27b0", "#673ab7", "#3f51b5", "#2196f3", "#03a9f4", "#00bcd4", "#009688", "#4caf50", "#8bc34a", "#cddc39", "#ffeb3b","#ffc107", "#ff9800", "#ff5722", "#795548"))
+		getPalette=colorRampPalette(c("#f44336", "#e81e63", "#9c27b0", "#673ab7", "#3f51b5", "#2196f3", "#03a9f4", "#00bcd4", "#009688", "#4caf50", "#8bc34a", "#cddc39", "#ffeb3b", "#ffc107", "#ff9800", "#ff5722", "#795548"))
 
 		colors <- getPalette(colourCount)
 		names(colors) <- unique(upset_df$Final_Individual_Assignment)[!unique(upset_df$Final_Individual_Assignment) %in% c("unassigned", "doublet")]
@@ -835,7 +836,7 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 
 
 		colourCount=length(unique(upset_df$Final_Assignment))
-		getPalette=colorRampPalette(c("#f44336", "#e81e63", "#9c27b0", "#673ab7", "#3f51b5", "#2196f3", "#03a9f4", "#00bcd4", "#009688", "#4caf50", "#8bc34a", "#cddc39", "#ffeb3b","#ffc107", "#ff9800", "#ff5722", "#795548", "#9e9e9e", "#607d8b", "#000000",))
+		getPalette=colorRampPalette(c("#f44336", "#e81e63", "#9c27b0", "#673ab7", "#3f51b5", "#2196f3", "#03a9f4", "#00bcd4", "#009688", "#4caf50", "#8bc34a", "#cddc39", "#ffeb3b", "#ffc107", "#ff9800", "#ff5722", "#795548", "#9e9e9e", "#607d8b", "#000000"))
 
 		pUpset <- upset(upset_df,
 			columns,

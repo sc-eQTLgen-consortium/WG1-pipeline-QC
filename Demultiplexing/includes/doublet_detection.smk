@@ -23,7 +23,7 @@ rule DoubletFinder:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/scripts/DoubletFinder.R",
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/DoubletFinder.R",
         dims = lambda wildcards: "" if math.isnan(DOUBLETFINDER_SETTINGS[wildcards.pool][wildcards.run]["dims"]) else "--dims " + str(DOUBLETFINDER_SETTINGS[wildcards.pool][wildcards.run]["dims"]),
         resolution = lambda wildcards: DOUBLETFINDER_SETTINGS[wildcards.pool][wildcards.run]["resolution"],
         expected_doublet_scaling_factor = lambda wildcards: "" if math.isnan(DOUBLETFINDER_SETTINGS[wildcards.pool][wildcards.run]["expected_doublet_scaling_factor"]) else "--expected_doublet_scaling_factor " + str(DOUBLETFINDER_SETTINGS[wildcards.pool][wildcards.run]["expected_doublet_scaling_factor"]),
@@ -56,7 +56,7 @@ rule plot_DoubletFinder:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/scripts/plot_DoubletFinder.py",
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/plot_DoubletFinder.py",
         out = config["outputs"]["output_dir"] + "figures/{pool}/"
     log: config["outputs"]["output_dir"] + "log/plot_DoubletFinder.{pool}.log"
     shell:
@@ -86,7 +86,7 @@ rule scDblFinder:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/scripts/scDblFinder.R",
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scDblFinder.R",
         expected_doublet_scaling_factor = lambda wildcards: SCDBLFINDER_SETTINGS[wildcards.pool][wildcards.run]["expected_doublet_scaling_factor"],
         stdev_doublet_rate = lambda wildcards: "" if math.isnan(SCDBLFINDER_SETTINGS[wildcards.pool][wildcards.run]["stdev_doublet_rate"]) else "--stdev_doublet_rate " + str(SCDBLFINDER_SETTINGS[wildcards.pool][wildcards.run]["stdev_doublet_rate"]),
         nfeatures = lambda wildcards: SCDBLFINDER_SETTINGS[wildcards.pool][wildcards.run]["nfeatures"],
@@ -143,7 +143,7 @@ rule DoubletDetection:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/scripts/DoubletDetection.py",
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/DoubletDetection.py",
         boost_rate = lambda wildcards: DOUBLETDETECTION_SETTINGS[wildcards.pool][wildcards.run]["boost_rate"],
         n_components = lambda wildcards: DOUBLETDETECTION_SETTINGS[wildcards.pool][wildcards.run]["n_components"],
         n_top_var_genes = lambda wildcards: DOUBLETDETECTION_SETTINGS[wildcards.pool][wildcards.run]["n_top_var_genes"],
@@ -190,7 +190,7 @@ rule plot_DoubletDetection:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/scripts/plot_DoubletDetection.py",
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/plot_DoubletDetection.py",
         out = config["outputs"]["output_dir"] + "figures/{pool}/"
     log: config["outputs"]["output_dir"] + "log/plot_DoubletDetection.{pool}.log"
     shell:
@@ -221,7 +221,7 @@ rule scds:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/scripts/scds.R",
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scds.R",
         bcds_ntop = lambda wildcards: SCDS_SETTINGS[wildcards.pool][wildcards.run]["bcds_ntop"],
         bcds_srat = lambda wildcards: SCDS_SETTINGS[wildcards.pool][wildcards.run]["bcds_srat"],
         bcds_nmax = lambda wildcards: SCDS_SETTINGS[wildcards.pool][wildcards.run]["bcds_nmax"],
@@ -267,7 +267,7 @@ rule Scrublet:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/scripts/Scrublet_pipeline.py",
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Scrublet_pipeline.py",
         sim_doublet_ratio = lambda wildcards: SCRUBLET_SETTINGS[wildcards.pool][wildcards.run]["sim_doublet_ratio"],
         n_neighbors = lambda wildcards: "" if math.isnan(SCRUBLET_SETTINGS[wildcards.pool][wildcards.run]["n_neighbors"]) else "--n_neighbors " + str(SCRUBLET_SETTINGS[wildcards.pool][wildcards.run]["n_neighbors"]),
         expected_doublet_scaling_factor = lambda wildcards: SCRUBLET_SETTINGS[wildcards.pool][wildcards.run]["expected_doublet_scaling_factor"],
@@ -323,7 +323,7 @@ rule plot_Scrublet:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/scripts/plot_Scrublet.py",
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/plot_Scrublet.py",
         out = config["outputs"]["output_dir"] + "figures/{pool}/"
     log: config["outputs"]["output_dir"] + "log/plot_Scrublet.{pool}.log"
     shell:

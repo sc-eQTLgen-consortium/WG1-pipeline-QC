@@ -28,7 +28,7 @@ MAINTAINER Drew Neavin <d.neavin@garvan.org.au>, Martijn Vochteloo <m.vochteloo@
 ADD . /tmp/repo
 WORKDIR /tmp/repo
 
-ENV PATH=/opt:/usr/games:/opt/conda/envs/py311/bin:/opt/conda/bin:/opt/minimap2-2.26:/opt/bedtools2-2.31.0/bin:/opt/.cargo/bin:/opt/souporcell/souporcell/target/release/souporcell:/opt/souporcell:/opt/souporcell/troublet/target/release:/opt/vartrix-1.1.22:/opt/freebayes-1.3.7:/opt/freebayes-1.3.7/scripts:/opt/popscle/bin:/opt/DoubletDetection:/opt/Eagle_v2.4.1:/opt/bin/:/opt/GenotypeHarmonizer-1.4.27:/opt/plink:/opt/plink2:$PATH
+ENV PATH=/opt:/usr/games:/opt/conda/envs/py311/bin:/opt/conda/bin:/opt/minimap2-2.26:/opt/bedtools2-2.31.0/bin:/opt/.cargo/bin:/opt/souporcell:/opt/souporcell/souporcell/target/release:/opt/souporcell/troublet/target/release:/opt/vartrix-1.1.22:/opt/freebayes-1.3.7:/opt/freebayes-1.3.7/scripts:/opt/popscle/bin:/opt/DoubletDetection:/opt/Eagle_v2.4.1:/opt/bin/:/opt/GenotypeHarmonizer-1.4.27:/opt/plink:/opt/plink2:$PATH
 ENV BCFTOOLS_PLUGINS=/opt/bcftools-1.18/plugins
 ENV SHELL=/bin/bash
 ENV LC_ALL=C
@@ -131,7 +131,10 @@ RUN eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)" \
     # ptyprocess-0.7.0 pure-eval-0.2.2 pygments-2.16.1 scanpy-1.9.5 seaborn-0.12.2 session-info-1.0.0
     # stack-data-0.6.2 statsmodels-0.14.0 stdlib_list-0.9.0 texttable-1.6.7 wcwidth-0.2.7 widgetsnbextension-4.0.9
     && /opt/conda/envs/py311/bin/pip install doubletdetection==4.2 \
+    # No clue why we do this.
+    && sed -i 's/louvain.set_rng_seed(random_state)/partition_kwargs["seed"] = random_state/g'  /opt/conda/envs/py311/lib/python3.11/site-packages/scanpy/tools/_louvain.py \
     && /opt/conda/envs/py311/bin/pip cache purge
+
 
 # Creating a conda environment for souporcell using the specific versions as specified by the author.
 # numpy==1.16.4 (previous image used; 1.19.2)
@@ -241,35 +244,37 @@ RUN apt-get install -y --no-install-recommends cmake \
 # Uses 791 MB, mainly in /usr/local/lib/R/BH/ (130 MB), xgboost (100 MB), RcppEigen (37 MB), lme4 (29MB), igraph (20 MB), vroom (20 MB), uwot (20 MB)
 RUN R --slave -e 'install.packages("remotes")' \
     # jsonlite -> 1.8.7, findpython 1.0.8, R6 -> 2.5.1
-    && R --slave -e 'remotes::install_version("argparse", version = "2.2.2")' \
+    && R --slave -e 'remotes::install_version("argparse", version = "2.2.2", upgrade=FALSE)' \
     # parallelly -> 1.36.0, listenv -> 0.9.0, globals -> 0.16.2, digest -> 0.6.33, future -> 1.33.0
-    && R --slave -e 'remotes::install_version("future.apply", version = "1.11.0")' \
+    && R --slave -e 'remotes::install_version("future.apply", version = "1.11.0", upgrade=FALSE)' \
     # None
-    && R --slave -e 'remotes::install_version("RColorBrewer", version = "1.1-3")' \
+    && R --slave -e 'remotes::install_version("R.utils", version = "2.12.2", upgrade=FALSE)' \
+    # None
+    && R --slave -e 'remotes::install_version("RColorBrewer", version = "1.1-3", upgrade=FALSE)' \
     # SnowballC -> 0.7.1
-    && R --slave -e 'remotes::install_version("lsa", version = "0.73.3")' \
+    && R --slave -e 'remotes::install_version("lsa", version = "0.73.3", upgrade=FALSE)' \
     # None
-    && R --slave -e 'remotes::install_version("data.table", version = "1.14.8")' \
+    && R --slave -e 'remotes::install_version("data.table", version = "1.14.8", upgrade=FALSE)' \
     ### scDblFinder, depends on data.table
     # None
-    && R --slave -e 'remotes::install_version("xgboost", version = "1.7.5.1")' \
+    && R --slave -e 'remotes::install_version("xgboost", version = "1.7.5.1", upgrade=FALSE)' \
     # vctrs -> 0.6.3, utf8 -> 1.2.3, rlang -> 1.1.1, lifecycle 1.0.3, glue -> 1.6.2, fansi -> 1.0.4
     # cli -> 3.6.1, withr -> 2.5.1, pkgconfig -> 2.0.3, pillar -> 1.9.0, magrittr -> 2.0.3
     # tidyselect -> 1.2.0, tibble -> 3.2.1, generics -> 0.1.3
-    && R --slave -e 'remotes::install_version("dplyr", version = "1.1.3")' \
+    && R --slave -e 'remotes::install_version("dplyr", version = "1.1.3", upgrade=FALSE)' \
     # depends on dplyr
     # stringi -> 1.7.12, cpp11 -> 0.4.6, stringr -> 1.5.0, purr -> 1.0.2
-    && R --slave -e 'remotes::install_version("tidyr", version = "1.3.0")' \
+    && R --slave -e 'remotes::install_version("tidyr", version = "1.3.0", upgrade=FALSE)' \
     # depends on dplyr
     # permute -> 0.9-7, Rcpp -> 1.0.11, viridisLite -> 0.4.2, vegan -> 2.6-4, pinfsc50 -> 1.2.0
     # memuse -> 4.2-3, ape -> 5.7-1
-    && R --slave -e 'remotes::install_version("vcfR", version = "1.14.0")' \
+    && R --slave -e 'remotes::install_version("vcfR", version = "1.14.0", upgrade=FALSE)' \
     # colorspace -> 2.1-0, munsell -> 0.5.0, labeling -> 0.4.3, farver -> 2.1.1, scales -> 1.2.1
     # isoband -> 0.2.7, gtable -> 0.3.4
-    && R --slave -e 'remotes::install_version("ggplot2", version = "3.4.3")' \
+    && R --slave -e 'remotes::install_version("ggplot2", version = "3.4.3", upgrade=FALSE)' \
     # depends on ggplot2
     # None
-    && R --slave -e 'remotes::install_version("ComplexUpset", version = "1.3.3")' \
+    && R --slave -e 'remotes::install_version("ComplexUpset", version = "1.3.3", upgrade=FALSE)' \
     # depends on ggplot2
     # prettyunits -> 1.2.0, rematch2 -> 2.1.2, diffobj -> 0.3.5, pkgbuild -> 1.4.2, fs -> 1.6.3, crayon -> 1.5.2
     # rprojroot -> 2.0.3, waldo -> 0.5.1, ps -> 1.7.5, processx -> 3.8.2, praise -> 1.0.0, pkgload -> 1.3.3
@@ -278,12 +283,12 @@ RUN R --slave -e 'install.packages("remotes")' \
     # RcppEigen -> 0.3.3.9.3, nloptr -> 2.0.3, minqa -> 1.2.6, lme4 -> 1.1-34, quantreg -> 5.97, pbkrtest -> 0.5.2
     # abind -> 1.4-5, carData-> 3.0-5, car -> 3.1-2, corrplot -> 0.92, rstatix -> 0.7.2, polynom -> 1.4-1
     # gridExtra -> 2.3, ggsignif -> 0.6.4, cowplot -> 1.1.1, ggsci -> 3.0.0, ggrepel -> 0.9.3
-    && R --slave -e 'remotes::install_version("ggpubr", version = "0.6.0")' \
+    && R --slave -e 'remotes::install_version("ggpubr", version = "0.6.0", upgrade=FALSE)' \
     # depends on ggplot2
     # None
-    && R --slave -e 'remotes::install_version("cowplot", version = "1.1.1")' \
+    && R --slave -e 'remotes::install_version("cowplot", version = "1.1.1", upgrade=FALSE)' \
     # hms -> 1.1.3, bit-> 4.0.5, progress-> 1.2.2, tzdb -> 0.4.0, bit64 -> 4.0.5, vroom -> 1.6.3, clipr -> 0.8.0)
-    && R --slave -e 'remotes::install_version("readr", version = "2.1.4")' \
+    && R --slave -e 'remotes::install_version("readr", version = "2.1.4", upgrade=FALSE)' \
     # depends on dplyr, tidyr, ggplot2, readr
     # rappdirs -> 0.3.3, highr -> 0.10, fastmap -> 1.1.1, sass -> 0.4.7, mime -> 0.12, memoise -> 2.0.1
     # cachem -> 1.0.8, base64enc -> 0.1-3, yaml -> 2.3.7, xfun -> 0.40, tinytex -> 0.46, knitr -> 1.44
@@ -294,15 +299,15 @@ RUN R --slave -e 'install.packages("remotes")' \
     # googledrive -> 2.1.1, DBI -> 1.1.3, blob -> 1.2.4, rvest -> 1.0.3, reprex -> 2.0.2, readxl -> 1.4.3
     # ragg -> 1.2.5, modelr -> 0.1.11, lubridate -> 1.9.3, haven -> 2.5.3, googlesheets4 -> 1.1.1, dtplyr -> 1.3.1
     # dbplyr -> 2.3.4, conflicted -> 1.2.0
-    && R --slave -e 'remotes::install_version("tidyverse", version = "2.0.0")' \
+    && R --slave -e 'remotes::install_version("tidyverse", version = "2.0.0", upgrade=FALSE)' \
     # Using commit of Aug 18, 2023
     # bitops -> 1.0-7, caTools -> 1.18.2, gtools -> 3.9.4, dotCall64 -> 1.0-2, gplots -> 3.1.3
     # maps -> 3.4.1, spam -> 2.9-1, ROCR -> 1.0-11, fields -> 15.2
     && R --slave -e 'remotes::install_github("chris-mcginnis-ucsf/DoubletFinder@1b1d4e2d7f893a3552d9f8f791ab868ee4c782e6")' \
     # depends on future.apply
-    && R --slave -e 'remotes::install_version("hdf5r", version = "1.3.8")' \
+    && R --slave -e 'remotes::install_version("hdf5r", version = "1.3.8", upgrade=FALSE)' \
     # progressr -> 0.14.0, sp -> 2.0-0
-    && R --slave -e 'remotes::install_version("SeuratObject", version = "4.1.4")' \
+    && R --slave -e 'remotes::install_version("SeuratObject", version = "4.1.4", upgrade=FALSE)' \
     # depends on future.apply, RColorBrewer, ggplot2, cowplot, SeuratObject
     # sitmo -> 2.0.2, BH -> 1.81.0-1, spatstat.utils -> 3.0-3, tensor -> 1.5, polyclip -> 1.10-6, deldir -> 1.0-9
     # spatstat.geom -> 3.2-5, spatstat.data -> 3.0-1, later -> 1.3.1, promises -> 1.2.1, plyr -> 1.8.8
@@ -313,12 +318,12 @@ RUN R --slave -e 'install.packages("remotes")' \
     # shiny -> 1.7.5, zoo -> 1.8-12, igraph -> 1.5.1, reticulate -> 1.32.0, uwot -> 0.1.16, spatstat.explore -> 3.2-3
     # sctransform -> 0.4.0, scattermore -> 1.2, Rtsne -> 0.16, RANN -> 2.6.1, plotly -> 4.10.2, pbapply -> 1.7-2
     # miniUI -> 0.1.1.1, lmtest -> 0.9-40, leiden -> 0.4.3, ica -> 1.0-3, ggridges -> 0.5.4, fitdistrplus -> 1.1-11
-    && R --slave -e 'remotes::install_version("Seurat", version = "4.4.0")' \
-    # depends on Seurat
+    && R --slave -e 'remotes::install_version("Seurat", version = "4.4.0", upgrade=FALSE)' \
+    # depends on Seurat, prevent from upgrading Seurat to v5.0.0 since this screws with DoubletFinder and more things most likely
     # vipor -> 0.4.5, beeswarm -> 0.4.0, xfun 0.40 -> 0.41, evaluate 0.22 -> 0.23, prismatic -> 1.1.1, skecase -> 0.11.1
     # ggbeeswarm -> 0.7.2, Cairo -> 1.6-1, shape -> 1.4.6, GlobalOptions -> 0.1.2, paletteer -> 1.5.0
     # janitor -> 2.2.0, ggrastr -> 1.0.2, ggprism -> 1.0.4, circlize -> 0.4.15
-    && R --slave -e 'remotes::install_version("scCustomize", version = "1.1.3")'
+    && R --slave -e 'remotes::install_version("scCustomize", version = "1.1.3", upgrade=FALSE)'
 
 # BiocManager 1.30.22
 # Uses 179 MB, mainly in /usr/local/lib/R/site-library/BiocNeighbors (18 MB), GenomeInfoDbData (11 MB), edgeR (11 MB), scran (12 MB), scuttle (12 MB)

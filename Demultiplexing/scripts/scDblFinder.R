@@ -117,7 +117,6 @@ sce <- scDblFinder(
 	max_depth=args$max_depth,
 	iter=args$iter,
 	trainingFeatures=NULL,
-	unident.th=NULL,
 	multiSampleMode=args$multi_sample_mode,
 	threshold=TRUE,
 	verbose=TRUE
