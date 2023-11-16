@@ -338,7 +338,7 @@ rule souporcell_define_remap_bam_regions:
         sif = config["inputs"]["singularity_image"],
         bind = config["inputs"]["bind_path"],
         python = "/opt/conda/envs/souporcell/bin/python3.6",
-        script = "/opt/souporcell/souporcell/get_bam_regions.py",
+        script = "/opt/souporcell/get_bam_regions.py",
         n_splits = config["souporcell"]["souporcell_remap_splits"]
     log: config["outputs"]["output_dir"] + "log/souporcell_define_remap_bam_regions.{pool}.log"
     shell:
@@ -429,6 +429,7 @@ rule souporcell_make_fastqs:
 # -K 50m = Number of bases loaded into memory to process in a mini-batch [500M]. Similar to option -I, K/M/G/k/m/g suffix is accepted. A large NUM helps load balancing in the multi-threading mode, at the cost of increased memory.
 # --secondary=no = Whether to output secondary alignments [yes]
 # -o = Output alignments to FILE [stdout].
+# Note: Different minimap version give slightly different results
 rule souporcell_remap:
     input:
         fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
@@ -453,6 +454,7 @@ rule souporcell_remap:
         """
 
 
+# Note: samtools sort gives slightly different results when using old vs new image, syntax is correct
 rule souporcell_retag:
     input:
         minimap_tmp_files = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tmp_{index}.sam",
@@ -546,6 +548,7 @@ def get_bam_region_info(wildcards):
 
 # Note, did not implement option where common_variants == None
 # Touch the index file since I got some 'The index file is older than the data file:' errors.
+# Also, gives slightly different results when using old vs new image, syntax is correct
 rule souporcell_freebayes:
     input:
         bam = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam",
@@ -570,7 +573,9 @@ rule souporcell_freebayes:
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} touch -c {input.index}
+        
         singularity exec --bind {params.bind} {params.sif} samtools view -hb {input.bam} {params.region_args} | singularity exec --bind {params.bind} {params.sif} samtools depth - | singularity exec --bind {params.bind} {params.sif} awk '{{ if ($3 >= {params.min_cov} && $3 < {params.max_cov}) {{ print $1 "\t" $2 "\t" $2+1 "\t" $3 }} }}' > {output.bed}
+        
         singularity exec --bind {params.bind} {params.sif} bedtools merge -i {output.bed} > {output.merged_bed}
         """
 
@@ -671,7 +676,6 @@ rule souporcell_vartrix:
         """
 
 
-# TODO: just souporcell after new image
 rule souporcell_souporcell:
     input:
         ref_mtx = config["outputs"]["output_dir"] + "{pool}/souporcell/ref.mtx",
@@ -697,7 +701,7 @@ rule souporcell_souporcell:
     log: config["outputs"]["output_dir"] + "log/souporcell_souporcell.{pool}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} /opt/souporcell/souporcell/target/release/souporcell \
+        singularity exec --bind {params.bind} {params.sif} souporcell \
             --alt_matrix {input.alt_mtx} \
             --ref_matrix {input.ref_mtx} \
             --barcodes {input.barcodes} \
@@ -711,7 +715,6 @@ rule souporcell_souporcell:
 
 
 # Does not accept gzipped cluster_files.
-# 5c7a9bf58c2858d4c8a057f89be45695  test_dataset/souporcell_old/clusters.tsv
 rule souporcell_doublets:
     input:
         ref_mtx = config["outputs"]["output_dir"] + "{pool}/souporcell/ref.mtx",
@@ -747,8 +750,6 @@ rule souporcell_doublets:
         """
 
 
-# a8bacfd33dfb264e1b39857ef36cf24b  test_dataset/souporcell_old/ambient_rna.txt
-# 06340c51e794e7706bebdaa2222930f6  test_dataset/souporcell_old/cluster_genotypes.vcf
 rule souporcell_consensus:
     input:
         ref_mtx = config["outputs"]["output_dir"] + "{pool}/souporcell/ref.mtx",
@@ -862,7 +863,7 @@ rule souporcell_correlate_genotypes:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/scripts/Assign_Indiv_by_Geno.R",
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Assign_Indiv_by_Geno.R",
         out = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations"
     log: config["outputs"]["output_dir"] + "log/souporcell_correlate_genotypes.{pool}.log"
     shell:

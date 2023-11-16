@@ -93,8 +93,8 @@ souporcell:
   souporcell_vartrix_threads: 1
   souporcell_vartrix_time: 0
 
-  souporcell_souporcell_memory: 2 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell step
-  souporcell_souporcell_threads: 4 ### The number threads that will be used for the souporcell step
+  souporcell_souporcell_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell step
+  souporcell_souporcell_threads: 1 ### The number threads that will be used for the souporcell step
   souporcell_souporcell_time: 0 ### The time setting to use.
 
   souporcell_doublets_memory: 4
