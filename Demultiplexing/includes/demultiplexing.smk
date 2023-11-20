@@ -429,7 +429,9 @@ rule souporcell_make_fastqs:
 # -K 50m = Number of bases loaded into memory to process in a mini-batch [500M]. Similar to option -I, K/M/G/k/m/g suffix is accepted. A large NUM helps load balancing in the multi-threading mode, at the cost of increased memory.
 # --secondary=no = Whether to output secondary alignments [yes]
 # -o = Output alignments to FILE [stdout].
-# Note: Different minimap version give slightly different results
+# Note: I use minimap2 v2.26, the same version as the authors of the souporcell pipeline, while the old sc-eQTLgen
+# used v2.7. The new version gives slightly different results but since this is the version that was intended for souporcell I assume
+# it is fine.
 rule souporcell_remap:
     input:
         fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
@@ -549,6 +551,8 @@ def get_bam_region_info(wildcards):
 # Note, did not implement option where common_variants == None
 # Touch the index file since I got some 'The index file is older than the data file:' errors.
 # Also, gives slightly different results when using old vs new image, syntax is correct
+# IMPORTANT: the old version of samtools depth defaults to a maximum coverage depth of 8000 while the newest version
+# has no limit.
 rule souporcell_freebayes:
     input:
         bam = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam",
@@ -738,7 +742,7 @@ rule souporcell_doublets:
     log: config["outputs"]["output_dir"] + "log/souporcell_doublets.{pool}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} gunzip {input.cluster_file}
+        singularity exec --bind {params.bind} {params.sif} gunzip -c {input.cluster_file} > {output.cluster_file}
         singularity exec --bind {params.bind} {params.sif} troublet \
             --alts {input.alt_mtx} \
             --refs {input.ref_mtx} \
