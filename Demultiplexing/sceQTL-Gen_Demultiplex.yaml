@@ -27,139 +27,139 @@ cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"}
 demultiplex_preprocessing:
   combine_vcfs_all_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   combine_vcfs_all_threads: 1 ### Number of threads to use
-  combine_vcfs_all_time: 0 ### The time setting to use.
+  combine_vcfs_all_time: 0 ### The time setting to use
 
   filter4demultiplexing_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   filter4demultiplexing_threads: 1 ### Number of threads to use
-  filter4demultiplexing_time: 0 ### The time setting to use.
+  filter4demultiplexing_time: 0 ### The time setting to use
 
   sort4demultiplexing_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
   sort4demultiplexing_threads: 1 ### Number of threads to use
-  sort4demultiplexing_time: 0 ### The time setting to use.
+  sort4demultiplexing_time: 0 ### The time setting to use
 
 popscle:
   popscle_bam_filter_memory: 5 ### This is the number of gigs that will be used for memory when subsetting the bam file.
   popscle_bam_filter_threads : 2 ### This is the number of threads that will be used for memory when subsetting the bam file.
-  popscle_bam_filter_time: 0 ### The time setting to use.
+  popscle_bam_filter_time: 0 ### The time setting to use
 
   popscle_pileup_memory: 10 ### This is the number of gigs that will be used for memory and disk space per thread for the pileup step.
   popscle_pileup_threads: 10 ### The number threads that will be used for the pileup step
-  popscle_pileup_time: 0 ### The time setting to use.
+  popscle_pileup_time: 0 ### The time setting to use
   popscle_pileup_tag_group: "CB" ### Tag representing readgroup or cell barcodes, in the case to partition the BAM file into multiple groups. For 10x genomics, use CB
   popscle_pileup_tag_UMI: "UB" ### Tag representing UMIs. For 10x genomiucs, use UB
 
   popscle_demuxlet_memory: 5 ### This is the number of gigs that will be used for memory and disk space per thread for the demuxlet step
   popscle_demuxlet_threads: 2 ### The number threads that will be used for the demuxlet step
-  popscle_demuxlet_time: 0 ### The time setting to use.
+  popscle_demuxlet_time: 0 ### The time setting to use
   popscle_demuxlet_field: "GP" ### FORMAT field to extract the genotype, likelihood, or posterior from
 
 souporcell:
-  souporcell_preflights_memory: 4
-  souporcell_preflights_threads: 1
-  souporcell_preflights_time: 0
+  souporcell_preflights_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell preflights step
+  souporcell_preflights_threads: 1 ### The number threads that will be used for the souporcell preflights step
+  souporcell_preflights_time: 0 ### The time setting to use
 
-  souporcell_get_bam_regions_memory: 4
-  souporcell_get_bam_regions_threads: 1
-  souporcell_get_bam_regions_time: 0
+  souporcell_get_bam_regions_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell get bam regions step
+  souporcell_get_bam_regions_threads: 1 ### The number threads that will be used for the souporcell get bam regions step
+  souporcell_get_bam_regions_time: 0 ### The time setting to use
 
   souporcell_remap_splits: 4 ### number of jobs to use for make_fastqs, remap, and retag. Each job gets the memory / threads / time as specified per rule.
 
-  souporcell_make_fastqs_memory: 4
-  souporcell_make_fastqs_threads: 1
-  souporcell_make_fastqs_time: 0
+  souporcell_make_fastqs_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell make fastq's step
+  souporcell_make_fastqs_threads: 1 ### The number threads that will be used for the souporcell make fastq's step
+  souporcell_make_fastqs_time: 0 ### The time setting to use
 
-  souporcell_remap_memory: 16 ### using
-  souporcell_remap_threads: 1
-  souporcell_remap_time: 0
+  souporcell_remap_memory: 16 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell remap step
+  souporcell_remap_threads: 1 ### The number threads that will be used for the souporcell remap step
+  souporcell_remap_time: 0 ### The time setting to use
 
-  souporcell_retag_memory: 4
-  souporcell_retag_threads: 1
-  souporcell_retag_time: 0
+  souporcell_retag_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell retag step
+  souporcell_retag_threads: 1 ### The number threads that will be used for the souporcell retag step
+  souporcell_retag_time: 0 ### The time setting to use
 
-  souporcell_freebayes_memory: 4
-  souporcell_freebayes_threads: 1
-  souporcell_freebayes_time: 0
+  souporcell_freebayes_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell freebayes step
+  souporcell_freebayes_threads: 1 ### The number threads that will be used for the souporcell freebayes step
+  souporcell_freebayes_time: 0 ### The time setting to use
   souporcell_freebayes_splits: 4 ### number of jobs to use for Freebayes. Each job gets the memory / threads / time as specified above.
 
-  souporcell_freebayes_combine_memory: 4
-  souporcell_freebayes_combine_threads: 1
-  souporcell_freebayes_combine_time: 0
+  souporcell_freebayes_combine_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell freebayes combine step
+  souporcell_freebayes_combine_threads: 1 ### The number threads that will be used for the souporcell freebayes combine step
+  souporcell_freebayes_combine_time: 0 ### The time setting to use
 
-  souporcell_common_variants_memory: 4
-  souporcell_common_variants_threads: 1
-  souporcell_common_variants_time: 0
+  souporcell_common_variants_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell common variants step
+  souporcell_common_variants_threads: 1 ### The number threads that will be used for the souporcell common variants step
+  souporcell_common_variants_time: 0 ### The time setting to use
 
-  souporcell_vartrix_memory: 4
-  souporcell_vartrix_threads: 1
-  souporcell_vartrix_time: 0
+  souporcell_vartrix_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell vartrix step
+  souporcell_vartrix_threads: 1 ### The number threads that will be used for the souporcell vartrix step
+  souporcell_vartrix_time: 0 ### The time setting to use
 
   souporcell_souporcell_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell step
   souporcell_souporcell_threads: 1 ### The number threads that will be used for the souporcell step
-  souporcell_souporcell_time: 0 ### The time setting to use.
+  souporcell_souporcell_time: 0 ### The time setting to use
 
-  souporcell_doublets_memory: 4
-  souporcell_doublets_threads: 1
-  souporcell_doublets_time: 0
+  souporcell_doublets_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell doublets step
+  souporcell_doublets_threads: 1 ### The number threads that will be used for the souporcell doublets step
+  souporcell_doublets_time: 0 ### The time setting to use
 
-  souporcell_consensus_memory: 4
-  souporcell_consensus_threads: 1
-  souporcell_consensus_time: 0
+  souporcell_consensus_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell consensus step
+  souporcell_consensus_threads: 1 ### The number threads that will be used for the souporcell consensus step
+  souporcell_consensus_time: 0 ### The time setting to use
 
-  souporcell_summary_memory: 4 ###
-  souporcell_summary_threads: 1 ###
-  souporcell_summary_time: 0 ### The time setting to use.
+  souporcell_summary_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell sumary step
+  souporcell_summary_threads: 1 ### The number threads that will be used for the souporcell summary step
+  souporcell_summary_time: 0 ### The time setting to use
 
-  souporcell_pool_vcf_memory: 4 ###
-  souporcell_pool_vcf_threads: 1 ###
-  souporcell_pool_vcf_time: 0 ### The time setting to use.
+  souporcell_pool_vcf_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell pool VCF step
+  souporcell_pool_vcf_threads: 1 ### The number threads that will be used for the souporcell pool VCF step
+  souporcell_pool_vcf_time: 0 ### The time setting to use
 
   souporcell_correlations_memory: 5 ### Amount of memory (in GB) that will be allocated for each thread
   souporcell_correlations_threads: 2 ### The number of threads to be used to run R script that will correlate the souporcell cluster genotypes wiht the reference genotypes
-  souporcell_correlations_time: 0 ### The time setting to use.
+  souporcell_correlations_time: 0 ### The time setting to use
 
 scrublet:
   scrublet_memory: 5 ### The number amount of memory that will be used for scrublet doublet detection (in GB)
   scrublet_threads: 1 ### The number threads that will be used for the scrublet step
-  scrublet_time: 0 ### The time setting to use.
+  scrublet_time: 0 ### The time setting to use
   scrublet_min_gene_variability_pctl: [80, 85, 90, 95] ### Used for gene filtering prior to PCA. Keep the most highly variable genes in the top min_gene_variability_pctl percentile), as measured by the v-statistic [Klein et al., Cell 2015]
 
   plot_scrublet_memory: 4 ### The number amount of memory that will be used for plot scrublet doublet detection (in GB)
   plot_scrublet_threads: 1 ### The number threads that will be used for the plot scrublet step
-  plot_scrublet_time: 0 ### The time setting to use.
+  plot_scrublet_time: 0 ### The time setting to use
 
 scds:
   scds_memory: 10 ### The amount of memeory (GB) per thread for the scds step
   scds_threads: 1 ### The number threads that will be used for the scds step
-  scds_time: 0 ### The time setting to use.
+  scds_time: 0 ### The time setting to use
 
 doubletdetection:
   doubletdetection_memory: 10 ### The amount of memory (GB) used per thread for the DoubletDetection step
   doubletdetection_threads: 2 ### The number threads that will be used for the DoubletDetection step
-  doubletdetection_time: 0 ### The time setting to use.
+  doubletdetection_time: 0 ### The time setting to use
   doubletdetection_n_iters: [50] ###  Number of fit operations from which to collect p-values
 
   plot_doubletdetection_memory: 4 ### The amount of memory (GB) used per thread for the plot DoubletDetection step
   plot_doubletdetection_threads: 1 ### The number threads that will be used for the plot DoubletDetection step
-  plot_doubletdetection_time: 0 ### The time setting to use.
+  plot_doubletdetection_time: 0 ### The time setting to use
 
 scdblfinder:
   scfblfinder_memory: 10 ### The amount of memeory (GB) per thread for the scDblFinder step
   scdblfinder_threads: 1 ### The number threads that will be used for the scDblFinder step
-  scfblfinder_time: 0 ### The time setting to use.
+  scfblfinder_time: 0 ### The time setting to use
 
 doubletfinder:
   doubletfinder_memory: 10 ### The amount of memeory (GB) per thread for the DoubletFinder step
   doubletfinder_threads: 1 ### The number threads that will be used for the DoubletFinder step
-  doubletfinder_time: 0 ### The time setting to use.
+  doubletfinder_time: 0 ### The time setting to use
 
   plot_doubletfinder_memory: 4 ### The amount of memory (GB) used per thread for the plot DoubletFinder step
   plot_doubletfinder_threads: 1 ### The number threads that will be used for the plot DoubletFinder step
-  plot_doubletfinder_time: 0 ### The time setting to use.
+  plot_doubletfinder_time: 0 ### The time setting to use
 
 combine_results:
-  combine_results_memory: 20 ###
-  combine_results_threads: 2 ###
-  combine_results_time: 0 ### The time setting to use.
+  combine_results_memory: 4 ### The amount of memory (GB) used per thread for the combine results step
+  combine_results_threads: 1 ### The number threads that will be used for the combine results step
+  combine_results_time: 0 ### The time setting to use
 
 ############################################################################################################################################
 ##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####

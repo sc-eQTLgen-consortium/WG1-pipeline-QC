@@ -7,10 +7,6 @@ import gzip
 import math
 import os
 
-# TODO: remove
-# config["settings"]["is_multiplexed"] = False
-# config["scrublet"]["scrublet_min_gene_variability_pctl"] = [85]
-
 # Add trailing /.
 if not config["refs"]["ref_dir"].endswith("/"):
     config["refs"]["ref_dir"] += "/"
@@ -28,16 +24,6 @@ elif config["settings"]["sc_data_type"] == "single-nucleus":
 else:
     logger.info("\nError: the 'sc_data_type' variable in the configuration file is not recognised. Please use 'single-cell' or 'single-nucleus'.\n\n Exiting.")
     exit("UnrecognisedSCDataType")
-
-# TODO: remove
-# popscle = SUCCESS
-# souporcell = ModuleNotFoundError: No module named 'pystan'
-# DoubletFinder = SUCCESS
-# scDblFinder = SUCCESS
-# DoubletDetection = SUCCESS
-# scds = SUCCESS
-# Scrublet = SUCCESS
-METHODS = ["scDblFinder", "DoubletDetection", "scds", "Scrublet"]
 
 # Check if all methods are supported.
 supp_methods = {
@@ -493,7 +479,8 @@ if "Scrublet" in METHODS:
         input_files.append(expand(config["outputs"]["output_dir"] + "figures/{pool}/Scrublet_histograms_and_UMAPs.png", pool=POOLS))
         all_passed = False
 
-if all_passed:
+# Note: combine_results rule is usefull if we only use one method.
+if all_passed and len(METHODS) > 1:
     input_files = [
         expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results.tsv", pool=POOLS),
         expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_summary.tsv", pool=POOLS),
@@ -501,7 +488,7 @@ if all_passed:
         expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/Singlets_upset.pdf", pool=POOLS)
     ]
     if "popscle" in METHODS or "souporcell" in METHODS:
-        input_files.append(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv")
+        input_files.append(expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv", pool=POOLS))
 
 
 rule all:
