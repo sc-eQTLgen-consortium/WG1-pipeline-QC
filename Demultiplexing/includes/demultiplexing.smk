@@ -639,6 +639,7 @@ rule souporcell_vartrix:
     input:
         final_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/common_variants_covered.vcf.gz",
         final_bam = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam",
+        final_index = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam.bai",
         barcodes= lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
         fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"]
     output:
