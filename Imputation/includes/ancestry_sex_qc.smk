@@ -13,7 +13,7 @@ def get_input_path():
         return "pre_processed/"
 
 
-# Only using chromosome X and Y to reduce space.
+# Only using chromosome X to reduce space.
 rule check_sex:
     input:
         pgen = config["outputs"]["output_dir"] + get_input_path() + "data.pgen",
