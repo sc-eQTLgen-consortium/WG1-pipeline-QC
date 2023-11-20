@@ -137,6 +137,7 @@ seu <- doubletFinder_v3(
 )
 doublets <- as.data.frame(seu@meta.data[grepl("pANN*|DF.classifications*", colnames(seu@meta.data))])
 colnames(doublets) <-  c("DoubletFinder_score", "DoubletFinder_DropletType")
+doublets$Barcode <- rownames(doublets)
 doublets$DoubletFinder_DropletType <- gsub("Singlet", "singlet", doublets$DoubletFinder_DropletType) %>% gsub("Doublet", "doublet",.)
 
 message(paste0("Writing results to ", args$out, "DoubletFinder_doublets_singlets.tsv.gz."))
