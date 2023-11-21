@@ -70,11 +70,11 @@ if (is.list(counts)){
 # knownUse="discard"
 # dbr=NULL
 # dbr.sd=NULL
-# nfeatures=1352
+# nfeatures=1000
 # dims=20
 # k=NULL
 # removeUnidentifiable=TRUE
-# includePCs=19
+# includePCs=10
 # propRandom=0
 # propMarkers=0
 # aggregateFeatures=FALSE,
@@ -86,11 +86,11 @@ if (is.list(counts)){
 # max_depth=4
 # iter=3
 # trainingFeatures=NULL
-# unident.th=NULL
 # multiSampleMode=c("split","singleModel","singleModelSplitThres","asOne")
 # threshold=TRUE
 # verbose=is.null(samples)
-# BPPARAM=SerialParam()
+# NOTE: defaults of nfeatures changed from 1000 to 1352 and includePCs changede from 10 to 19 on Nov 14, 2022.
+# However we use an older version so I use those defaults.
 sce <- scDblFinder(
 	sce,
 	clusters=NULL,

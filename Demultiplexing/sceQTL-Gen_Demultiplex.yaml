@@ -218,10 +218,10 @@ doubletfinder_extra:
 scdblfinder_extra:
   expected_doublet_scaling_factor: 8e-06 ### The fraction of droublets expected based on the number of nuclei recovered
   stdev_doublet_rate: null ### The uncertainty range in the doublet rate, interpreted as a +/- around `dbr`. During thresholding, deviation from the expected doublet rate will be calculated from these boundaries, and will be considered null within these boundaries. If NULL, will be 40\% of `dbr`. Set to `dbr.sd=0` to disable the uncertainty around the doublet rate, or to `dbr.sd=1` to disable any expectation of the number of doublets (thus letting the thresholding be entirely driven by the misclassification of artificial doublets)
-  nfeatures: 1352 ### The number of top features to use
+  nfeatures: 1000 ### The number of top features to use
   dims: 20 ### The number of dimensions used
   removeUnidentifiable: True ### Whether to remove artificial doublets of a combination that is generally found to be unidentifiable
-  include_pcs: 19 ### The number of top components to use (e.g. `includePCs=10`, equivalent to 1:10)
+  include_pcs: 10 ### The number of top components to use (e.g. `includePCs=10`, equivalent to 1:10)
   prop_markers: 0 ### The proportion of features to select based on marker identification
   score: "xgb" ### Score to use for final classification
   processing: "default" ### processing Counts (real and artificial) processing before KNN. Either 'default' (normal \code{scater}-based normalization and PCA), 'rawPCA' (PCA without normalization), 'rawFeatures' (no normalization/dimensional reduction), 'normFeatures' (uses normalized features, without PCA), returning a named matrix with cells as rows and components as columns

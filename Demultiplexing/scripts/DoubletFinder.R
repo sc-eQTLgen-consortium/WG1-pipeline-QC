@@ -77,12 +77,12 @@ seu <- FindClusters(object=seu, resolution=args$resolution) # adds "RNA_snn_res.
 # pK identification (no ground-truth)
 # Defaults: https://github.com/chris-mcginnis-ucsf/DoubletFinder/blob/master/R/paramSweep_v3.R
 # PCs=1:10
-# sct = FALSE
+# sct=FALSE
 # num.cores=1
 sweep.list <- paramSweep_v3(seu, PCs=1:min.pc, sct=FALSE, num.cores=args$num.cores) # generates Rplots.pdf
 # Defaults: https://github.com/chris-mcginnis-ucsf/DoubletFinder/blob/master/R/summarizeSweep.R
-# GT = FALSE
-# GT.calls = NULL
+# GT=FALSE
+# GT.calls=NULL
 sweep.stats <- summarizeSweep(sweep.list, GT=FALSE, GT.calls=NULL)
 # Defaults: https://github.com/chris-mcginnis-ucsf/DoubletFinder/blob/master/R/find.pK.R
 # None
@@ -121,10 +121,10 @@ paste0("pANN therhold used to make final doublet/singlet prediction: ", nExp.poi
 # nExp ~ This defines the pANN threshold used to make final doublet/singlet predictions. This value can best be estimated from cell loading densities into the 10X/Drop-Seq device, and adjusted according to the estimated proportion of homotypic doublets.
 # adds "pANN_0.25_0.05_277" and "DF.classifications_0.25_0.05_277" to meta.data
 # Defaults: https://github.com/chris-mcginnis-ucsf/DoubletFinder/blob/master/R/doubletFinder_v3.R
-# pN = 0.25
-# reuse.pANN = FALSE
-# sct = FALSE
-# annotations = NULL
+# pN=0.25
+# reuse.pANN=FALSE
+# sct=FALSE
+# annotations=NULL
 seu <- doubletFinder_v3(
 	seu=seu,
 	PCs=1:min.pc,
@@ -141,7 +141,7 @@ doublets$Barcode <- rownames(doublets)
 doublets$DoubletFinder_DropletType <- gsub("Singlet", "singlet", doublets$DoubletFinder_DropletType) %>% gsub("Doublet", "doublet",.)
 
 message(paste0("Writing results to ", args$out, "DoubletFinder_doublets_singlets.tsv.gz."))
-write_delim(doublets, file = gzfile(paste0(args$out, "DoubletFinder_doublets_singlets.tsv.gz")), delim="\t")
+write_delim(doublets, file=gzfile(paste0(args$out, "DoubletFinder_doublets_singlets.tsv.gz")), delim="\t")
 
 ### Calculate number of doublets and singlets ###
 summary <- as.data.frame(table(doublets$DoubletFinder_DropletType))
@@ -150,11 +150,10 @@ message(paste0("Writing summary to ", args$out, "DoubletFinder_doublet_summary.t
 write_delim(summary, paste0(args$out, "DoubletFinder_doublet_summary.tsv"), "\t")
 
 # Save the stats.
-write(toJSON(list(min.pc = min.pc,
-				  optimal.pk = optimal.pk,
-				  nExp.poi.adj = nExp.poi.adj),
+write(toJSON(list(min.pc=min.pc,
+				  optimal.pk=optimal.pk,
+				  nExp.poi.adj=nExp.poi.adj),
 			 pretty=TRUE,
 			 auto_unbox=TRUE,
 			 null="null"),
 	  paste0(args$out,"/DoubletFinder_stats.json"))
-
