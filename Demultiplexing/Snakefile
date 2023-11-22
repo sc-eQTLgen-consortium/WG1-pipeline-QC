@@ -221,12 +221,12 @@ def process_manual_selection_method(name, settings=None, extra_settings=None, se
         full_dtype.update(settings_dtype)
     all_settings = settings + extra_settings
 
-    if not os.path.isdir(config["outputs"]["output_dir"] + "manual_selections"):
-        os.mkdir(config["outputs"]["output_dir"] + "manual_selections")
+    if not os.path.isdir(config["outputs"]["output_dir"] + "manual_selection"):
+        os.mkdir(config["outputs"]["output_dir"] + "manual_selection")
 
     # Step 1. Load the manual selection file and validate the content. Check if all pools have one
     # run that is finished and passed.
-    man_select_path = config["outputs"]["output_dir"] + "manual_selections/{name}_manual_selection.tsv".format(name=name)
+    man_select_path = config["outputs"]["output_dir"] + "manual_selection/{name}_manual_selection.tsv".format(name=name)
     if os.path.exists(man_select_path):
         select_df = pd.read_csv(man_select_path, dtype=full_dtype, sep="\t", header=0, index_col=None)
         for index, row in select_df.iterrows():
@@ -314,7 +314,7 @@ def process_manual_selection_method(name, settings=None, extra_settings=None, se
 
     # Step 2b. Add the manual rerun settings data frame.
     # Note that this only includes the pool and the settings (i.e. not Run, FINISHED, PASSED)
-    man_rerun_path = config["outputs"]["output_dir"] + "manual_selections/{name}_manual_run.tsv".format(name=name)
+    man_rerun_path = config["outputs"]["output_dir"] + "manual_selection/{name}_manual_run.tsv".format(name=name)
     if os.path.exists(man_rerun_path):
         man_rerun_df = pd.read_csv(man_rerun_path, dtype=small_dtype, sep="\t", header=0, index_col=None)
         man_rerun_df = man_rerun_df.loc[man_rerun_df["Pool"] != "Example", :]
