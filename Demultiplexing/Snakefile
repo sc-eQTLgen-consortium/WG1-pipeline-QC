@@ -504,7 +504,7 @@ if "Scrublet" in METHODS:
 # Note: combine_results rule is usefull if we only use one method.
 if all_passed and len(METHODS) > 1:
     # End point of rule expected_observed_numbers.
-    input_files.append(config["outputs"]["output_dir"] + "QC_figures/expected_observed_individuals_classifications.png")
+    input_files = [config["outputs"]["output_dir"] + "QC_figures/expected_observed_individuals_classifications.png"]
 
     # End point of rule qc_plots.
     input_files.extend([
