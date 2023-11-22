@@ -858,7 +858,7 @@ rule souporcell_correlate_genotypes:
         cluster_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/cluster_genotypes.vcf.gz",
     output:
         correlation_file = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/ref_clust_pearson_correlations.tsv.gz",
-        correlation_img = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/ref_clust_pearson_correlation.png",
+        correlation_img = report(config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/ref_clust_pearson_correlation.png", category="Souporcell Genotype Correlations", subcategory="{pool}", caption="../report_captions/souporcell.rst"),
         assignments = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt.gz"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_correlations_memory"],

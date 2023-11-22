@@ -30,6 +30,7 @@ parser$add_argument("-l", "--solo", required=FALSE, type="character", default=NU
 parser$add_argument("-b", "--ref", required=FALSE, type="character", default=NULL, help="Which demultiplexing software to use as a reference for individuals when you do not have assignment key for all demultiplexing method. Options are 'Demuxlet', 'Freemuxlet', 'scSplit', 'Souporcell' and 'Vireo'. If blank when assignment keys are missing, default softwares to use if present are Vireo, then Demuxlet, then Freemuxlet, then Souporcell, then scSplit.")
 parser$add_argument("-p", "--pct_agreement", required=FALSE, type="double", default=0.7, help="The proportion of a cluster that match the 'ref' assignment to assign that cluster the individual assignment from the reference. Can be between 0.5 and 1. Default is 0.9.")
 parser$add_argument("-m", "--method", required=FALSE, type="character", default=NULL, help="Combination method. Options are 'MajoritySinglet'. 'AtLeastHalfSinglet', 'AnySinglet' or 'AnyDoublet'. We have found that 'MajoritySinglet' provides the most accurate results in most situations and therefore recommend this method. See https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/latest/CombineResults.html for detailed explanation of each intersectional method. Leave blank if you just want all the softwares to be merged into a single dataframe.")
+parser$add_argument("-y", "--pool", required=TRUE, type="character", help="")
 parser$add_argument("-o", "--out", required=TRUE, type="character", help="The folder where results will be saved")
 
 # get command line options, if help option encountered print help and exit,
@@ -48,6 +49,7 @@ print("")
 suppressMessages(suppressWarnings(library(R.utils)))
 suppressMessages(suppressWarnings(library(data.table)))
 suppressMessages(suppressWarnings(library(tidyverse)))
+suppressMessages(suppressWarnings(library(ggpubr)))
 suppressMessages(suppressWarnings(library(future.apply)))
 suppressMessages(suppressWarnings(library(ComplexUpset)))
 suppressMessages(suppressWarnings(library(RColorBrewer)))
@@ -760,13 +762,50 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 				}
 			}
 		}
-	message("\nWriting output with combined calls.\n")
-	fwrite(combined_results, paste0(args$out,"combined_results_w_combined_assignments.tsv"), sep="\t", append=FALSE)
+		message("\nWriting output with combined calls.\n")
+		fwrite(combined_results, paste0(args$out,"combined_results_w_combined_assignments.tsv"), sep="\t", append=FALSE)
+
+		### FinalBarcodeAssignments.R ###
+		message("\nWriting summarized output with combined calls.\n")
+		summary_combined_results <- combined_results %>% select("Barcode", paste0(args$method, "_Individual_Assignment"), paste0(args$method, "_DropletType"))
+		colnames(summary_combined_results) <- c("Barcode", "Assignment", "DropletType")
+		fwrite(summary_combined_results, paste0(args$out, "Final_Assignments_demultiplexing_doublets.tsv"), sep="\t", append=FALSE)
+
+		##### Make a figure of the number of cells per assignment per pool #####
+		pDropletType <- ggplot(summary_combined_results, aes(x = DropletType, fill = DropletType)) +
+			geom_bar(position = "dodge", stat = "count") +
+			scale_fill_brewer(palette = "Dark2") +
+			theme_classic() +
+			labs(title=args$pool, subtitle = "Number of Each Droplet Type") +
+			theme(text = element_text(size=14),
+				plot.title = element_text(hjust = 0.5),
+				plot.subtitle = element_text(hjust = 0.5))
+
+		pAssignment <- ggplot(summary_combined_results, aes(x = Assignment, fill = DropletType)) +
+			geom_bar(position = "dodge", stat = "count") +
+			scale_fill_brewer(palette = "Dark2") +
+			theme_classic() +
+			labs(subtitle = "Number of Each Droplet Assignment") +
+			theme(text = element_text(size=14),
+				axis.text.x = element_text(angle = 45, hjust = 1),
+				plot.title = element_text(hjust = 0.5),
+				plot.subtitle = element_text(hjust = 0.5))
+
+
+		pCombined <- ggarrange(pDropletType, pAssignment, ncol = 1, nrow = 2, common.legend = TRUE, legend = "right")
+		ggexport(pCombined, filename = paste0(args$out, "DropletType_Assignment_BarPlot.png"), width = 2000, height = 2000, res = 300)
 	}
 
+	###########################################################################################
+
+	if (length(results_list) == 1) {
+		pdf(file= paste0(args$out, "Singlets_upset.pdf"), height=5, width=10) # or other device
+		pUpset <- ggplot()
+		print(pUpset)
+		dev.off()
 	##### Make an upset plot for the results to visualize the agreement between different softwares #####
 	### First check whether common assignments present (if they are, then will color by common assignment in the upset bar plots) ###
-	if (any(colnames(combined_results) %in% c("AnyDoublet_Individual_Assignment", "AnySinglet_Individual_Assignment", "AtLeastHalfSinglet_Individual_Assignment", "MajoritySinglet_Individual_Assignment"))){
+	} else if (any(colnames(combined_results) %in% c("AnyDoublet_Individual_Assignment", "AnySinglet_Individual_Assignment", "AtLeastHalfSinglet_Individual_Assignment", "MajoritySinglet_Individual_Assignment"))){
 		## Dataframe with each software singlet (1), doublet (0) designations + column for individual assignment
 		upset_df <- data.frame(combined_results[,.SD, .SDcols=grep("DropletType", colnames(combined_results), value=TRUE)])
 		upset_df <- upset_df[, !(colnames(upset_df) %in% c("MajoritySinglet_DropletType", "AtLeastHalfSinglet", "AnySinglet_DropletType", "AnyDoublet_DropletType"))]

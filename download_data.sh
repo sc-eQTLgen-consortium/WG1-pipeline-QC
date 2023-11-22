@@ -36,3 +36,11 @@ wget http://hgdownload.cse.ucsc.edu/goldenPath/hg18/liftOver/hg18ToHg38.over.cha
   && md5sum -c - <<<"cb4ba08996a10b0ded40fae00987d1c8 hg18ToHg38.over.chain.gz" \
   && gunzip hg18ToHg38.over.chain.gz \
   || rm hg18ToHg38.over.chain.gz
+
+echo "Ribosomal_genes.txt"
+wget https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/master/Demultiplexing/Ribosomal_genes.txt \
+  && md5sum -c - <<<"1f232f4815abe534768a32e3203600a3  Ribosomal_genes.txt"
+
+echo "Mitochondrial_genes.txt"
+wget https://raw.githubusercontent.com/sc-eQTLgen-consortium/WG1-pipeline-QC/master/Demultiplexing/Mitochondrial_genes.txt \
+  && md5sum -c - <<<"c5f65ae3bce28b9340615d605b2bb792  Mitochondrial_genes.txt"

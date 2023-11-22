@@ -17,7 +17,10 @@ if not config["outputs"]["output_dir"].endswith("/"):
 METHODS = []
 if config["settings"]["is_multiplexed"]:
     METHODS.extend(config["settings_extra"]["multiplexing_methods"])
-if config["settings"]["sc_data_type"] == "single-cell":
+if config["settings"]["sc_data_type"] is None:
+    METHODS.extend(config["settings_extra"]["sc_doubletdetection_methods"])
+    METHODS.extend(config["settings_extra"]["sn_doubletdetection_methods"])
+elif config["settings"]["sc_data_type"] == "single-cell":
     METHODS.extend(config["settings_extra"]["sc_doubletdetection_methods"])
 elif config["settings"]["sc_data_type"] == "single-nucleus":
     METHODS.extend(config["settings_extra"]["sn_doubletdetection_methods"])
@@ -116,41 +119,58 @@ for method in METHODS:
             logger.info("Error, unexpected requirement for supported method.\n\nExiting.")
             exit("UnexpectedMethodRequirement")
 
+# Check the rb / mt genes for plotting.
+for genes_file in ["ribosomal_genes", "mitochondrial_genes"]:
+    if not os.path.exists(config["refs"]["ref_dir"] + config["refs_extra"][genes_file]):
+        logger.info("Could not find the {} file. Please check that the file exists.\n\nExiting.".format(config["refs"]["ref_dir"] + config["refs_extra"][genes_file]))
+        exit("MissingReferenceFile")
 
-# Loading the input PSAM.
-logger.info("Loading the input poolsheet")
-POOL_DF = pd.read_csv(config["inputs"]["poolsheet_filepath"], sep="\t", dtype=str)
-POOL_DF.fillna("NA", inplace=True)
-POOL_DF.index = POOL_DF["Pool"]
+full_poolsheet_path = config["outputs"]["output_dir"] + "manual_selection/poolsheet.tsv"
+if not os.path.exists(os.path.dirname(full_poolsheet_path)):
+    os.makedirs(os.path.dirname(full_poolsheet_path))
+if not os.path.exists(full_poolsheet_path):
+    # Loading the input poolsheet.
+    logger.info("Loading the input poolsheet")
+    POOL_DF = pd.read_csv(config["inputs"]["poolsheet_filepath"], sep="\t", dtype=str)
+    POOL_DF.fillna("NA", inplace=True)
+    POOL_DF.index = POOL_DF["Pool"]
 
-# Loading in the individual list files.
-valid_individual_info = True
-if "Individuals" in required_columns or "N_Individuals" in required_columns:
-    logger.info("Adding the input individual_list_dir info")
-    POOL_DF["Individuals"] = "NA"
-    POOL_DF["N_Individuals"] = "NA"
-    for index, row in POOL_DF.iterrows():
-        individuals_fpath = os.path.join(config["inputs"]["individual_list_dir"], row["Pool"] + ".txt")
-        # Check if the file exists.
-        if not os.path.exists(individuals_fpath):
-            logger.info("Could not find the {} file. Please check that the file exists.".format(individuals_fpath))
-            valid_individual_info = False
-            continue
-
-        individuals = get_individuals_from_individual_file(individuals_fpath)
-
-        for individual in individuals:
-            if individual not in input_vcf_individuals:
-                logger.info("Could not find {} in {}. Please check that the file exists.".format(individual, config["inputs"]["vcf"]))
+    # Loading in the individual list files.
+    valid_individual_info = True
+    if "Individuals" in required_columns or "N_Individuals" in required_columns:
+        logger.info("Adding the input individual_list_dir info")
+        POOL_DF["Individuals"] = "NA"
+        POOL_DF["N_Individuals"] = "NA"
+        for index, row in POOL_DF.iterrows():
+            individuals_fpath = os.path.join(config["inputs"]["individual_list_dir"], row["Pool"] + ".txt")
+            # Check if the file exists.
+            if not os.path.exists(individuals_fpath):
+                logger.info("Could not find the {} file. Please check that the file exists.".format(individuals_fpath))
                 valid_individual_info = False
                 continue
 
-        POOL_DF.loc[index, "Individuals"] = individuals_fpath
-        POOL_DF.loc[index, "N_Individuals"] = str(len(individuals))
+            individuals = get_individuals_from_individual_file(individuals_fpath)
 
-if not valid_individual_info:
-    logger.info("\n\nExiting.")
-    exit("InvalidIndividualInfo")
+            for individual in individuals:
+                if individual not in input_vcf_individuals:
+                    logger.info("Could not find {} in {}. Please check that the file exists.".format(individual, config["inputs"]["vcf"]))
+                    valid_individual_info = False
+                    continue
+
+            POOL_DF.loc[index, "Individuals"] = individuals_fpath
+            POOL_DF.loc[index, "N_Individuals"] = str(len(individuals))
+
+    if not valid_individual_info:
+        logger.info("\n\nExiting.")
+        exit("InvalidIndividualInfo")
+
+    POOL_DF.to_csv(full_poolsheet_path, sep="\t", index=False, header=True)
+    logger.info("Saved 'manual_selection/poolsheet.tsv'.")
+else:
+    logger.info("Loading the full poolsheet")
+    POOL_DF = pd.read_csv(full_poolsheet_path, sep="\t", dtype=str)
+    POOL_DF.fillna("NA", inplace=True)
+    POOL_DF.index = POOL_DF["Pool"]
 
 # Check for missing columns.
 missing_columns = [column for column in required_columns.keys() if not column in POOL_DF.columns]
@@ -227,7 +247,7 @@ def process_manual_selection_method(name, settings=None, extra_settings=None, se
                     if math.isnan(row[setting]) and math.isnan(used_settings.loc[0, setting]):
                         # Edge case where nan == nan is False.
                         continue
-                    logger.info("Error, output directory {pool}/{name}Run{run}/{name}_settings.json contains unexpected settings.".format(pool=row["Pool"], name=name, run=row["Run"]))
+                    logger.info("\tError, output directory {pool}/{name}Run{run}/{name}_settings.json contains unexpected settings.".format(pool=row["Pool"], name=name, run=row["Run"]))
                     exit("UnexpectedSetting")
 
             # Check if the run was completed.
@@ -238,6 +258,8 @@ def process_manual_selection_method(name, settings=None, extra_settings=None, se
         passed_select_df = select_df.loc[(select_df["FINISHED"]) & (select_df["PASSED"]), :].copy()
         if passed_select_df.shape[0] == len(POOLS) and len(set(passed_select_df["Pool"].values).symmetric_difference(set(POOLS))) == 0:
             return True, [], dict(zip(passed_select_df["Pool"], passed_select_df["Run"])), {}
+        elif select_df["FINISHED"].all():
+            logger.info("\tAll expected output files are created. Please select the accepted run in the manual_selection file or add additional runs in the manual rerun file.")
 
         del passed_select_df
     else:
@@ -262,7 +284,7 @@ def process_manual_selection_method(name, settings=None, extra_settings=None, se
                             break
 
                     if not valid:
-                        logger.info("Error, output directory {pool}/{name}Run{run}/{name}_settings.json contains unexpected settings.".format(pool=pool,name=name,run=run_id))
+                        logger.info("\tError, output directory {pool}/{name}Run{run}/{name}_settings.json contains unexpected settings.".format(pool=pool,name=name,run=run_id))
                         exit("UnexpectedSetting")
 
                     result_exists = os.path.exists(results_path)
@@ -369,7 +391,7 @@ if "DoubletFinder" in METHODS:
     )
 
     if not doubletfinder_passed:
-        input_files.append(expand(config["outputs"]["output_dir"] + "figures/{pool}/DoubletFinder_pKvBCmetrics.png", pool=POOLS))
+        input_files.append(expand(config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletFinder_pKvBCmetrics.png", pool=POOLS))
         all_passed = False
 
 if "scDblFinder" in METHODS:
@@ -425,7 +447,7 @@ if "DoubletDetection" in METHODS:
     )
 
     if not doubletdetection_passed:
-        input_files.append(expand(config["outputs"]["output_dir"] + "figures/{pool}/DoubletDetection_convergence_and_threshold_test.png", pool=POOLS))
+        input_files.append(expand(config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletDetection_convergence_and_threshold_test.png", pool=POOLS))
         all_passed = False
 
 if "scds" in METHODS:
@@ -476,19 +498,20 @@ if "Scrublet" in METHODS:
     )
 
     if not scrublet_passed:
-        input_files.append(expand(config["outputs"]["output_dir"] + "figures/{pool}/Scrublet_histograms_and_UMAPs.png", pool=POOLS))
+        input_files.append(expand(config["outputs"]["output_dir"] + "QC_figures/{pool}/Scrublet_histograms_and_UMAPs.png", pool=POOLS))
         all_passed = False
 
 # Note: combine_results rule is usefull if we only use one method.
 if all_passed and len(METHODS) > 1:
-    input_files = [
-        expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results.tsv", pool=POOLS),
-        expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_summary.tsv", pool=POOLS),
-        expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_w_combined_assignments.tsv", pool=POOLS),
-        expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/Singlets_upset.pdf", pool=POOLS)
-    ]
-    if "popscle" in METHODS or "souporcell" in METHODS:
-        input_files.append(expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv", pool=POOLS))
+    # End point of rule expected_observed_numbers.
+    input_files.append(config["outputs"]["output_dir"] + "QC_figures/expected_observed_individuals_classifications.png")
+
+    # End point of rule qc_plots.
+    input_files.extend([
+        config["outputs"]["output_dir"] + "QC_figures/seurat_object_all_pools_all_barcodes_all_metadata.rds",
+        config["outputs"]["output_dir"] + "QC_figures/seurat_object_all_pools_all_barcodes_final_assignments.rds",
+        config["outputs"]["output_dir"] + "QC_figures/seurat_object_all_pools_singlet_barcodes_final_assignments.rds",
+    ])
 
 
 rule all:

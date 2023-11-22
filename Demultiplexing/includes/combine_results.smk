@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 
+#################################
+######## COMBINE RESULTS ########
+#################################
 rule combine_results:
     input:
         demuxlet = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best" if "popscle" in METHODS else [],
@@ -16,7 +19,9 @@ rule combine_results:
         summary = config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_summary.tsv",
         demultiplex_summary = config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_demultiplexing_summary.tsv" if "popscle" in METHODS or "souporcell" in METHODS else [],
         w_combined_assignments = config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_w_combined_assignments.tsv",
-        singlets_upset = config["outputs"]["output_dir"] + "{pool}/CombinedResults/Singlets_upset.pdf"
+        droplet_assign_summary = config["outputs"]["output_dir"] + "{pool}/CombinedResults/Final_Assignments_demultiplexing_doublets.tsv",
+        droplet_assign_plot = report(config["outputs"]["output_dir"] + "{pool}/CombinedResults/DropletType_Assignment_BarPlot.png", category="Number Individuals Summary", caption="../report_captions/final_assignments.rst"),
+        singlets_upset = report(config["outputs"]["output_dir"] + "{pool}/CombinedResults/Singlets_upset.pdf", category="Number Individuals Summary", caption="../report_captions/combine_results.rst")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["combine_results_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["combine_results_memory"],
@@ -53,5 +58,89 @@ rule combine_results:
             {params.scrublet} \
             --pct_agreement {params.pct_agreement} \
             --method {params.method} \
+            --pool {wildcards.pool} \
+            --out {params.out}
+        """
+
+####################################################
+############ SCRIPTS TO PRODUCE QC PLOTS ############
+####################################################
+rule expected_observed_numbers:
+    input:
+        assignments = expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/Final_Assignments_demultiplexing_doublets.tsv", pool=POOLS),
+        poolsheet = config["outputs"]["output_dir"] + "manual_selection/poolsheet.tsv"
+    output:
+        report(config["outputs"]["output_dir"] + "QC_figures/expected_observed_individuals_classifications.png", category="Number Individuals Summary", caption="../report_captions/expected_observed_numbers.rst")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["expected_observed_numbers_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["expected_observed_numbers_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["combine_results"]["expected_observed_numbers_time"]]
+    threads: config["combine_results"]["expected_observed_numbers_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/expected_observed_individuals_doublets.R",
+        basedir = config["outputs"]["output_dir"],
+        out = config["outputs"]["output_dir"] + "QC_figures/"
+    log: config["outputs"]["output_dir"] + "log/expected_observed_numbers.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
+            --poolsheet {input.poolsheet} \
+            --basedir {params.basedir} \
+            --out {params.out}
+        """
+        
+
+rule qc_plots:
+    input:
+        assignments = expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_w_combined_assignments.tsv", pool=POOLS),
+        final_assignments = expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/Final_Assignments_demultiplexing_doublets.tsv", pool=POOLS),
+        poolsheet = config["outputs"]["output_dir"] + "manual_selection/poolsheet.tsv",
+        rb_genes = config["refs"]["ref_dir"] + config["refs_extra"]["ribosomal_genes"],
+        mt_genes = config["refs"]["ref_dir"] + config["refs_extra"]["mitochondrial_genes"]
+    output:
+        seurat = config["outputs"]["output_dir"] + "QC_figures/seurat_object_all_pools_all_barcodes_all_metadata.rds",
+        seurat_final = config["outputs"]["output_dir"] + "QC_figures/seurat_object_all_pools_all_barcodes_final_assignments.rds",
+        seurat_singlet_qc = config["outputs"]["output_dir"] + "QC_figures/seurat_object_all_pools_singlet_barcodes_final_assignments.rds",
+        fig1 = report(config["outputs"]["output_dir"] + "QC_figures/nCount_RNA_violin_MAD_All.png", category="QC", caption="../report_captions/QC_plots_nCount.rst"),
+        fig2 = report(config["outputs"]["output_dir"] + "QC_figures/nCount_RNA_violin_MADper_Pool.png", category="QC", caption="../report_captions/QC_plots_nCount_RNA_MADall.rst"),
+        fig3 = report(config["outputs"]["output_dir"] + "QC_figures/nCount_RNA_violin_noMADlines.png", category="QC", caption="../report_captions/QC_plots_nCount.rst"),
+        fig4 = report(config["outputs"]["output_dir"] + "QC_figures/nFeature_RNA_violin_MAD_All.png", category="QC", caption="../report_captions/QC_plots_feature_MADall.rst"),
+        fig5 = report(config["outputs"]["output_dir"] + "QC_figures/nFeature_RNA_violin_MADper_Pool.png", category="QC", caption="../report_captions/QC_plots_feature_MADperPool.rst"),
+        fig6 = report(config["outputs"]["output_dir"] + "QC_figures/nFeature_RNA_violin_noMADlines.png", category="QC", caption="../report_captions/QC_plots_feature.rst"),
+        fig7 = report(config["outputs"]["output_dir"] + "QC_figures/nFeatures_vs_percentMT_QC_scatter_colorPool.png", category="QC", caption="../report_captions/QC_plots_features_mt_pool.rst"),
+        fig8 = report(config["outputs"]["output_dir"] + "QC_figures/nFeatures_vs_percentMT_QC_scatter_w_MADlines.png", category="QC", caption="../report_captions/QC_plots_features_mt_MAD.rst"),
+        fig9 = report(config["outputs"]["output_dir"] + "QC_figures/percent.mt_violin_MAD_All.png", category="QC", caption="../report_captions/QC_plots_mt_MADall.rst"),
+        fig10 = report(config["outputs"]["output_dir"] + "QC_figures/percent.mt_violin_MADper_Pool.png", category="QC", caption="../report_captions/QC_plots_mt_MADpool.rst"),
+        fig11 = report(config["outputs"]["output_dir"] + "QC_figures/percent.mt_violin_noMADlines.png", category="QC", caption="../report_captions/QC_plots_mt.rst"),
+        fig12 = report(config["outputs"]["output_dir"] + "QC_figures/percent.rb_violin_MAD_All.png", category="QC", caption="../report_captions/QC_plots_rb_MADall.rst"),
+        fig13 = report(config["outputs"]["output_dir"] + "QC_figures/percent.rb_violin_MADper_Pool.png", category="QC", caption="../report_captions/QC_plots_rb_MADperPool.rst"),
+        fig14 = report(config["outputs"]["output_dir"] + "QC_figures/percent.rb_violin_noMADlines.png", category="QC", caption="../report_captions/QC_plots_rb.rst"),
+        fig15 = report(config["outputs"]["output_dir"] + "QC_figures/UMI_vs_Genes_QC_scatter.png", category="QC", caption="../report_captions/QC_plots_UMI_features.rst"),
+        fig16 = report(config["outputs"]["output_dir"] + "QC_figures/UMI_vs_Genes_QC_scatter_w_MADlines.png", category="QC", caption="../report_captions/QC_plots_UMI_features_MADall.rst"),
+        fig17 = report(config["outputs"]["output_dir"] + "QC_figures/UMI_vs_percentMT_QC_scatter_colorPool.png", category="QC", caption="../report_captions/QC_plots_UMI_mt_pool.rst"),
+        fig18 = report(config["outputs"]["output_dir"] + "QC_figures/UMI_vs_percentMT_QC_scatter_w_MADlines.png", category="QC", caption="../report_captions/QC_plots_UMI_mt_MDA_all.rst"),
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["qc_plots_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["qc_plots_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["combine_results"]["qc_plots_time"]]
+    threads: config["combine_results"]["qc_plots_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Singlet_QC_Figures.R",
+        main_dir = config["outputs"]["output_dir"],
+        pools = " ".join(POOLS),
+        dirs10x = config["outputs"]["output_dir"] + "file_directories.txt",
+        out = config["outputs"]["output_dir"] + "QC_figures/"
+    log: config["outputs"]["output_dir"] + "log/QC_plots.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
+            --poolsheet {input.poolsheet} \
+            --main_dir {params.main_dir} \
+            --rb_genes {input.rb_genes} \
+            --mt_genes {input.mt_genes} \
             --out {params.out}
         """

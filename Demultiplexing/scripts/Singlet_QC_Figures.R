@@ -1,47 +1,73 @@
 #!/usr/bin/env Rscript
+# Adapted from drneavin https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/blob/master/Demultiplexing/scripts/Singlet_QC_Figures.R
 .libPaths("/usr/local/lib/R/site-library")
-library(tidyr)
-library(tidyverse)
-library(ggplot2)
-library(Seurat)
-library(ggforce)
-library(ggnewscale)
+suppressMessages(suppressWarnings(library(argparse)))
 
-##### Set up arguemtns #####
-args <- commandArgs(TRUE)
-arguments <- read.table(args, header = F)
-dir <- as.character(arguments[1,])
-pools_file <- as.character(arguments[2,])
-pool_directoreies <- as.character(arguments[3,])
-out <- as.character(arguments[4,])
-RB_genes_file <- as.character(arguments[5,])
-MT_genes_file <- as.character(arguments[6,])
+# create parser object
+parser <- ArgumentParser()
 
-pools <- read_delim(as.character(pools_file[1]), delim = "\t", col_names = c("Pool"))
+# specify our desired options
+# by default ArgumentParser will add an help option
+parser$add_argument("-p", "--poolsheet", required=TRUE, help="")
+parser$add_argument("-m", "--main_dir", required=TRUE, help="")
+parser$add_argument("-rb", "--rb_genes", required=TRUE, help="")
+parser$add_argument("-mt", "--mt_genes", required=TRUE, help="")
+parser$add_argument("-o", "--out", required=TRUE, help="The output directory where results will be saved.")
+
+# get command line options, if help option encountered print help and exit,
+# otherwise if options not found on command line then set defaults,
+args <- parser$parse_args()
+
+## make sure the directory exists ###
+dir.create(args$out, recursive = TRUE)
+
+print("Options in effect:")
+for (name in names(args)) {
+	print(paste0("  --", name, " ", args[[name]]))
+}
+print("")
+
+suppressMessages(suppressWarnings(library(tidyr)))
+suppressMessages(suppressWarnings(library(tidyverse)))
+suppressMessages(suppressWarnings(library(ggplot2)))
+suppressMessages(suppressWarnings(library(Seurat)))
+suppressMessages(suppressWarnings(library(ggforce)))
+suppressMessages(suppressWarnings(library(ggnewscale)))
+
+pools <- read_delim(args$poolsheet, delim = "\t")
 pools_list <- pools$Pool
 
 ##### Read in the mt and rb gene lists #####
-RB_genes <- read_delim(RB_genes_file, delim = "\t")
-MT_genes <- read_delim(MT_genes_file, delim = "\t")
-
-##### Readin in the file directory locations #####
-dir_locations <- read_delim(pool_directoreies, delim = "\t")
+RB_genes <- read_delim(args$rb_genes, delim = "\t")
+MT_genes <- read_delim(args$mt_genes, delim = "\t")
 
 ##### Read in the genes file
-if (file.exists(paste0(dir_locations$Matrix_Directories[1],"/genes.tsv"))){
-    genes <- read_delim(paste0(dir_locations$Matrix_Directories[1],"/genes.tsv"), delim = "\t", col_names = c("ENSG_ID","Gene_ID"))
-} else if (file.exists(paste0(dir_locations$Matrix_Directories[1],"/features.tsv.gz"))){
-    genes <- read_delim(paste0(dir_locations$Matrix_Directories[1],"/features.tsv.gz"), delim = "\t", col_names = c("ENSG_ID","Gene_ID", "FeatureType"))
-} else {
-    print(print("We're having issues finding your gene file (gene.tsv or features.tsv.gz). Please make sure one of these exist in ", dir_locations$Matrix_Directories[1]))
+Read10X_h5_genes <- function (filename) {
+    # This function is pretty much a stripped version of Read10X_h5 from
+    # Seurat but then just to read the barcodes and not the whole h5 file.
+    infile <- hdf5r::H5File$new(filename = filename, mode = "r")
+    genomes <- names(x = infile)
+    output <- list()
+    for (genome in genomes) {
+        output[[genome]] <- infile[[paste0(genome, "/barcodes")]]
+    }
+    infile$close_all()
+    if (length(x = output) == 1) {
+        return(output[[genome]])
+    }
+    else {
+        return(output)
+    }
 }
+genes <- Read10X_h5_genes(pools$Counts[1])
 
 
 ##### Read in and format the software assignments #####
 assignments_list <- lapply(pools_list, function(x){
-    read_delim(paste0(as.character(dir),"/",x,"/CombinedResults/CombinedDropletAssignments_w_genotypeIDs.tsv"), delim = "\t")
+    read_delim(paste0(as.character(args$main_dir),x,"/CombinedResults/combined_results_w_combined_assignments.tsv"), delim = "\t")
 })
 names(assignments_list) <- pools_list
+print(assignments_list)
 
 assignments_list <- lapply(pools_list, function(x){
     assignments_list[[x]]$Pool <- x
@@ -55,7 +81,7 @@ rownames(assignments) <- assignments$Barcode
 
 ##### Read in and format the final assignments #####
 assignments_final_list <- lapply(pools_list, function(x){
-    read_delim(paste0(as.character(dir),"/",x,"/CombinedResults/Final_Assignments_demultiplexing_doublets.txt"), delim = "\t")
+    read_delim(paste0(as.character(args$main_dir),x,"/CombinedResults/Final_Assignments_demultiplexing_doublets.tsv"), delim = "\t")
 })
 names(assignments_final_list) <- pools_list
 
@@ -70,8 +96,8 @@ assignments_final <- as.data.frame(assignments_final)
 rownames(assignments_final) <- assignments_final$Barcode
 
 ## Read in data
-counts_list <- lapply(dir_locations$Matrix_Directories, function(x){
-    Read10X(x, gene.column = 2)
+counts_list <- lapply(pools$Counts, function(x){
+    Read10X_h5(x)
 })
 names(counts_list) <- pools_list
 
@@ -84,16 +110,16 @@ counts <- do.call(cbind, counts_list)
 
 ##### Read in files - seurat with all metadata #####
 seurat <- CreateSeuratObject(counts, meta.data = assignments)
-seurat[["RNA"]] <- AddMetaData(seurat[["RNA"]], genes$Gene_ID, col.name = "Gene_ID")
-seurat[["RNA"]] <- AddMetaData(seurat[["RNA"]], genes$Gene_ID, col.name = "ENSG_ID")
-saveRDS(seurat,paste0(out,"/seurat_object_all_pools_all_barcodes_all_metadata.rds"))
+seurat[["RNA"]] <- AddMetaData(seurat[["RNA"]], genes$Gene_ID, col.name = "GeneID")
+seurat[["RNA"]] <- AddMetaData(seurat[["RNA"]], genes$ENSG_ID, col.name = "ENSG")
+saveRDS(seurat,paste0(args$out,"seurat_object_all_pools_all_barcodes_all_metadata.rds"))
 
 
 ##### create seurat object - seurat with metadata #####
 seurat <- CreateSeuratObject(counts, meta.data = assignments_final)
-seurat[["RNA"]] <- AddMetaData(seurat[["RNA"]], genes$Gene_ID, col.name = "Gene_ID")
-seurat[["RNA"]] <- AddMetaData(seurat[["RNA"]], genes$Gene_ID, col.name = "ENSG_ID")
-saveRDS(seurat,paste0(out,"/seurat_object_all_pools_all_barcodes_final_assignments.rds"))
+seurat[["RNA"]] <- AddMetaData(seurat[["RNA"]], genes$Gene_ID, col.name = "GeneID")
+seurat[["RNA"]] <- AddMetaData(seurat[["RNA"]], genes$ENSG_ID, col.name = "ENSG")
+saveRDS(seurat,paste0(args$out,"seurat_object_all_pools_all_barcodes_final_assignments.rds"))
 
 
 ##### subset for just singlets #####
@@ -125,7 +151,7 @@ if ((sum(which(RB_genes$GeneID %in% rownames(seurat))) > sum(which(RB_genes$ENSG
 }
 
 ##### Save the object with singlets and QC metrics #####
-saveRDS(seurat,paste0(out,"/seurat_object_all_pools_singlet_barcodes_final_assignments.rds"))
+saveRDS(seurat,paste0(args$out,"seurat_object_all_pools_singlet_barcodes_final_assignments.rds"))
 
 ##### Create a dataframe of MADs #####
 MAD_df_list <- lapply(pools_list, function(x){
@@ -274,9 +300,9 @@ for (QC in unique(MAD_df$QC_Metric)){
 }
 
 for (QC in names(violins_MAD_ALL)){
-    ggsave(violins_MADperPOOL[[QC]], filename = paste0(out, "/", QC, "_violin_MADper_Pool.png"), width = 29.7, height = 21 ,units = c("cm"))
-    ggsave(violins_MAD_ALL[[QC]], filename = paste0(out, "/", QC, "_violin_MAD_All.png"), width = 29.7, height = 21 ,units = c("cm"))
-    ggsave(violins[[QC]], filename = paste0(out, "/", QC, "_violin_noMADlines.png"), width = 29.7, height = 21 ,units = c("cm"))
+    ggsave(violins_MADperPOOL[[QC]], filename = paste0(args$out, QC, "_violin_MADper_Pool.png"), width = 29.7, height = 21 ,units = c("cm"))
+    ggsave(violins_MAD_ALL[[QC]], filename = paste0(args$out, QC, "_violin_MAD_All.png"), width = 29.7, height = 21 ,units = c("cm"))
+    ggsave(violins[[QC]], filename = paste0(args$out, QC, "_violin_noMADlines.png"), width = 29.7, height = 21 ,units = c("cm"))
 }
 
 MAD_df_All$MAD1_up <- MAD_df_All$Median + MAD_df_All$MAD
@@ -309,7 +335,7 @@ if ("percent.mt" %in% unique(MAD_df_All$QC_Metric) & ("nCount_RNA" %in% MAD_df_A
         geom_segment(data=MAD_df_All_long[which(MAD_df_All_long$QC_Metric == "nCount_RNA"),], aes(x=value, xend = value, color = MAD_metric), y = min(seurat@meta.data$percent.mt), yend = max(seurat@meta.data$percent.mt), linetype = "longdash") +
         geom_segment(data=MAD_df_All_long[which(MAD_df_All_long$QC_Metric == "percent.mt"),], aes(y=value, yend = value, color = MAD_metric), x = min(seurat@meta.data$nCount_RNA), xend = max(seurat@meta.data$nCount_RNA), linetype = "longdash") +
         scale_color_manual(values = colors)
-    ggsave(pUMI_MTscatter_MAD, filename = paste0(out, "/UMI_vs_percentMT_QC_scatter_w_MADlines.png"))
+    ggsave(pUMI_MTscatter_MAD, filename = paste0(args$out, "UMI_vs_percentMT_QC_scatter_w_MADlines.png"))
 
     pNfeatures_MTscatter_MAD <- ggplot(seurat@meta.data, mapping = aes(x = nFeature_RNA, y = percent.mt)) +
         geom_point(size = 0.5, alpha = 0.5) +
@@ -320,21 +346,21 @@ if ("percent.mt" %in% unique(MAD_df_All$QC_Metric) & ("nCount_RNA" %in% MAD_df_A
         geom_segment(data=MAD_df_All_long[which(MAD_df_All_long$QC_Metric == "nFeature_RNA"),], aes(x=value, xend = value, color = MAD_metric), y = min(seurat@meta.data$percent.mt), yend = max(seurat@meta.data$percent.mt), linetype = "longdash") +
         geom_segment(data=MAD_df_All_long[which(MAD_df_All_long$QC_Metric == "percent.mt"),], aes(y=value, yend = value, color = MAD_metric), x = min(seurat@meta.data$nFeature_RNA), xend = max(seurat@meta.data$nFeature_RNA), linetype = "longdash") +
         scale_color_manual(values = colors)
-    ggsave(pNfeatures_MTscatter_MAD, filename = paste0(out, "/nFeatures_vs_percentMT_QC_scatter_w_MADlines.png"))
+    ggsave(pNfeatures_MTscatter_MAD, filename = paste0(args$out, "nFeatures_vs_percentMT_QC_scatter_w_MADlines.png"))
 
     pUMI_MTscatter <- ggplot(seurat@meta.data, aes(x = nCount_RNA, y = percent.mt, color = seurat@meta.data$Pool)) +
         geom_point(alpha = 0.5, size = 0.5) +
         theme_classic() +
         scale_color_manual(values = rainbow(length(unique(seurat@meta.data$Pool))), name = "Pool")+
         labs(x = "Number UMI", y = "Percent Mitochondial Genes")
-    ggsave(pUMI_MTscatter, filename = paste0(out, "/UMI_vs_percentMT_QC_scatter_colorPool.png"))
+    ggsave(pUMI_MTscatter, filename = paste0(args$out, "/UMI_vs_percentMT_QC_scatter_colorPool.png"))
 
     pNfeature_MTscatter <- ggplot(seurat@meta.data, aes(x = nFeature_RNA, y = percent.mt, color = seurat@meta.data$Pool)) +
         geom_point(alpha = 0.5, size = 0.5) +
         theme_classic() +
         scale_color_manual(values = rainbow(length(unique(seurat@meta.data$Pool))), name = "Pool")+
         labs(x = "Number Features", y = "Percent Mitochondial Genes")
-    ggsave(pNfeature_MTscatter, filename = paste0(out, "/nFeatures_vs_percentMT_QC_scatter_colorPool.png"))
+    ggsave(pNfeature_MTscatter, filename = paste0(args$out, "nFeatures_vs_percentMT_QC_scatter_colorPool.png"))
 
 }
 
@@ -348,7 +374,7 @@ if ("nFeature_RNA" %in% unique(MAD_df_All$QC_Metric) & ("nCount_RNA" %in% MAD_df
         geom_segment(data=MAD_df_All_long[which(MAD_df_All_long$QC_Metric == "nCount_RNA"),], aes(x=value, xend = value, color = MAD_metric), y = min(seurat@meta.data$nFeature_RNA), yend = max(seurat@meta.data$nFeature_RNA), linetype = "longdash") +
         geom_segment(data=MAD_df_All_long[which(MAD_df_All_long$QC_Metric == "nFeature_RNA"),], aes(y=value, yend = value, color = MAD_metric), x = min(seurat@meta.data$nCount_RNA), xend = max(seurat@meta.data$nCount_RNA), linetype = "longdash") +
         scale_color_manual(values = colors)
-    ggsave(pUMI_Genes_scatter_MAD, filename = paste0(out, "/UMI_vs_Genes_QC_scatter_w_MADlines.png"))
+    ggsave(pUMI_Genes_scatter_MAD, filename = paste0(args$out, "UMI_vs_Genes_QC_scatter_w_MADlines.png"))
 
     pUMI_Genes_scatter<- ggplot() +
         geom_point(data = seurat@meta.data, aes(x = nCount_RNA, y = nFeature_RNA, color = as.factor(seurat@meta.data$Pool)), alpha = 0.25, size = 0.5) +
@@ -356,5 +382,5 @@ if ("nFeature_RNA" %in% unique(MAD_df_All$QC_Metric) & ("nCount_RNA" %in% MAD_df
         scale_color_manual(values = rainbow(length(unique(seurat@meta.data$Pool))), name = "Pool")+
         labs(x = "Number UMI", y = "Number Genes")
 
-    ggsave(pUMI_Genes_scatter, filename = paste0(out, "/UMI_vs_Genes_QC_scatter.png"))
+    ggsave(pUMI_Genes_scatter, filename = paste0(args$out, "UMI_vs_Genes_QC_scatter.png"))
 }

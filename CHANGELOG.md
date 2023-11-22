@@ -63,7 +63,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Added parallel (re-)processing of all method with fully dynamic settings per run without overwriting previous results
 - Added `plot_DoubletDetection`, `plot_DoubletFinder` and `plot_Scrublet` rule to create combined plots for multiple runs 
 - Added demultiplexing rules from the `Imputation` pipeline
-- Added adaptive `combine_results` rule from `[Demuxafy](https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/v0.0.4/) v0.0.4 using the results of whichever doublet detection methods was used
+- Added adaptive `combine_results` rule from [Demuxafy](https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/v0.0.4/) v0.0.4 using the results of whichever doublet detection methods was used (this includes the old `expected_observed_numbers` rule)
 - Split `souporcell_pipeline.py` into separate rules and refactored to use gzipped files for computational efficiency
 - Made parameter `expected_doublet_rate` for `DoubletFinder` and `Scrublet` variable dependend on expected doublet rate
 
@@ -71,6 +71,8 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Fixed issue where some rules did not have dynamic time / memory usage
 - Fixed issue where naive BAM file search can return temporary bam file in `CellRanger` v7.0.1
 - Fixed issue where `Scrublet` uses `min_cells` value as parameter for `min_counts`
+- Fixed edge case where the Demuxafy `combine_results` rule if only one doublet detection method was run
+- Fixed issue in `Singlet_QC_Figures.R` where gene symbols were stored as ENSG
 
 #### Changes
 - Refactor code to (mostly) PEP8
@@ -85,6 +87,6 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Reduced image size
 - Using official souporcell conda environment
 - Doublet detection methods now use the `h5` file as input (required to align with new `WG0-Propocessing` pipeline)
-- Changed scripts to align with `[Demuxafy](https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/v0.0.4/) v0.0.4 code
+- Changed scripts to align with [Demuxafy](https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/v0.0.4/) v0.0.4 code
 - Update rules `filter4demultiplexing`, `sort4demultiplexing`, `popscle_pileup`, `popscle_demuxlet`, `souporcell` to use / output gzipped VCF files
 - Made all `*_doublets_singlets.tsv` files gzipped

@@ -323,7 +323,11 @@ RUN R --slave -e 'install.packages("remotes")' \
     # vipor -> 0.4.5, beeswarm -> 0.4.0, xfun 0.40 -> 0.41, evaluate 0.22 -> 0.23, prismatic -> 1.1.1, skecase -> 0.11.1
     # ggbeeswarm -> 0.7.2, Cairo -> 1.6-1, shape -> 1.4.6, GlobalOptions -> 0.1.2, paletteer -> 1.5.0
     # janitor -> 2.2.0, ggrastr -> 1.0.2, ggprism -> 1.0.4, circlize -> 0.4.15
-    && R --slave -e 'remotes::install_version("scCustomize", version = "1.1.3", upgrade=FALSE)'
+    && R --slave -e 'remotes::install_version("scCustomize", version = "1.1.3", upgrade=FALSE)' \
+    # tweenr -> 2.0.2
+    && R --slave -e 'remotes::install_version("ggforce", version = "0.4.1", upgrade=FALSE)' \
+    # None
+    && R --slave -e 'remotes::install_version("ggnewscale", version = "0.4.9", upgrade=FALSE)'
 
 # BiocManager 1.30.22
 # Uses 179 MB, mainly in /usr/local/lib/R/site-library/BiocNeighbors (18 MB), GenomeInfoDbData (11 MB), edgeR (11 MB), scran (12 MB), scuttle (12 MB)

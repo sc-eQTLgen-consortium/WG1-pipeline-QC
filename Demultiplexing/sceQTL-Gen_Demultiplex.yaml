@@ -161,12 +161,22 @@ combine_results:
   combine_results_threads: 1 ### The number threads that will be used for the combine results step
   combine_results_time: 0 ### The time setting to use
 
+  expected_observed_numbers_memory: 4 ### The amount of memory (GB) used per thread for the expected observed numbers step
+  expected_observed_numbers_threads: 1 ### The number threads that will be used for the expected observed numbers step
+  expected_observed_numbers_time: 0 ### The time setting to use
+
+  qc_plots_memory: 4 ### The amount of memory (GB) used per thread for the QC plots step
+  qc_plots_threads: 1 ### The number threads that will be used for the QC plots step
+  qc_plots_time: 0 ### The time setting to use
+
 ############################################################################################################################################
 ##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####
 ############################################################################################################################################
 refs_extra:
   relative_fasta_path: "hg38/ref_genome_QC/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
   relative_hg38_exons_ucsc_bed_path: "hg38exonsUCSC.bed"
+  ribosomal_genes: "Ribosomal_genes.txt"
+  mitochondrial_genes: "Mitochondrial_genes.txt"
 
 settings_extra:
   java_memory_buffer: 2 ### Amount of gigs to add to the Java memory for buffer
@@ -269,4 +279,4 @@ scrublet_extra:
 combine_results_extra:
   souporcell_correlation_limit: 0.7 ### The minimum correlation between a cluster and provided SNP genotypes to consider that cluster assigned to that individual
   pct_agreement: 0.7 ### The proportion of a cluster that match the 'ref' assignment to assign that cluster the individual assignment from the reference. Can be between 0.5 and 1. Default is 0.9.
-  method: "MajoritySinglet" ### Combination method. Options are 'MajoritySinglet'. 'AtLeastHalfSinglet', 'AnySinglet' or 'AnyDoublet'. We have found that 'MajoritySinglet' provides the most accurate results in most situations and therefore recommend this method. Leave blank if you just want all the softwares to be merged into a single dataframe.
+  method: "AnyDoublet" ### (Default: MajoritySinglet) Combination method. Options are 'MajoritySinglet'. 'AtLeastHalfSinglet', 'AnySinglet' or 'AnyDoublet'. We have found that 'MajoritySinglet' provides the most accurate results in most situations and therefore recommend this method. Leave blank if you just want all the softwares to be merged into a single dataframe.

@@ -47,7 +47,7 @@ rule plot_DoubletFinder:
         settings = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/DoubletFinderRun{run}/DoubletFinder_settings.json", pool=POOLS, run=DOUBLETFINDER_SETTINGS[wildcards.pool].keys()),
         bcmvns = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/DoubletFinderRun{run}/DoubletFinder_bcmvn.tsv.gz", pool=POOLS, run=DOUBLETFINDER_SETTINGS[wildcards.pool].keys())
     output:
-        figure = config["outputs"]["output_dir"] + "figures/{pool}/DoubletFinder_pKvBCmetrics.png",
+        figure = config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletFinder_pKvBCmetrics.png",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletfinder"]["plot_doubletfinder_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletfinder"]["plot_doubletfinder_memory"],
@@ -57,7 +57,7 @@ rule plot_DoubletFinder:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/plot_DoubletFinder.py",
-        out = config["outputs"]["output_dir"] + "figures/{pool}/"
+        out = config["outputs"]["output_dir"] + "QC_figures/{pool}/"
     log: config["outputs"]["output_dir"] + "log/plot_DoubletFinder.{pool}.log"
     shell:
         """
@@ -181,7 +181,7 @@ rule plot_DoubletDetection:
         settings = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/DoubletDetectionRun{run}/DoubletDetection_settings.json", pool=POOLS, run=DOUBLETDETECTION_SETTINGS[wildcards.pool].keys()),
         log_p_values = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/DoubletDetectionRun{run}/DoubletDetection_log_p_values.tsv.gz", pool=POOLS, run=DOUBLETDETECTION_SETTINGS[wildcards.pool].keys())
     output:
-        figure = config["outputs"]["output_dir"] + "figures/{pool}/DoubletDetection_convergence_and_threshold_test.png",
+        figure = config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletDetection_convergence_and_threshold_test.png",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletdetection"]["plot_doubletdetection_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletdetection"]["plot_doubletdetection_memory"],
@@ -191,7 +191,7 @@ rule plot_DoubletDetection:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/plot_DoubletDetection.py",
-        out = config["outputs"]["output_dir"] + "figures/{pool}/"
+        out = config["outputs"]["output_dir"] + "QC_figures/{pool}/"
     log: config["outputs"]["output_dir"] + "log/plot_DoubletDetection.{pool}.log"
     shell:
         """
@@ -206,6 +206,7 @@ rule plot_DoubletDetection:
 ##############################
 ############ SCDS ############
 ##############################
+# Note: this method gives different results each time you run it.
 rule scds:
     input:
         counts = lambda wildcards: POOL_DF.loc[wildcards.pool, "Counts"]
@@ -245,6 +246,7 @@ rule scds:
 ##################################
 ############ SCRUBLET ############
 ##################################
+# Gives slightly different results due to new software version.
 rule Scrublet:
     input:
         counts = lambda wildcards: POOL_DF.loc[wildcards.pool, "Counts"],
@@ -314,7 +316,7 @@ rule plot_Scrublet:
         stats = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_stats.json", pool=POOLS, run=SCRUBLET_SETTINGS[wildcards.pool].keys()),
         manifolds = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_manifold.tsv.gz",pool=POOLS,run=SCRUBLET_SETTINGS[wildcards.pool].keys()),
     output:
-        figure = config["outputs"]["output_dir"] + "figures/{pool}/Scrublet_histograms_and_UMAPs.png"
+        figure = config["outputs"]["output_dir"] + "QC_figures/{pool}/Scrublet_histograms_and_UMAPs.png"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["scrublet"]["plot_scrublet_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["scrublet"]["plot_scrublet_memory"],
@@ -324,7 +326,7 @@ rule plot_Scrublet:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/plot_Scrublet.py",
-        out = config["outputs"]["output_dir"] + "figures/{pool}/"
+        out = config["outputs"]["output_dir"] + "QC_figures/{pool}/"
     log: config["outputs"]["output_dir"] + "log/plot_Scrublet.{pool}.log"
     shell:
         """
