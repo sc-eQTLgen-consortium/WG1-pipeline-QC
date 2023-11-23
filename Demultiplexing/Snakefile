@@ -126,9 +126,10 @@ for genes_file in ["ribosomal_genes", "mitochondrial_genes"]:
         exit("MissingReferenceFile")
 
 full_poolsheet_path = config["outputs"]["output_dir"] + "manual_selection/poolsheet.tsv"
-if not os.path.exists(os.path.dirname(full_poolsheet_path)):
-    os.makedirs(os.path.dirname(full_poolsheet_path))
 if not os.path.exists(full_poolsheet_path):
+    if not os.path.exists(os.path.dirname(full_poolsheet_path)):
+        os.makedirs(os.path.dirname(full_poolsheet_path))
+
     # Loading the input poolsheet.
     logger.info("Loading the input poolsheet")
     POOL_DF = pd.read_csv(config["inputs"]["poolsheet_filepath"], sep="\t", dtype=str)
@@ -290,9 +291,6 @@ def process_manual_selection_method(name, settings=None, extra_settings=None, se
                     result_exists = os.path.exists(results_path)
                     select_data.append([pool, run_id] + [used_settings[setting] for setting in all_settings] + [result_exists, False])
         select_df = pd.DataFrame(select_data, columns=["Pool", "Run"] + all_settings + ["FINISHED", "PASSED"]).astype(full_dtype)
-    # print("Step 1.")
-    # print(select_df)
-    # print("")
 
     # Step 2a. Generate a new settings data frame based on default settings.
     # Note that this only includes the pool and the settings (i.e. not Run, FINISHED, PASSED).
@@ -308,9 +306,6 @@ def process_manual_selection_method(name, settings=None, extra_settings=None, se
     default_select_df = pd.DataFrame(default_select_data, columns=["Pool"] + all_settings).astype(small_dtype)
     select_df = select_df.merge(default_select_df, how="outer")
     del default_select_df
-    # print("Step 2a.")
-    # print(select_df)
-    # print("")
 
     # Step 2b. Add the manual rerun settings data frame.
     # Note that this only includes the pool and the settings (i.e. not Run, FINISHED, PASSED)
@@ -318,17 +313,11 @@ def process_manual_selection_method(name, settings=None, extra_settings=None, se
     if os.path.exists(man_rerun_path):
         man_rerun_df = pd.read_csv(man_rerun_path, dtype=small_dtype, sep="\t", header=0, index_col=None)
         man_rerun_df = man_rerun_df.loc[man_rerun_df["Pool"] != "Example", :]
-        # print("man_rerun_df")
-        # print(man_rerun_df)
-        # print("")
 
         select_df = select_df.merge(man_rerun_df, how="outer")
         del man_rerun_df
     else:
         pd.DataFrame([["Example"] + [config[name.lower() + "_extra"][setting] for setting in all_settings]], columns=["Pool"] + all_settings).to_csv(man_rerun_path, sep="\t", header=True, index=False)
-    # print("Step 2b.")
-    # print(select_df)
-    # print("")
 
     # Step 3. Assign unique output directories (run IDs) to each run and reformat the data frame.
     select_df = select_df.loc[:, ["Pool", "Run"] + all_settings + ["FINISHED", "PASSED"]]
@@ -341,9 +330,6 @@ def process_manual_selection_method(name, settings=None, extra_settings=None, se
                 max_pool_id = 0
             select_df.loc[index, "Run"] = max_pool_id + 1
     select_df = select_df.astype(full_dtype)
-    # print("Step 3.")
-    # print(select_df)
-    # print("")
 
     # Step 4. Generate the input files.
     output_folders = []
@@ -351,10 +337,6 @@ def process_manual_selection_method(name, settings=None, extra_settings=None, se
     for _, row in select_df.iterrows():
         output_folders.append(config["outputs"]["output_dir"] + "{pool}/{name}Run{run}/".format(pool=row["Pool"], name=name, run=row["Run"]))
         settings[row["Pool"]][str(row["Run"])] = row[all_settings].to_dict()
-    # print("Step 4.")
-    # print(select_df)
-    # print(output_folders)
-    # print("")
 
     # Step 5. Safe manual_selection_df.
     select_df.to_csv(man_select_path, sep="\t", header=True, index=False)
