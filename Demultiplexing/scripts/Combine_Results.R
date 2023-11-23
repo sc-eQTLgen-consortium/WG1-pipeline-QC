@@ -719,6 +719,7 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 					combined_results$MajoritySinglet_Individual_Assignment <- ifelse(combined_results$MajoritySinglet_DropletType == "singlet" & combined_results$MajoritySinglet_Individual_Assignment == "doublet", "unassigned", combined_results$MajoritySinglet_Individual_Assignment)
 				} else {
 					### method when no demultiplexing softwares
+					combined_results$MajoritySinglet_Individual_Assignment <- args$pool
 					combined_results$MajoritySinglet_DropletType <- ifelse(rowSums(combined_results[,.SD, .SDcols=grep("DropletType", colnames(combined_results), value=TRUE)] == "singlet") > length(grep("DropletType", colnames(combined_results)))/2, "singlet", "doublet")
 				}
 			} else if (args$method == "AtLeastHalfSinglet"){ ### Only call a singlet if at least half of softwares call a singlet AND at least half of demultiplexing (if present) call the same donor
@@ -732,6 +733,7 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 					combined_results$AtLeastHalfSinglet_Individual_Assignment <- ifelse(combined_results$AtLeastHalfSinglet_DropletType == "singlet" & combined_results$AtLeastHalfSinglet_Individual_Assignment == "doublet", "unassigned", combined_results$AtLeastHalfSinglet_Individual_Assignment)
 				} else {
 					### method when no demultiplexing softwares
+					combined_results$AtLeastHalfSinglet_Individual_Assignment <- args$pool
 					combined_results$AtLeastHalfSinglet_DropletType <- ifelse(rowSums(combined_results[,.SD, .SDcols=grep("DropletType", colnames(combined_results), value=TRUE)] == "singlet") >= length(grep("DropletType", colnames(combined_results)))/2, "singlet", "doublet")
 				}
 			} else if (args$method == "AnySinglet"){ ### Call a singlet if any softwares calls that droplet a singlet AND using the donor with the most consensus (call doublet if no consensus)
@@ -744,7 +746,8 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 					combined_results$AnySinglet_DropletType <- ifelse(is.na(combined_results$AnySinglet_DropletType) & combined_results$AnySinglet_Individual_Assignment == "doublet", "doublet", combined_results$AnySinglet_DropletType)
 					combined_results$AnySinglet_Individual_Assignment <- ifelse(combined_results$AnySinglet_DropletType == "singlet" & combined_results$AnySinglet_Individual_Assignment == "doublet", "unassigned", combined_results$AnySinglet_Individual_Assignment)
 				} else {
-				### method when no demultiplexing softwares
+					### method when no demultiplexing softwares
+					combined_results$AnySinglet_Individual_Assignment <- args$pool
 					combined_results$AnySinglet_DropletType <- ifelse(rowSums(combined_results[,.SD, .SDcols=grep("DropletType", colnames(combined_results), value=TRUE)] == "singlet") > 0, "singlet", "doublet")
 				}
 			} else if (args$method == "AnyDoublet"){ ### Call a singlet if all softwares calls that droplet a singlet AND all softwares call the same donor
@@ -758,6 +761,7 @@ if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(
 					combined_results$AnyDoublet_Individual_Assignment <- ifelse(combined_results$AnyDoublet_DropletType == "singlet" & combined_results$AnyDoublet_Individual_Assignment == "doublet", "unassigned", combined_results$AnyDoublet_Individual_Assignment)
 				} else {
 					### method when no demultiplexing softwares
+					combined_results$AnyDoublet_Individual_Assignment <- args$pool
 					combined_results$AnyDoublet_DropletType <- ifelse(rowSums(combined_results[,.SD, .SDcols=grep("DropletType", colnames(combined_results), value=TRUE)] == "doublet") > 0, "doublet", "singlet")
 				}
 			}
