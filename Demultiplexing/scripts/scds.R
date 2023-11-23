@@ -32,6 +32,7 @@ print("")
 
 write(toJSON(args, pretty=TRUE, auto_unbox=TRUE, null="null"), paste0(args$out,"/scds_settings.json"))
 
+suppressMessages(suppressWarnings(library(scCustomize)))
 suppressMessages(suppressWarnings(library(tidyr)))
 suppressMessages(suppressWarnings(library(dplyr)))
 suppressMessages(suppressWarnings(library(tidyverse)))
@@ -43,7 +44,14 @@ suppressMessages(suppressWarnings(library(SingleCellExperiment)))
 options(future.globals.maxSize=(850 * 1024 ^ 2))
 
 ## Read in data
-counts <- Read10X_h5(args$counts)
+counts <- tryCatch({
+	print("Loading count matrix using Seurat - Read10X_h5()")
+	counts <- Read10X_h5(args$counts)
+},error = function(e){
+	print("Failed, trying to load count matrix using scCustomize - Read_CellBender_h5_Mat()")
+	counts <- Read_CellBender_h5_Mat(args$counts)
+	return(counts)
+})
 
 paste0('Counts matrix shape: ', nrow(counts) ,' rows, ', ncol(counts), ' columns')
 

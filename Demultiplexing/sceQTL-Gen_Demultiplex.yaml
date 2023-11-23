@@ -5,7 +5,7 @@
 inputs:
   bind_path: /path/to/bind/to/mount ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
-  poolsheet_filepath: /path/to/sample/metadata/file.tsv ### tab separated file that has a header. Each line has a pool name used for the scRNA-seq directories and the number of individuals in each pool
+  poolsheet_path: /path/to/sample/metadata/file.tsv ### tab separated file that has a header. Each line has a pool name used for the scRNA-seq directories and the number of individuals in each pool
   individual_list_dir: /path/to/individual_list/directory/ ### Directory that has a different file for each pool. Each file contains a list of the individuals IDs that are in the pool separated by line (match the genotype individual IDs)
   vcf: [] ### the path to the genotype file(s) per ancestry
 

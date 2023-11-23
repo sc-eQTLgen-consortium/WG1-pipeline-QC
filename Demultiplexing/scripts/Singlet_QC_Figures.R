@@ -27,6 +27,7 @@ for (name in names(args)) {
 }
 print("")
 
+suppressMessages(suppressWarnings(library(scCustomize)))
 suppressMessages(suppressWarnings(library(tidyr)))
 suppressMessages(suppressWarnings(library(tidyverse)))
 suppressMessages(suppressWarnings(library(ggplot2)))
@@ -59,7 +60,22 @@ Read10X_h5_genes <- function (filename) {
         return(output)
     }
 }
-genes <- Read10X_h5_genes(pools$Counts[1])
+Read_CellBender_h5_Mat_genes <- function (file_name) {
+    # This function is pretty much a stripped version of Read_CellBender_h5_Mat from
+    # scCustomize but then just to read the barcodes and not the whole h5 file.
+    infile <- hdf5r::H5File$new(filename = file_name, mode = "r")
+    barcodes <- infile[["matrix/barcodes"]]
+    infile$close_all()
+    return(barcodes[])
+}
+genes <- tryCatch({
+	print("Loading genes using Seurat - Read10X_h5_genes()")
+	genes <- Read10X_h5_genes(args$counts)
+},error = function(e){
+	print("Failed, trying to load count matrix using scCustomize - Read_CellBender_h5_Mat_genes()")
+	genes <- Read_CellBender_h5_Mat_genes(args$counts)
+	return(genes)
+})
 
 
 ##### Read in and format the software assignments #####
@@ -97,7 +113,12 @@ rownames(assignments_final) <- assignments_final$Barcode
 
 ## Read in data
 counts_list <- lapply(pools$Counts, function(x){
-    Read10X_h5(x)
+    counts <- tryCatch({
+	    counts <- Read10X_h5(args$counts)
+    },error = function(e){
+        counts <- Read_CellBender_h5_Mat(args$counts)
+        return(counts)
+    })
 })
 names(counts_list) <- pools_list
 
@@ -108,6 +129,7 @@ counts_list <- lapply(pools_list, function(x){
 })
 counts <- do.call(cbind, counts_list)
 
+# TODO: this fails if they use a newer CellRanger version that only options non zero genes?
 ##### Read in files - seurat with all metadata #####
 seurat <- CreateSeuratObject(counts, meta.data = assignments)
 seurat[["RNA"]] <- AddMetaData(seurat[["RNA"]], genes$Gene_ID, col.name = "GeneID")

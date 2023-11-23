@@ -45,7 +45,14 @@ suppressMessages(suppressWarnings(library(dplyr)))
 options(future.globals.maxSize=(850 * 1024 ^ 2))
 
 ## Read in data
-counts <- Read10X_h5(args$counts)
+counts <- tryCatch({
+	print("Loading count matrix using Seurat - Read10X_h5()")
+	counts <- Read10X_h5(args$counts)
+},error = function(e){
+	print("Failed, trying to load count matrix using scCustomize - Read_CellBender_h5_Mat()")
+	counts <- Read_CellBender_h5_Mat(args$counts)
+	return(counts)
+})
 
 ## Construct Seurat object.
 seu <- CreateSeuratObject(counts)

@@ -54,7 +54,7 @@ if not os.path.exists(config["inputs"]["singularity_image"]):
     exit("MissingSIFFile")
 
 # Check if the poolsheet exists.
-if not os.path.exists(config["inputs"]["poolsheet_filepath"]):
+if not os.path.exists(config["inputs"]["poolsheet_path"]):
     logger.info("Error, the poolsheet file does not exist.\n\nExiting.")
     exit("MissingPoolSheetFile")
 
@@ -132,7 +132,7 @@ if not os.path.exists(full_poolsheet_path):
 
     # Loading the input poolsheet.
     logger.info("Loading the input poolsheet")
-    POOL_DF = pd.read_csv(config["inputs"]["poolsheet_filepath"], sep="\t", dtype=str)
+    POOL_DF = pd.read_csv(config["inputs"]["poolsheet_path"], sep="\t", dtype=str)
     POOL_DF.fillna("NA", inplace=True)
     POOL_DF.index = POOL_DF["Pool"]
 
