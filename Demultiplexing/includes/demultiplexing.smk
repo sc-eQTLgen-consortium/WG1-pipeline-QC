@@ -456,7 +456,6 @@ rule souporcell_remap:
         """
 
 
-# Note: samtools sort gives slightly different results when using old vs new image, syntax is correct
 rule souporcell_retag:
     input:
         minimap_tmp_files = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tmp_{index}.sam",
