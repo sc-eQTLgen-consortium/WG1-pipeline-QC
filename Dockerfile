@@ -12,7 +12,7 @@ LABEL about.summary="WG1 sceQTLGen Consortium Imputation, Demulitplexing, and Do
 LABEL about.documentation="https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC"
 LABEL about.tags="Genomics"
 
-# Build syntax: docker build -t wg1-pipeline-qc:1.0.0 --progress=plain . 2>&1 | tee build.log
+# Build syntax: docker build -t wg1-pipeline-qc:2023.11.23.0 --progress=plain > build.log 2>&1
 # Total build takes 1 hour, and 48 minutes and has a size of 7.41 GB.
 # Use dive wg1-pipeline-qc:1.0.0 to investigate memory usage.
 

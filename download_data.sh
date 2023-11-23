@@ -9,13 +9,13 @@ mkdir -p data
 cd data || exit
 
 echo "Downloading eQTLGenImpRef.tar.gz"
-wget  \
+wget https://www.dropbox.com/s/l60a2r3e4vo78mn/eQTLGenImpRef.tar.gz \
   && md5sum -c - <<<"0c6cddad981e597852eaa679a00516e1  eQTLGenImpRef.tar.gz" \
   && tar -xzf eQTLGenImpRef.tar.gz
 rm eQTLGenImpRef.tar.gz
 
 echo "Downloading 1000G.tar.gz"
-wget  \
+wget https://www.dropbox.com/s/xso2vt3p9h2rh8m/1000G.tar.gz \
   && md5sum -c - <<<"22fa624102af2bced1a71ff98a6f39a9 1000G.tar.gz" \
   && tar -xzf 1000G.tar.gz
 rm 1000G.tar.gz
