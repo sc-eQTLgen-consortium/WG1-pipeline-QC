@@ -8,6 +8,8 @@ import math
 import os
 
 # Add trailing /.
+if not config["inputs"]["individual_list_dir"].endswith("/"):
+    config["inputs"]["individual_list_dir"] += "/"
 if not config["refs"]["ref_dir"].endswith("/"):
     config["refs"]["ref_dir"] += "/"
 if not config["outputs"]["output_dir"].endswith("/"):
