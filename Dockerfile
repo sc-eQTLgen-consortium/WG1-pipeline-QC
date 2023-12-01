@@ -303,7 +303,7 @@ RUN R --slave -e 'install.packages("remotes")' \
     # Using commit of Aug 18, 2023
     # bitops -> 1.0-7, caTools -> 1.18.2, gtools -> 3.9.4, dotCall64 -> 1.0-2, gplots -> 3.1.3
     # maps -> 3.4.1, spam -> 2.9-1, ROCR -> 1.0-11, fields -> 15.2
-    && R --slave -e 'remotes::install_github("chris-mcginnis-ucsf/DoubletFinder@1b1d4e2d7f893a3552d9f8f791ab868ee4c782e6")' \
+    && R --slave -e 'remotes::install_github("chris-mcginnis-ucsf/DoubletFinder@1b1d4e2d7f893a3552d9f8f791ab868ee4c782e6", upgrade=FALSE)' \
     # depends on future.apply
     && R --slave -e 'remotes::install_version("hdf5r", version = "1.3.8", upgrade=FALSE)' \
     # progressr -> 0.14.0, sp -> 2.0-0
