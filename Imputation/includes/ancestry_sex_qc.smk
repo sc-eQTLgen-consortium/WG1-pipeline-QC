@@ -95,7 +95,7 @@ rule prune_1000g:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/overlap_pvars.py",
+        script = config["inputs"]["scripts_dir"] + "overlap_pvars.py",
         pgen_1000g = config["refs"]["ref_dir"] + config["refs_extra"]["relative_1000g_files"] + ".pgen",
         pvar_1000g = config["refs"]["ref_dir"] + config["refs_extra"]["relative_1000g_files"] + ".pvar",
         psam_1000g = config["refs"]["ref_dir"] + config["refs_extra"]["relative_1000g_files"] + ".psam",
@@ -206,7 +206,7 @@ rule prune_data:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/overlap_pvars.py",
+        script = config["inputs"]["scripts_dir"] + "overlap_pvars.py",
         out = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data"
     log: config["outputs"]["output_dir"] + "log/prune_data.log"
     shell:
@@ -301,7 +301,7 @@ rule check_ancestry:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/check_ancestry.R",
+        script = config["inputs"]["scripts_dir"] + "check_ancestry.R",
         out_info = config["outputs"]["output_dir"] + "check_ancestry/",
         out_manual = config["outputs"]["output_dir"] + "manual_selection/"
     log: config["outputs"]["output_dir"] + "log/check_ancestry.log"
@@ -332,7 +332,7 @@ rule summary_ancestry_sex:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/sex_ancestry_summaries.R",
+        script = config["inputs"]["scripts_dir"] + "sex_ancestry_summaries.R",
         out = config["outputs"]["output_dir"] + "metrics/",
     log: config["outputs"]["output_dir"] + "log/summary_ancestry_sex.log"
     shell:

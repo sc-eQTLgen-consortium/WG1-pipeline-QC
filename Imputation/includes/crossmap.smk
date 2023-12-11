@@ -46,7 +46,7 @@ rule crossmap:
         sif = config["inputs"]["singularity_image"],
         chain_file = config["refs"]["ref_dir"] + get_chain_file(),
         out_tmp = config["outputs"]["output_dir"] + "crossmapped/data",
-        script = "/opt/WG1-pipeline-QC/Imputation/scripts/crossmap_pvar.py",
+        script = config["inputs"]["scripts_dir"] + "crossmap_pvar.py",
         out = config["outputs"]["output_dir"] + "crossmapped/data",
     log: config["outputs"]["output_dir"] + "log/crossmap.log"
     shell:
