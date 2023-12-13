@@ -5,7 +5,7 @@
 inputs:
   bind_path: /path/to/bind/to/mount ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
-  scripts_dir: /path/to/scripts/ ### Path to the scripts directory
+  repo_dir: /path/to/repo/dir/ ### Path to the github repository directory
   genotype_path: /path/to/genotype/file ### path to directory that contains the genotype input files for pipeline on hg19. Include the filename without extension; accepted are .vcf.gz files or plink2 pgen, pvar and psam. In the cases of a splitted input use CHR to replace the chromosome.
   psam: /path/to/genotype/file.psam
   genome_build: "hg19"

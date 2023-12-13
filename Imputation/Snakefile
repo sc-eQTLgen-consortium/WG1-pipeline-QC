@@ -11,8 +11,8 @@ CHROMOSOMES = [str(chr) for chr in range(1, 23)]
 INPUT_CHROMOSOMES = CHROMOSOMES + ["X"]
 
 # Add trailing /.
-if not config["inputs"]["scripts_dir"].endswith("/"):
-    config["inputs"]["scripts_dir"] += "/"
+if not config["inputs"]["repo_dir"].endswith("/"):
+    config["inputs"]["repo_dir"] += "/"
 if not config["refs"]["ref_dir"].endswith("/"):
     config["refs"]["ref_dir"] += "/"
 if not config["outputs"]["output_dir"].endswith("/"):
