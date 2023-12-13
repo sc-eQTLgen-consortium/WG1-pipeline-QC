@@ -49,7 +49,7 @@ rule plot_DoubletFinder:
         settings = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/DoubletFinderRun{run}/DoubletFinder_settings.json", run=DOUBLETFINDER_SETTINGS[wildcards.pool].keys(), allow_missing=True),
         bcmvns = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/DoubletFinderRun{run}/DoubletFinder_bcmvn.tsv.gz", run=DOUBLETFINDER_SETTINGS[wildcards.pool].keys(), allow_missing=True)
     output:
-        figure = report(config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletFinder_pKvBCmetrics.png", category="DoubletFinder", subcategory="{pool}", caption=config["inputs"]["repo_dir"] + "Demultiplexing/scripts/DoubletFinder.rst"),
+        figure = report(config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletFinder_pKvBCmetrics.png", category="DoubletFinder", subcategory="{pool}", caption=config["inputs"]["repo_dir"] + "Demultiplexing/report_captions/DoubletFinder.rst"),
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletfinder"]["plot_doubletfinder_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletfinder"]["plot_doubletfinder_memory"],
@@ -185,7 +185,7 @@ rule plot_DoubletDetection:
         settings = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/DoubletDetectionRun{run}/DoubletDetection_settings.json", run=DOUBLETDETECTION_SETTINGS[wildcards.pool].keys(), allow_missing=True),
         log_p_values = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/DoubletDetectionRun{run}/DoubletDetection_log_p_values.tsv.gz", run=DOUBLETDETECTION_SETTINGS[wildcards.pool].keys(), allow_missing=True)
     output:
-        figure = report(config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletDetection_convergence_and_threshold_test.png", category="DoubletDetection", subcategory="{pool}", caption=config["inputs"]["repo_dir"] + "Demultiplexing/scripts/DoubletDetection.rst")
+        figure = report(config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletDetection_convergence_and_threshold_test.png", category="DoubletDetection", subcategory="{pool}", caption=config["inputs"]["repo_dir"] + "Demultiplexing/report_captions/DoubletDetection.rst")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletdetection"]["plot_doubletdetection_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletdetection"]["plot_doubletdetection_memory"],
@@ -322,7 +322,7 @@ rule plot_Scrublet:
         stats = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_stats.json", run=SCRUBLET_SETTINGS[wildcards.pool].keys(), allow_missing=True),
         manifolds = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_manifold.tsv.gz", run=SCRUBLET_SETTINGS[wildcards.pool].keys(), allow_missing=True),
     output:
-        figure = report(config["outputs"]["output_dir"] + "QC_figures/{pool}/Scrublet_histograms_and_UMAPs.png", category="Scrublet", subcategory="{pool}", caption=config["inputs"]["repo_dir"] + "Demultiplexing/scripts/Scrublet.rst")
+        figure = report(config["outputs"]["output_dir"] + "QC_figures/{pool}/Scrublet_histograms_and_UMAPs.png", category="Scrublet", subcategory="{pool}", caption=config["inputs"]["repo_dir"] + "Demultiplexing/report_captions/Scrublet.rst")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["scrublet"]["plot_scrublet_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["scrublet"]["plot_scrublet_memory"],
