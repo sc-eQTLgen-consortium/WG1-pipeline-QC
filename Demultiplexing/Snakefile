@@ -8,6 +8,8 @@ import math
 import os
 
 # Add trailing /.
+if not config["inputs"]["repo_dir"].endswith("/"):
+    config["inputs"]["repo_dir"] += "/"
 if not config["inputs"]["individual_list_dir"].endswith("/"):
     config["inputs"]["individual_list_dir"] += "/"
 if not config["refs"]["ref_dir"].endswith("/"):
@@ -257,17 +259,21 @@ def process_manual_selection_method(name, settings=None, extra_settings=None, se
             results_path = config["outputs"]["output_dir"] + "{pool}/{name}Run{run}/{name}_doublets_singlets.tsv.gz".format(pool=row["Pool"], name=name, run=row["Run"])
             select_df.loc[index, "FINISHED"] = os.path.exists(results_path)
 
+        if select_df["FINISHED"].all():
+            logger.info("\tAll expected output files are created.")
+        else:
+            logger.info("\tWaiting on expected output files.")
+
         # Check if each pool has exactly one FINISHED run with a PASSED flag, if so: we are done.
         passed_select_df = select_df.loc[(select_df["FINISHED"]) & (select_df["PASSED"]), :].copy()
         if passed_select_df.shape[0] == len(POOLS) and len(set(passed_select_df["Pool"].values).symmetric_difference(set(POOLS))) == 0:
-            logger.info("\tAll expected output files are created and manual_selection file is accepted.")
             return True, [], dict(zip(passed_select_df["Pool"], passed_select_df["Run"])), {}
-        elif passed_select_df.shape[0] < len(POOLS) or len(set(passed_select_df["Pool"].values).symmetric_difference(set(POOLS))) != 0:
-            logger.info("\tAll expected output files are created. Please select one accepted run for all pools in the manual_selection file or add additional runs in the manual rerun file.")
-        elif passed_select_df.shape[0] > len(POOLS):
-            logger.info("\tAll expected output files are created. Please select one accepted run for each pool in the manual_selection file or add additional runs in the manual rerun file.")
+
+        if select_df["FINISHED"].all() and (passed_select_df.shape[0] < len(POOLS) or len(set(passed_select_df["Pool"].values).symmetric_difference(set(POOLS))) != 0):
+            logger.info("\tPlease select one accepted run for all pools in the manual_selection file or add additional runs in the manual rerun file.")
+        elif select_df["FINISHED"].all() and passed_select_df.shape[0] > len(POOLS):
+            logger.info("\tPlease select one accepted run for each pool in the manual_selection file or add additional runs in the manual rerun file.")
         else:
-            # Should not happen.
             pass
 
         del passed_select_df
@@ -496,12 +502,16 @@ if all_passed and len(METHODS) > 1:
     # End point of rule expected_observed_numbers.
     input_files = [config["outputs"]["output_dir"] + "QC_figures/expected_observed_individuals_classifications.png"]
 
-    # End point of rule qc_plots.
+    # End point of rule combine_pools.
     input_files.extend([
-        config["outputs"]["output_dir"] + "QC_figures/seurat_object_all_pools_all_barcodes_all_metadata.rds",
-        config["outputs"]["output_dir"] + "QC_figures/seurat_object_all_pools_all_barcodes_final_assignments.rds",
-        config["outputs"]["output_dir"] + "QC_figures/seurat_object_all_pools_singlet_barcodes_final_assignments.rds",
+        config["outputs"]["output_dir"] + "CombinedResults/seurat_object_all_pools_all_barcodes_all_metadata.rds",
+        config["outputs"]["output_dir"] + "CombinedResults/seurat_object_all_pools_all_barcodes_final_assignments.rds",
+        config["outputs"]["output_dir"] + "CombinedResults/seurat_object_all_pools_singlet_barcodes_final_assignments.rds",
     ])
+
+    # End point of rule qc_plots.
+    input_files = [config["outputs"]["output_dir"] + "QC_figures/qc_plots.done"]
+
 
 
 rule all:

@@ -276,7 +276,7 @@ RUN R --slave -e 'install.packages("remotes")' \
     # None
     && R --slave -e 'remotes::install_version("ComplexUpset", version = "1.3.3", upgrade=FALSE)' \
     # depends on ggplot2
-    # prettyunits -> 1.2.0, rematch2 -> 2.1.2, diffobj -> 0.3.5, pkgbuild -> 1.4.2, fs -> 1.6.3, crayon -> 1.5.2
+    # Matrix -> 1.6-4, prettyunits -> 1.2.0, rematch2 -> 2.1.2, diffobj -> 0.3.5, pkgbuild -> 1.4.2, fs -> 1.6.3, crayon -> 1.5.2
     # rprojroot -> 2.0.3, waldo -> 0.5.1, ps -> 1.7.5, processx -> 3.8.2, praise -> 1.0.0, pkgload -> 1.3.3
     # evaluate -> 0.22, desc -> 1.4.2, callr -> 3.7.3, brio -> 1.1.3, testthat -> 3.1.10 ellipsis -> 0.3.2
     # backports -> 1.4.1, MatrixModels (NA -> 0.5-2, SparseM -> 1.81, numDeriv -> 2016.8-1.1, broom -> 1.0.5
@@ -606,26 +606,6 @@ RUN cd /opt \
         && cmake ..  \
         && make \
     && rm -rf /opt/popscle/.git
-
-#######################################
-################ WG1-CODE #############
-#######################################
-
-# Section build takes 5 seconds and has a size of 0.000095 GB.
-
-# Always get our own newest software. IMPORTANT: make sure you use the correct branch here.
-# Delete all the non python / R files since we won't need them anyway.
-# Uses 0.135 MB
-RUN cd /opt \
-    && GITHUB_BRANCH=scMetaBrain \
-    && wget https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC/archive/refs/heads/${GITHUB_BRANCH}.zip \
-    && unzip -q ${GITHUB_BRANCH}.zip \
-    && rm ${GITHUB_BRANCH}.zip \
-    && mv WG1-pipeline-QC-${GITHUB_BRANCH} WG1-pipeline-QC \
-    && cd WG1-pipeline-QC \
-    && find . -type f ! \( -iname \*.py -o -iname \*.R \) -delete \
-    && find . -type d -empty -delete \
-    && find . -type f \( -iname \*.py -o -iname \*.R \) -exec chmod 777 {} \;
 
 ####################################
 ################ CLEAN #############

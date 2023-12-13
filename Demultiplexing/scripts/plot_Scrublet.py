@@ -24,34 +24,41 @@ import json
 import umap
 
 
-setting_abbr = {
-    "sim_doublet_ratio": "sim_dbl_ratio",
-    "n_neighbors": "n_neighbors",
-    "expected_doublet_scaling_factor": "dbl_sf",
-    "stdev_doublet_rate": "stdev_dbl_rate",
-    "synthetic_doublet_umi_subsampling": "dbl_umi_sub",
-    "get_doublet_neighbor_parents": "dbl_neighbor",
-    "min_counts": "min_counts",
-    "min_cells": "min_cells",
-    "min_gene_variability_pctl": "min_gene_var",
-    "log_transform": "log_trans",
-    "mean_center": "mean_center",
-    "normalize_variance": "norm_var",
-    "n_prin_comps": "n_prin_comps",
-    "doublet_threshold": "dblt_thresh"
+settings_info = {
+    "sim_doublet_ratio": ("sim_dbl_ratio", 2.0),
+    "n_neighbors": ("n_neighbors", None),
+    "expected_doublet_scaling_factor": ("dbl_sf", 8e-06),
+    "stdev_doublet_rate": ("stdev_dbl_rate", 0.02),
+    "synthetic_doublet_umi_subsampling": ("dbl_umi_sub", 1.0),
+    "get_doublet_neighbor_parents": ("dbl_neighbor", False),
+    "min_counts": ("min_counts", 3),
+    "min_cells": ("min_cells", 3),
+    "min_gene_variability_pctl": ("min_gene_var", 85),
+    "log_transform": ("log_trans", False),
+    "mean_center": ("mean_center", True),
+    "normalize_variance": ("norm_var", True),
+    "n_prin_comps": ("n_prin_comps", 30),
+    "doublet_threshold": ("dblt_thresh", None)
 }
 
 
-def plot_settings(ax, settings):
+def plot_table(ax, values, colors=None, title=""):
     ax.axis('off')
     ax.axis('tight')
-    df = pd.DataFrame({setting_abbr[key]: value for key, value in settings.items() if key in setting_abbr}, index=[0]).T
+    df = pd.DataFrame(values, index=[0]).T
     max_key_length = max([len(str(key)) for key in df.index])
     max_value_length = max([len(str(value)) for value in df[0]])
     total_length = max_key_length + max_value_length
     table = ax.table(cellText=df.values, colWidths=[total_length / max_key_length, total_length / max_value_length], rowLabels=df.index, loc='center', edges='open')
     table.auto_set_column_width(col=list(range(len(df.columns))))
     table.scale(1, 1.2)
+    if colors is not None:
+        for row_index in range(len(values)):
+            key = table[(row_index, -1)].get_text()
+            key.set_color(colors[key.get_text()])
+            value = table[(row_index, 0)].get_text()
+            value.set_color(colors[key.get_text()])
+    ax.set_title(title)
 
 
 def plot_histogram(ax, y, threshold, scale_hist='log', title=''):
@@ -136,11 +143,21 @@ for row_index, (settings_path, results_path, stats_path, manifold_path) in enume
     print("")
 
     fh = open(settings_path)
-    settings = json.load(fh)
+    settings = {}
+    colors = {}
+    for key, value in json.load(fh).items():
+        if key in settings_info:
+            new_key, default_value = settings_info[key]
+            settings[new_key] = value
+            if str(value) == str(default_value):
+                colors[new_key] = "black"
+            else:
+                colors[new_key] = "red"
     fh.close()
-    plot_settings(
+    plot_table(
         ax=axs[row_index, 0],
-        settings=settings
+        values=settings,
+        colors=colors
     )
 
     fh = open(stats_path)

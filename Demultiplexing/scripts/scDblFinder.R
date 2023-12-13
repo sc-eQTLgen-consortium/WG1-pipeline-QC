@@ -24,6 +24,7 @@ parser$add_argument("--nrounds", required=FALSE, default=0.25, type="double", he
 parser$add_argument("--max_depth", required=FALSE, default=4, type="integer", help="Maximum depths of each tree.")
 parser$add_argument("--iter", required=FALSE, default=3, type="integer", help="A positive integer indicating the number of scoring iterations (ignored if `score` isn't based on classifiers). At each iteration, real cells that would be called as doublets are excluding from the training, and new scores are calculated. Recommended values are 1 or 2.")
 parser$add_argument("--multi_sample_mode", required=FALSE, choices=c("split", "singleModel", "singleModelSplitThres", "asOne"), default="split", type="character", help="Either 'split' (recommended if there is heterogeneity across samples), 'singleModel', 'singleModelSplitThres', or 'asOne'")
+parser$add_argument("--mem", required=FALSE, default=500, type="integer", help="The maximum allowed size in GB")
 parser$add_argument("--out", required=TRUE, help="The output directory where results will be saved.")
 
 # get command line options, if help option encountered print help and exit,
@@ -48,7 +49,7 @@ suppressMessages(suppressWarnings(library(SingleCellExperiment)))
 suppressMessages(suppressWarnings(library(tidyverse)))
 
 ## Add max future globals size for large pools
-options(future.globals.maxSize=(850 * 1024 ^ 2))
+options(future.globals.maxSize=(args$mem * 1000 * 1024^2))
 
 ## Read in data
 counts <- tryCatch({
@@ -57,16 +58,15 @@ counts <- tryCatch({
 },error = function(e){
 	print("Failed, trying to load count matrix using scCustomize - Read_CellBender_h5_Mat()")
 	counts <- Read_CellBender_h5_Mat(args$counts)
-	return(counts)
 })
+
+if (is.list(counts)){
+	counts <- counts[[grep("Gene", names(counts))]]
+}
 
 paste0('Counts matrix shape: ', nrow(counts) ,' rows, ', ncol(counts), ' columns')
 
-if (is.list(counts)){
-	sce <- SingleCellExperiment(list(counts=counts[[grep("Gene", names(counts))]]))
-} else {
-	sce <- SingleCellExperiment(list(counts=counts))
-}
+sce <- SingleCellExperiment(list(counts=counts))
 
 ### Calculate Singlets and Doublets ###
 # Default: https://github.com/plger/scDblFinder/blob/devel/R/scDblFinder.R

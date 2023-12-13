@@ -19,30 +19,37 @@ import pandas as pd
 import json
 import warnings
 
-setting_abbr = {
-    "boost_rate": "boost_rate",
-    "n_components": "n_comp",
-    "n_top_var_genes": "n_var_genes",
-    "replace": "replace",
-    "clustering_algorithm": "clust_algo",
-    "n_iters": "n_iters",
-    "pseudocount": "pseudocount",
-    "standard_scaling": "stand_scaling",
-    "p_thresh": "p_thresh",
-    "voter_thresh": "voter_thresh"
+settings_info = {
+    "boost_rate": ("boost_rate", 0.25),
+    "n_components": ("n_comp", 30),
+    "n_top_var_genes": ("n_var_genes", 10000),
+    "replace": ("replace", False),
+    "clustering_algorithm": ("clust_algo", "louvain"),
+    "n_iters": ("n_iters", 50),
+    "pseudocount": ("pseudocount", 0.1),
+    "standard_scaling": ("stand_scaling", True),
+    "p_thresh": ("p_thresh", 1e-16),
+    "voter_thresh": ("voter_thresh", 0.5)
 }
 
 
-def plot_settings(ax, settings):
+def plot_table(ax, values, colors=None, title=""):
     ax.axis('off')
     ax.axis('tight')
-    df = pd.DataFrame({setting_abbr[key]: value for key, value in settings.items() if key in setting_abbr}, index=[0]).T
+    df = pd.DataFrame(values, index=[0]).T
     max_key_length = max([len(str(key)) for key in df.index])
     max_value_length = max([len(str(value)) for value in df[0]])
     total_length = max_key_length + max_value_length
     table = ax.table(cellText=df.values, colWidths=[total_length / max_key_length, total_length / max_value_length], rowLabels=df.index, loc='center', edges='open')
     table.auto_set_column_width(col=list(range(len(df.columns))))
     table.scale(1, 1.1)
+    if colors is not None:
+        for row_index in range(len(values)):
+            key = table[(row_index, -1)].get_text()
+            key.set_color(colors[key.get_text()])
+            value = table[(row_index, 0)].get_text()
+            value.set_color(colors[key.get_text()])
+    ax.set_title(title)
 
 
 def convergence(ax, n_iters, all_log_p_values, p_thresh, voter_thresh):
@@ -116,11 +123,21 @@ with warnings.catch_warnings():
         print("")
 
         fh = open(settings_path)
-        settings = json.load(fh)
+        settings = {}
+        colors = {}
+        for key, value in json.load(fh).items():
+            if key in settings_info:
+                new_key, default_value = settings_info[key]
+                settings[new_key] = value
+                if str(value) == str(default_value):
+                    colors[new_key] = "black"
+                else:
+                    colors[new_key] = "red"
         fh.close()
-        plot_settings(
+        plot_table(
             ax=axs[row_index, 0],
-            settings=settings
+            values=settings,
+            colors=colors
         )
 
         log_p_values_df = pd.read_csv(log_p_values_path, sep="\t", header=None, index_col=None)

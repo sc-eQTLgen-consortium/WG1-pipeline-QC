@@ -16,6 +16,7 @@ parser$add_argument("--resolution", required=FALSE, default=0.8, type="double", 
 parser$add_argument("--expected_doublet_scaling_factor", required=FALSE, default=NULL, type="double", help="The fraction of droublets expected based on the number of nuclei recovered.")
 parser$add_argument("--num.cores", required=FALSE, default=1, type="integer", help="Number of cores to use.")
 parser$add_argument("--pn", required=FALSE, default=0.25, type="double", help="Number of doublets to simulate as a proportion of the pool size.")
+parser$add_argument("--mem", required=FALSE, default=500, type="integer", help="The maximum allowed size in GB")
 parser$add_argument("--out", required=TRUE, help="The output directory where results will be saved.")
 
 # get command line options, if help option encountered print help and exit,
@@ -42,7 +43,7 @@ suppressMessages(suppressWarnings(library(ggplot2)))
 suppressMessages(suppressWarnings(library(dplyr)))
 
 ## Add max future globals size for large pools
-options(future.globals.maxSize=(850 * 1024 ^ 2))
+options(future.globals.maxSize=(args$mem * 1000 * 1024^2))
 
 ## Read in data
 counts <- tryCatch({
@@ -51,7 +52,6 @@ counts <- tryCatch({
 },error = function(e){
 	print("Failed, trying to load count matrix using scCustomize - Read_CellBender_h5_Mat()")
 	counts <- Read_CellBender_h5_Mat(args$counts)
-	return(counts)
 })
 
 ## Construct Seurat object.

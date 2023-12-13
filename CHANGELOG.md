@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes implemented in this branch compared to the main branch of [sc-eQTLgen-consortium](https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC) (2022-03-12, SHA: `a9a81bd9b5aa12083dee47d2886a184d4a223196`) are documented in this file. 
+All notable changes implemented in this branch compared to the main branch of [WG1-pipeline-QC](https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC) (2022-03-12, SHA: `a9a81bd9b5aa12083dee47d2886a184d4a223196`) are documented in this file. 
 
 Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 
@@ -25,6 +25,9 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Fixed issue where the MAF per ancestry selection was limited to two ancestries and any subsequent ancestries overwrote the setting of previous ancestries
 - Fixed issue where `F_MISSING` was missing for rule `filter_preimpute_vcf` to filter on. Fixed by upgrading `bcftools` version to 1.18
 - Fixed issue in `prune_1000g` where the variants in LD were extracted instead of the variants NOT in lD
+- Fixed issue in `Singlet_QC_Figures.R` where combining pools from CellRanger v>=6.0.0 (i.e. containing variable numer of genes) results in a `number of rows of matrices must match` error
+- Fixed issue where some R scripts had hard-coded `future.globals.maxSize`
+- Fixed issue in `scds.R` where `bcds()` would fail if some barcodes had zero counts for the selected genes
 
 #### Changes
 - Refactor code to (mostly) PEP8
@@ -37,6 +40,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Updated all software versions
 - Merged singularity image with `Demultiplexing`
 - Moved (reference) data download from image to separate download scripts `download_data.sh` / `download_test_dataset.sh`
+- Moved scripts outside of image for flexibility
 - Reduced image size
 - Changed `check_sex` rule to only use `X` chromosomes to reduce file size 
 - Moved `update_sex_ancestry` rule to `Snakefile`
@@ -49,7 +53,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Removed `final_pruning` rule; duplicates were already removed earlier
 - Changed `calculate_missingness` and `het` to use gzipped VCF files
 - Moved creation of `sex_update_remove.tsv` to `check_sex` rule such that rule `pca_projection_assign` only relates to the ancestry check, and `check_sex` does all the sex check
-
+- Split `qc_plots` rule into `combine_pools` (rds output) and `qc_plots` (figures) rules
 
 ## [2.0.0] - Demultiplexing - 2023-09-05
 
@@ -84,6 +88,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Updated all software versions
 - Merged singularity image with `Imputation`
 - Moved (reference) data download from image to separate download scripts `download_data.sh` / `download_test_dataset.sh`
+- Moved scripts outside of image for flexibility
 - Reduced image size
 - Using official souporcell conda environment
 - Doublet detection methods now use the `h5` file as input (required to align with new `WG0-Propocessing` pipeline)

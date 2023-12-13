@@ -9,9 +9,7 @@ parser <- ArgumentParser()
 # specify our desired options
 # by default ArgumentParser will add an help option
 parser$add_argument("-p", "--poolsheet", required=TRUE, help="")
-parser$add_argument("-m", "--main_dir", required=TRUE, help="")
-parser$add_argument("-rb", "--rb_genes", required=TRUE, help="")
-parser$add_argument("-mt", "--mt_genes", required=TRUE, help="")
+parser$add_argument("-s", "--seurat", required=TRUE, help="")
 parser$add_argument("-o", "--out", required=TRUE, help="The output directory where results will be saved.")
 
 # get command line options, if help option encountered print help and exit,
@@ -38,142 +36,7 @@ suppressMessages(suppressWarnings(library(ggnewscale)))
 pools <- read_delim(args$poolsheet, delim = "\t")
 pools_list <- pools$Pool
 
-##### Read in the mt and rb gene lists #####
-RB_genes <- read_delim(args$rb_genes, delim = "\t")
-MT_genes <- read_delim(args$mt_genes, delim = "\t")
-
-##### Read in the genes file
-Read10X_h5_genes <- function (filename) {
-    # This function is pretty much a stripped version of Read10X_h5 from
-    # Seurat but then just to read the barcodes and not the whole h5 file.
-    infile <- hdf5r::H5File$new(filename = filename, mode = "r")
-    genomes <- names(x = infile)
-    output <- list()
-    for (genome in genomes) {
-        output[[genome]] <- infile[[paste0(genome, "/barcodes")]]
-    }
-    infile$close_all()
-    if (length(x = output) == 1) {
-        return(output[[genome]])
-    }
-    else {
-        return(output)
-    }
-}
-Read_CellBender_h5_Mat_genes <- function (file_name) {
-    # This function is pretty much a stripped version of Read_CellBender_h5_Mat from
-    # scCustomize but then just to read the barcodes and not the whole h5 file.
-    infile <- hdf5r::H5File$new(filename = file_name, mode = "r")
-    barcodes <- infile[["matrix/barcodes"]]
-    infile$close_all()
-    return(barcodes[])
-}
-genes <- tryCatch({
-	print("Loading genes using Seurat - Read10X_h5_genes()")
-	genes <- Read10X_h5_genes(args$counts)
-},error = function(e){
-	print("Failed, trying to load count matrix using scCustomize - Read_CellBender_h5_Mat_genes()")
-	genes <- Read_CellBender_h5_Mat_genes(args$counts)
-	return(genes)
-})
-
-
-##### Read in and format the software assignments #####
-assignments_list <- lapply(pools_list, function(x){
-    read_delim(paste0(as.character(args$main_dir),x,"/CombinedResults/combined_results_w_combined_assignments.tsv"), delim = "\t")
-})
-names(assignments_list) <- pools_list
-print(assignments_list)
-
-assignments_list <- lapply(pools_list, function(x){
-    assignments_list[[x]]$Pool <- x
-    assignments_list[[x]]$Barcode <- gsub("-1", "", assignments_list[[x]]$Barcode)
-    assignments_list[[x]]$Barcode  <- paste0(assignments_list[[x]]$Barcode, "_", x)
-    return(assignments_list[[x]])
-})
-assignments <- do.call(rbind,assignments_list)
-assignments <- as.data.frame(assignments)
-rownames(assignments) <- assignments$Barcode
-
-##### Read in and format the final assignments #####
-assignments_final_list <- lapply(pools_list, function(x){
-    read_delim(paste0(as.character(args$main_dir),x,"/CombinedResults/Final_Assignments_demultiplexing_doublets.tsv"), delim = "\t")
-})
-names(assignments_final_list) <- pools_list
-
-assignments_final_list <- lapply(pools_list, function(x){
-    assignments_final_list[[x]]$Pool <- x
-    assignments_final_list[[x]]$Barcode <- gsub("-1", "", assignments_final_list[[x]]$Barcode)
-    assignments_final_list[[x]]$Barcode  <- paste0(assignments_final_list[[x]]$Barcode, "_", x)
-    return(assignments_final_list[[x]])
-})
-assignments_final <- do.call(rbind,assignments_final_list)
-assignments_final <- as.data.frame(assignments_final)
-rownames(assignments_final) <- assignments_final$Barcode
-
-## Read in data
-counts_list <- lapply(pools$Counts, function(x){
-    counts <- tryCatch({
-	    counts <- Read10X_h5(args$counts)
-    },error = function(e){
-        counts <- Read_CellBender_h5_Mat(args$counts)
-        return(counts)
-    })
-})
-names(counts_list) <- pools_list
-
-counts_list <- lapply(pools_list, function(x){
-    colnames(counts_list[[x]]) <- gsub("-1","", colnames(counts_list[[x]]))
-    colnames(counts_list[[x]]) <- paste0(colnames(counts_list[[x]]),"_",x)
-    return(counts_list[[x]])
-})
-counts <- do.call(cbind, counts_list)
-
-# TODO: this fails if they use a newer CellRanger version that only options non zero genes?
-##### Read in files - seurat with all metadata #####
-seurat <- CreateSeuratObject(counts, meta.data = assignments)
-seurat[["RNA"]] <- AddMetaData(seurat[["RNA"]], genes$Gene_ID, col.name = "GeneID")
-seurat[["RNA"]] <- AddMetaData(seurat[["RNA"]], genes$ENSG_ID, col.name = "ENSG")
-saveRDS(seurat,paste0(args$out,"seurat_object_all_pools_all_barcodes_all_metadata.rds"))
-
-
-##### create seurat object - seurat with metadata #####
-seurat <- CreateSeuratObject(counts, meta.data = assignments_final)
-seurat[["RNA"]] <- AddMetaData(seurat[["RNA"]], genes$Gene_ID, col.name = "GeneID")
-seurat[["RNA"]] <- AddMetaData(seurat[["RNA"]], genes$ENSG_ID, col.name = "ENSG")
-saveRDS(seurat,paste0(args$out,"seurat_object_all_pools_all_barcodes_final_assignments.rds"))
-
-
-##### subset for just singlets #####
-seurat <- subset(seurat, DropletType == "singlet")
-
-##### Get the mitochondiral and ribosomal percentage QC metrics for each cell #####
-if ((sum(which(MT_genes$GeneID %in% rownames(seurat))) > sum(which(MT_genes$ENSG %in% rownames(seurat)))) & (sum(which(MT_genes$GeneID %in% rownames(seurat))) > length(grep(paste0(MT_genes$ENSG, "\\.", collapse = "|"), rownames(seurat))))){
-    mt_features <- MT_genes$GeneID[MT_genes$GeneID %in% rownames(seurat)]
-    seurat[["percent.mt"]] <- PercentageFeatureSet(seurat, features = mt_features)
-} else if ((sum(which(MT_genes$ENSG %in% rownames(seurat))) > sum(which(MT_genes$GeneID %in% rownames(seurat)))) & (sum(which(MT_genes$ENSG %in% rownames(seurat))) > length(grep(paste0(MT_genes$ENSG, "\\.", collapse = "|"), rownames(seurat))))){
-    mt_features <- MT_genes$ENSG[MT_genes$ENSG %in% rownames(seurat)]
-    seurat[["percent.mt"]] <- PercentageFeatureSet(seurat, features = mt_features)
-} else if ((length(grep(paste0(MT_genes$ENSG, "\\.", collapse = "|"), rownames(seurat))) > sum(which(MT_genes$GeneID %in% rownames(seurat)))) & (length(grep(paste0(MT_genes$ENSG, "\\.", collapse = "|"), rownames(seurat))) > sum(which(MT_genes$ENSG %in% rownames(seurat))))){
-    seurat[["percent.mt"]] <- PercentageFeatureSet(seurat, features = rownames(seurat)[grep(paste0(MT_genes$ENSG, "\\.", collapse = "|"), rownames(seurat))])
-} else {
-    message("Either you do not have mitochondrial genes in your dataset or they are not labeled with ENSG IDs or Gene IDs")
-}
-
-if ((sum(which(RB_genes$GeneID %in% rownames(seurat))) > sum(which(RB_genes$ENSG %in% rownames(seurat)))) & (sum(which(RB_genes$GeneID %in% rownames(seurat))) > length(grep(paste0(RB_genes$ENSG, "\\.", collapse = "|"), rownames(seurat))))){
-    rb_features <- RB_genes$GeneID[RB_genes$GeneID %in% rownames(seurat)]
-    seurat[["percent.rb"]] <- PercentageFeatureSet(seurat, features = rb_features)
-} else if ((sum(which(RB_genes$ENSG %in% rownames(seurat))) > sum(which(RB_genes$GeneID %in% rownames(seurat)))) & (sum(which(RB_genes$ENSG %in% rownames(seurat))) > length(grep(paste0(RB_genes$ENSG, "\\.", collapse = "|"), rownames(seurat))))){
-    rb_features <- RB_genes$ENSG[RB_genes$ENSG %in% rownames(seurat)]
-    seurat[["percent.rb"]] <- PercentageFeatureSet(seurat, features = rb_features)
-} else if ((length(grep(paste0(RB_genes$ENSG, "\\.", collapse = "|"), rownames(seurat))) > sum(which(RB_genes$GeneID %in% rownames(seurat)))) & (length(grep(paste0(RB_genes$ENSG, "\\.", collapse = "|"), rownames(seurat))) > sum(which(RB_genes$ENSG %in% rownames(seurat))))){
-    seurat[["percent.rb"]] <- PercentageFeatureSet(seurat, features = rownames(seurat)[grep(paste0(RB_genes$ENSG, "\\.", collapse = "|"), rownames(seurat))])
-} else {
-    message("Either you do not have ribosomal genes in your dataset or they are not labeled with ENSG IDs or Gene IDs")
-}
-
-##### Save the object with singlets and QC metrics #####
-saveRDS(seurat,paste0(args$out,"seurat_object_all_pools_singlet_barcodes_final_assignments.rds"))
+seurat <- readRDS(args$seurat)
 
 ##### Create a dataframe of MADs #####
 MAD_df_list <- lapply(pools_list, function(x){

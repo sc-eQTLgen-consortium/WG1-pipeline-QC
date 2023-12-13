@@ -857,7 +857,7 @@ rule souporcell_correlate_genotypes:
         cluster_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/cluster_genotypes.vcf.gz",
     output:
         correlation_file = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/ref_clust_pearson_correlations.tsv.gz",
-        correlation_img = report(config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/ref_clust_pearson_correlation.png", category="Souporcell Genotype Correlations", subcategory="{pool}", caption="../report_captions/souporcell.rst"),
+        correlation_img = report(config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/ref_clust_pearson_correlation.png", category="Souporcell Genotype Correlations", subcategory="{pool}", caption=config["inputs"]["repo_dir"] + "Demultiplexing/scripts/souporcell.rst"),
         assignments = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt.gz"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_correlations_memory"],
@@ -867,7 +867,7 @@ rule souporcell_correlate_genotypes:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Assign_Indiv_by_Geno.R",
+        script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/Assign_Indiv_by_Geno.R",
         out = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations"
     log: config["outputs"]["output_dir"] + "log/souporcell_correlate_genotypes.{pool}.log"
     shell:
