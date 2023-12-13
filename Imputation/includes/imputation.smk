@@ -290,7 +290,7 @@ rule het:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "het/{ancestry}_het",
-        script = config["inputs"]["repo_dir"] + "scripts/filter_het.R"
+        script = config["inputs"]["repo_dir"] + "Imputation/report_captions/filter_het.R"
     log: config["outputs"]["output_dir"] + "log/het.{ancestry}.log"
     shell:
         """
@@ -392,7 +392,7 @@ rule kinship:
         pairwise_r2_threshold = config["imputation_extra"]["kinship_pairwise_r2_threshold"],
         out_pruning = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruning",
         out_pruned = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruned",
-        script = config["inputs"]["repo_dir"] + "scripts/kinship.R",
+        script = config["inputs"]["repo_dir"] + "Imputation/report_captions/kinship.R",
     log: config["outputs"]["output_dir"] + "log/kinship.{ancestry}.log"
     shell:
         """
@@ -499,7 +499,7 @@ rule merge_eagle_prephasing_stats:
     params:
         sif = config["inputs"]["singularity_image"],
         bind = config["inputs"]["bind_path"],
-        script = config["inputs"]["repo_dir"] + "scripts/merge_eagle_prephasing_stats.py",
+        script = config["inputs"]["repo_dir"] + "Imputation/report_captions/merge_eagle_prephasing_stats.py",
     log: config["outputs"]["output_dir"] + "log/merge_eagle_prephasing_stats.{ancestry}.log"
     shell:
         """

@@ -95,7 +95,7 @@ rule prune_1000g:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = config["inputs"]["repo_dir"] + "scripts/overlap_pvars.py",
+        script = config["inputs"]["repo_dir"] + "Imputation/scripts/overlap_pvars.py",
         pgen_1000g = config["refs"]["ref_dir"] + config["refs_extra"]["relative_1000g_files"] + ".pgen",
         pvar_1000g = config["refs"]["ref_dir"] + config["refs_extra"]["relative_1000g_files"] + ".pvar",
         psam_1000g = config["refs"]["ref_dir"] + config["refs_extra"]["relative_1000g_files"] + ".psam",
@@ -206,7 +206,7 @@ rule prune_data:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = config["inputs"]["repo_dir"] + "scripts/overlap_pvars.py",
+        script = config["inputs"]["repo_dir"] + "Imputation/scripts/overlap_pvars.py",
         out = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data"
     log: config["outputs"]["output_dir"] + "log/prune_data.log"
     shell:
@@ -289,7 +289,7 @@ rule check_ancestry:
         projected_scores = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_data_pcs.sscore",
         projected_1000g_scores = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs_projected.sscore"
     output:
-        anc_fig = report(config["outputs"]["output_dir"] + "check_ancestry/Ancestry_PCAs.png", category="Ancestry", caption=config["inputs"]["repo_dir"] + "report_captions/ancestry_pca.rst"),
+        anc_fig = report(config["outputs"]["output_dir"] + "check_ancestry/Ancestry_PCAs.png", category="Ancestry", caption=config["inputs"]["repo_dir"] + "Imputation/report_captions/ancestry_pca.rst"),
         pca_anc_cluster_conversion = config["outputs"]["output_dir"] + "check_ancestry/ancestry_cluster_conversion.tsv",
         pca_anc_check = config["outputs"]["output_dir"] + "manual_selection/ancestry_update_remove.tsv",
         anc_maf_select = config["outputs"]["output_dir"] + "manual_selection/ancestry_mafs.tsv",
@@ -301,7 +301,7 @@ rule check_ancestry:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = config["inputs"]["repo_dir"] + "scripts/check_ancestry.R",
+        script = config["inputs"]["repo_dir"] + "Imputation/scripts/check_ancestry.R",
         out_info = config["outputs"]["output_dir"] + "check_ancestry/",
         out_manual = config["outputs"]["output_dir"] + "manual_selection/"
     log: config["outputs"]["output_dir"] + "log/check_ancestry.log"
@@ -322,8 +322,8 @@ rule summary_ancestry_sex:
         man_sex_select = config["outputs"]["output_dir"] + "manual_selection/sex_update_remove.tsv",
         man_anc_select = config["outputs"]["output_dir"] + "manual_selection/ancestry_update_remove.tsv"
     output:
-        sex_summary = report(config["outputs"]["output_dir"] + "metrics/sex_summary.png", category="Ancestry and Sex Summary", caption=config["inputs"]["repo_dir"] + "report_captions/sex_summary.rst"),
-        ancestry_summary = report(config["outputs"]["output_dir"] + "metrics/ancestry_summary.png", category="Ancestry and Sex Summary", caption=config["inputs"]["repo_dir"] + "report_captions/ancestry_summary.rst")
+        sex_summary = report(config["outputs"]["output_dir"] + "metrics/sex_summary.png", category="Ancestry and Sex Summary", caption=config["inputs"]["repo_dir"] + "Imputation/report_captions/sex_summary.rst"),
+        ancestry_summary = report(config["outputs"]["output_dir"] + "metrics/ancestry_summary.png", category="Ancestry and Sex Summary", caption=config["inputs"]["repo_dir"] + "Imputation/report_captions/ancestry_summary.rst")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["summary_ancestry_sex_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["ancestry_sex_qc"]["summary_ancestry_sex_memory"],
@@ -332,7 +332,7 @@ rule summary_ancestry_sex:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        script = config["inputs"]["repo_dir"] + "scripts/sex_ancestry_summaries.R",
+        script = config["inputs"]["repo_dir"] + "Imputation/scripts/sex_ancestry_summaries.R",
         out = config["outputs"]["output_dir"] + "metrics/",
     log: config["outputs"]["output_dir"] + "log/summary_ancestry_sex.log"
     shell:
