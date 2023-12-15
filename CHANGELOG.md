@@ -77,6 +77,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Fixed issue where `Scrublet` uses `min_cells` value as parameter for `min_counts`
 - Fixed edge case where the Demuxafy `combine_results` rule fails if only one doublet detection method was run
 - Fixed issue in `Singlet_QC_Figures.R` where gene symbols were stored as ENSG
+- Fixed issue in `expected_observed_individuals_doublets.R` where the figure width exceeds the maximum if there are too many pools 
 
 #### Changes
 - Refactor code to (mostly) PEP8

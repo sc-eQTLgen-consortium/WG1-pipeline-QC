@@ -95,7 +95,7 @@ plot2 <- ggplot(expected_observed_classification_dt, aes(Expected_Observed, N_Dr
     scale_fill_manual(values=c("#85929E","#73C6B6"))
 
 
-ggsave(plot_grid(plot1, plot2, rel_heights=c(2.5, 2), ncol=1, nrow=2, align="v", axis="lr"), filename=paste0(args$out, "expected_observed_individuals_classifications.png"), width=1.1 * length(unique(expected_observed_classification_dt$Pool)) + 1.1)
+ggsave(plot_grid(plot1, plot2, rel_heights=c(2.5, 2), ncol=1, nrow=2, align="v", axis="lr"), filename=paste0(args$out, "expected_observed_individuals_classifications.png"), width=min(0.25 * length(unique(expected_observed_classification_dt$Pool)) + 1.1, 49))
 
 
 

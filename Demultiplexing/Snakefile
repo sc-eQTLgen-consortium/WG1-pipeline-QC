@@ -509,8 +509,11 @@ if all_passed and len(METHODS) > 1:
         config["outputs"]["output_dir"] + "CombinedResults/seurat_object_all_pools_singlet_barcodes_final_assignments.rds",
     ])
 
+    # End point of rule plot_doublet.
+    input_files.extend([config["outputs"]["output_dir"] + "QC_figures/doublets_singlets.png"])
+
     # End point of rule qc_plots.
-    input_files = [config["outputs"]["output_dir"] + "QC_figures/qc_plots.done"]
+    input_files.extend([config["outputs"]["output_dir"] + "QC_figures/qc_plots.done"])
 
 
 

@@ -170,6 +170,10 @@ combine_results:
   combine_pools_threads: 1 ### The number threads that will be used for the combine pools step
   combine_pools_time: 0 ### The time setting to use
 
+  plot_singlet_doublet_memory: 4 ### The amount of memory (GB) used per thread for the combine pools step
+  plot_singlet_doublet_threads: 1 ### The number threads that will be used for the combine pools step
+  plot_singlet_doublet_time: 0 ### The time setting to use
+
   qc_plots_memory: 8 ### The amount of memory (GB) used per thread for the QC plots step
   qc_plots_threads: 1 ### The number threads that will be used for the QC plots step
   qc_plots_time: 0 ### The time setting to use

@@ -105,7 +105,7 @@ rule expected_observed_numbers:
         assignments = expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/Final_Assignments_demultiplexing_doublets.tsv", pool=POOLS),
         poolsheet = config["outputs"]["output_dir"] + "manual_selection/poolsheet.tsv"
     output:
-        report(config["outputs"]["output_dir"] + "QC_figures/expected_observed_individuals_classifications.png", category="Number Individuals Summary", caption=config["inputs"]["repo_dir"] + "Demultiplexing/report_captions/expected_observed_numbers.rst")
+        figure = report(config["outputs"]["output_dir"] + "QC_figures/expected_observed_individuals_classifications.png", category="Number Individuals Summary", caption=config["inputs"]["repo_dir"] + "Demultiplexing/report_captions/expected_observed_numbers.rst")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["expected_observed_numbers_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["expected_observed_numbers_memory"],
@@ -126,9 +126,36 @@ rule expected_observed_numbers:
             --out {params.out}
         """
 
+
+rule plot_singlet_doublet:
+    input:
+        assignments = expand(config["outputs"]["output_dir"] + "{pool}/CombinedResults/combined_results_w_combined_assignments.tsv", pool=POOLS),
+    output:
+        figure = report(config["outputs"]["output_dir"] + "QC_figures/doublets_singlets.png", category="Number Individuals Summary", subcategory="doublets_singlets", caption=config["inputs"]["repo_dir"] + "Demultiplexing/report_captions/singlet_doublet.rst")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["plot_singlet_doublet_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["combine_results"]["plot_singlet_doublet_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["combine_results"]["plot_singlet_doublet_time"]]
+    threads: config["combine_results"]["plot_singlet_doublet_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/plot_singlet_doublet.py",
+        pools = POOLS.values.tolist(),
+        out = config["outputs"]["output_dir"] + "QC_figures/"
+    log: config["outputs"]["output_dir"] + "log/plot_singlet_doublet.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} python {params.script} \
+            --pools {params.pools} \
+            --assignments {input.assignments} \
+            --out {params.out}
+        """
+
+
 rule qc_plots:
     input:
-        poolsheet=config["outputs"]["output_dir"] + "manual_selection/poolsheet.tsv",
+        poolsheet = config["outputs"]["output_dir"] + "manual_selection/poolsheet.tsv",
         seurat = config["outputs"]["output_dir"] + "CombinedResults/seurat_object_all_pools_singlet_barcodes_final_assignments.rds",
     output:
         fig1 = report(config["outputs"]["output_dir"] + "QC_figures/nCount_RNA_violin_MAD_All.png", category="QC", caption=config["inputs"]["repo_dir"] + "Demultiplexing/report_captions/QC_plots_nCount.rst"),

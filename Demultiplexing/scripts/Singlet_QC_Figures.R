@@ -25,7 +25,6 @@ for (name in names(args)) {
 }
 print("")
 
-suppressMessages(suppressWarnings(library(scCustomize)))
 suppressMessages(suppressWarnings(library(tidyr)))
 suppressMessages(suppressWarnings(library(tidyverse)))
 suppressMessages(suppressWarnings(library(ggplot2)))
