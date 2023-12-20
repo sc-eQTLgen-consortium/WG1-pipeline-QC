@@ -162,7 +162,7 @@ combine_results:
   combine_results_threads: 1 ### The number threads that will be used for the combine results step
   combine_results_time: 0 ### The time setting to use
 
-  combine_pools_memory: 24 ### The amount of memory (GB) used per thread for the combine pools step
+  combine_pools_memory: 4 ### The amount of memory (GB) used per thread for the combine pools step
   combine_pools_threads: 1 ### The number threads that will be used for the combine pools step
   combine_pools_time: 0 ### The time setting to use
 
