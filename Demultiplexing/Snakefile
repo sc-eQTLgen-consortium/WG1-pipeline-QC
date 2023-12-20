@@ -123,12 +123,6 @@ for method in METHODS:
             logger.info("Error, unexpected requirement for supported method.\n\nExiting.")
             exit("UnexpectedMethodRequirement")
 
-# Check the rb / mt genes for plotting.
-for genes_file in ["ribosomal_genes", "mitochondrial_genes"]:
-    if not os.path.exists(config["refs"]["ref_dir"] + config["refs_extra"][genes_file]):
-        logger.info("Could not find the {} file. Please check that the file exists.\n\nExiting.".format(config["refs"]["ref_dir"] + config["refs_extra"][genes_file]))
-        exit("MissingReferenceFile")
-
 full_poolsheet_path = config["outputs"]["output_dir"] + "manual_selection/poolsheet.tsv"
 if not os.path.exists(full_poolsheet_path):
     if not os.path.exists(os.path.dirname(full_poolsheet_path)):
@@ -369,7 +363,7 @@ if "popscle" in METHODS:
 
 if "souporcell" in METHODS:
     logger.info("Running souporcell.")
-    input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_summary.tsv", pool=POOLS))
+    input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_summary.tsv.gz", pool=POOLS))
     input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt.gz", pool=POOLS))
 
 if "DoubletFinder" in METHODS:
@@ -499,22 +493,14 @@ if "Scrublet" in METHODS:
 
 # Note: combine_results rule is usefull if we only use one method.
 if all_passed and len(METHODS) > 1:
-    # End point of rule expected_observed_numbers.
-    input_files = [config["outputs"]["output_dir"] + "QC_figures/expected_observed_individuals_classifications.png"]
-
     # End point of rule combine_pools.
-    input_files.extend([
-        config["outputs"]["output_dir"] + "CombinedResults/seurat_object_all_pools_all_barcodes_all_metadata.rds",
-        config["outputs"]["output_dir"] + "CombinedResults/seurat_object_all_pools_all_barcodes_final_assignments.rds",
-        config["outputs"]["output_dir"] + "CombinedResults/seurat_object_all_pools_singlet_barcodes_final_assignments.rds",
-    ])
+    input_files = [config["outputs"]["output_dir"] + "CombinedResults/combine_pools.done"]
+
+    # End point of rule expected_observed_numbers.
+    input_files.extend([config["outputs"]["output_dir"] + "QC_figures/expected_observed_individuals_classifications.png"])
 
     # End point of rule plot_doublet.
     input_files.extend([config["outputs"]["output_dir"] + "QC_figures/doublets_singlets.png"])
-
-    # End point of rule qc_plots.
-    input_files.extend([config["outputs"]["output_dir"] + "QC_figures/qc_plots.done"])
-
 
 
 rule all:

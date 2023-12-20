@@ -3,8 +3,8 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser(description="")
-parser.add_argument("--pools", required=True, nargs="+", type=str, help="")
-parser.add_argument("--assignments", required=True, nargs="+", type=str, help="")
+parser.add_argument("--assignments", required=True, type=str, help="")
+parser.add_argument("--poolsheet", required=True, type=str, help="")
 parser.add_argument("--out", required=True, type=str, help="The output directory where results will be saved.")
 args = parser.parse_args()
 
@@ -25,19 +25,17 @@ def plot_barplot(ax, labels, values, color="black", ylabel="", title=""):
 
 print("Loading data")
 
-data = {}
-for (pool, assignment) in list(zip(args.pools, args.assignments)):
-    print("\tPool {}:".format(pool))
-    print("\t  --assignments {}".format(assignment))
-    print("")
+assignments = pd.read_csv(args.assignments, sep="\t", dtype=str)
+poolsheet = pd.read_csv(args.poolsheet, sep="\t", dtype=str)
 
-    df = pd.read_csv(assignment, sep="\t")
-    for column in df.columns:
-        if column.endswith("_DropletType"):
+data = {}
+for column in assignments.columns:
+    if column.endswith("_DropletType"):
+        for _, row in poolsheet.iterrows():
             method = column.split("_")[0]
-            results = df[[column]].value_counts().to_frame()
+            results = assignments.loc[assignments["Pool"] == row["Pool"], column].value_counts().to_frame()
             results.reset_index(inplace=True)
-            results.columns = ["index", pool]
+            results.columns = ["index", row["Pool"]]
             results.set_index("index", inplace=True)
             results.index.name = None
             if method in data:
@@ -46,7 +44,7 @@ for (pool, assignment) in list(zip(args.pools, args.assignments)):
                 data[method] = [results]
 
 ncols = len(data)
-npools = len(args.pools)
+npools = poolsheet.shape[0]
 
 print("Plotting")
 plt.rcParams['pdf.fonttype'] = 42

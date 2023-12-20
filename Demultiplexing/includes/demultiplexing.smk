@@ -794,7 +794,7 @@ rule souporcell_summary:
     input:
         clusters = config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv.gz"
     output:
-        summary = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_summary.tsv"
+        summary = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_summary.tsv.gz"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_summary_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_summary_memory"],
@@ -814,7 +814,7 @@ rule souporcell_summary:
             | sed -E 's/^ +//g' \
             | sed 's/ /\t/g' \
             | sed '1 i\Assignment N\tClassification' \
-            | awk 'BEGIN{{FS=OFS="\t"}}{{print($2,$1)}}' > {output.summary}
+            | awk 'BEGIN{{FS=OFS="\t"}}{{print($2,$1)}}' | gzip -c > {output.summary}
         """
 
 

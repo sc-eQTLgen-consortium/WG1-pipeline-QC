@@ -162,21 +162,17 @@ combine_results:
   combine_results_threads: 1 ### The number threads that will be used for the combine results step
   combine_results_time: 0 ### The time setting to use
 
-  expected_observed_numbers_memory: 4 ### The amount of memory (GB) used per thread for the expected observed numbers step
-  expected_observed_numbers_threads: 1 ### The number threads that will be used for the expected observed numbers step
-  expected_observed_numbers_time: 0 ### The time setting to use
-
   combine_pools_memory: 24 ### The amount of memory (GB) used per thread for the combine pools step
   combine_pools_threads: 1 ### The number threads that will be used for the combine pools step
   combine_pools_time: 0 ### The time setting to use
 
+  expected_observed_numbers_memory: 4 ### The amount of memory (GB) used per thread for the expected observed numbers step
+  expected_observed_numbers_threads: 1 ### The number threads that will be used for the expected observed numbers step
+  expected_observed_numbers_time: 0 ### The time setting to use
+
   plot_singlet_doublet_memory: 4 ### The amount of memory (GB) used per thread for the combine pools step
   plot_singlet_doublet_threads: 1 ### The number threads that will be used for the combine pools step
   plot_singlet_doublet_time: 0 ### The time setting to use
-
-  qc_plots_memory: 8 ### The amount of memory (GB) used per thread for the QC plots step
-  qc_plots_threads: 1 ### The number threads that will be used for the QC plots step
-  qc_plots_time: 0 ### The time setting to use
 
 ############################################################################################################################################
 ##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####
@@ -184,15 +180,14 @@ combine_results:
 refs_extra:
   relative_fasta_path: "hg38/ref_genome_QC/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
   relative_hg38_exons_ucsc_bed_path: "hg38exonsUCSC.bed"
-  ribosomal_genes: "Ribosomal_genes.txt"
-  mitochondrial_genes: "Mitochondrial_genes.txt"
 
 settings_extra:
   r_memory_buffer: 1
   java_memory_buffer: 2 ### Amount of gigs to add to the Java memory for buffer
   multiplexing_methods: ["popscle", "souporcell"]
   sc_doubletdetection_methods: ["DoubletDetection", "scds", "Scrublet"]
-  sn_doubletdetection_methods: ["DoubletFinder", "scDblFinder"]
+  sn_doubletdetection_methods: ["DoubletFinder", "scDblFinder"],
+  expected_doublet_scaling_factor: 8e-06
 
 demultiplex_preprocessing_extra:
   filter4demultiplexing_maf: 0.05

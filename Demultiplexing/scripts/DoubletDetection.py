@@ -132,7 +132,7 @@ summary.reset_index(inplace=True)
 summary = summary.rename({'DoubletDetection_DropletType': 'Droplet N'}, axis=1)
 save_df(
     df=summary,
-    fpath=os.path.join(args.out, 'DoubletDetection_summary.tsv'),
+    fpath=os.path.join(args.out, 'DoubletDetection_summary.tsv.gz'),
     name="summary"
 )
 

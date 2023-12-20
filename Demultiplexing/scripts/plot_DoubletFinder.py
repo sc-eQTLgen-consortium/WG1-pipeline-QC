@@ -3,8 +3,7 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser(description="")
-parser.add_argument("--settings", required=True, nargs="+", type=str, help="")
-parser.add_argument("--bcmvns", required=True, nargs="+", type=str, help="")
+parser.add_argument("--infolders", required=True, nargs="+", type=str, help="")
 parser.add_argument("--pool", required=True, type=str, help="")
 parser.add_argument("--out", required=True, type=str, help="The output directory where results will be saved.")
 args = parser.parse_args()
@@ -51,7 +50,7 @@ def plot_scatterplot(ax, x, y):
 
 ################################################################################
 
-nrows = len(args.settings)
+nrows = len(args.infolders)
 
 print("Plotting")
 plt.rc('font', size=14)
@@ -60,11 +59,13 @@ fig, axs = plt.subplots(nrows, 2, figsize=(8, 4 * nrows), gridspec_kw={"width_ra
 if nrows == 1:
     axs = axs[np.newaxis, ...]
 
-for row_index, (settings_path, bcmvn_path) in enumerate(list(zip(args.settings, args.bcmvns))):
+for row_index, (infolder) in enumerate(args.infolders):
     print("\tRow {}:".format(row_index))
-    print("\t  --settings {}".format(settings_path))
-    print("\t  --bcmvn {}".format(bcmvn_path))
+    print("\t  --infolder {}".format(infolder))
     print("")
+
+    settings_path = os.path.join(infolder, "DoubletFinder_settings.json")
+    bcmvn_path = os.path.join(infolder, "DoubletFinder_bcmvn.tsv.gz")
 
     fh = open(settings_path)
     settings = {}

@@ -8,8 +8,9 @@ parser <- ArgumentParser()
 
 # specify our desired options
 # by default ArgumentParser will add an help option
+parser$add_argument("-a", "--assignments", required=TRUE, help="")
 parser$add_argument("-p", "--poolsheet", required=TRUE, help="")
-parser$add_argument("-b", "--basedir", required=TRUE, nargs='+', help="")
+parser$add_argument("-e", "--expected_doublet_scaling_factor", required=FALSE, type="double", default=8e-06, help="")
 parser$add_argument("-o", "--out", required=TRUE, help="The output directory where results will be saved.")
 
 # get command line options, if help option encountered print help and exit,
@@ -35,13 +36,14 @@ suppressMessages(suppressWarnings(library(data.table)))
 suppressMessages(suppressWarnings(library(cowplot)))
 
 ##### Read in sample sheet #####
+assignments <- fread(args$assignments, sep = "\t")
 poolsheet_dt <- fread(args$poolsheet, sep = "\t")
 
 
 
 ##### Read in the CombinedResults #####
 results_list <- lapply(poolsheet_dt$Pool, function(pool){
-    fread(paste0(args$basedir, pool, "/CombinedResults/Final_Assignments_demultiplexing_doublets.tsv"))
+    assignments[assignments$Pool==pool, ]
 })
 names(results_list) <- poolsheet_dt$Pool
 
@@ -49,14 +51,18 @@ names(results_list) <- poolsheet_dt$Pool
 ##### Make datatable that has # individuals, # singlets, # doublets per pool expected and observed
 expected_observed_individuals_list <- lapply(names(results_list), function(pool){
     data.table(Pool = rep(pool, 2),
-                N_Individuals = c(poolsheet_dt[Pool == pool]$N_Individuals, length(unique(results_list[[pool]][!(Assignment %in% c("doublet", "unassigned"))]$Assignment))),
+                N_Individuals = c(poolsheet_dt[Pool == pool]$N_Individuals,
+                                  length(unique(results_list[[pool]][!(Assignment %in% c("doublet", "unassigned"))]$Assignment))),
                 Expected_Observed = c("Expected", "Observed"))
 })
 
                 
 expected_observed_classification_list <- lapply(names(results_list), function(pool){
     data.table(Pool = rep(pool, 4),
-                N_Droplets = c(nrow(results_list[[pool]]) - nrow(results_list[[pool]]) ^ 2 * 0.008 / 1000, nrow(results_list[[pool]][DropletType == "singlet"]), nrow(results_list[[pool]]) ^ 2 * 0.008 / 1000, nrow(results_list[[pool]][DropletType == "doublet"])),
+                N_Droplets = c(nrow(results_list[[pool]]) - nrow(results_list[[pool]]) ^ 2 * args$expected_doublet_scaling_factor,
+                               nrow(results_list[[pool]][DropletType == "singlet"]),
+                               nrow(results_list[[pool]]) ^ 2 * args$expected_doublet_scaling_factor,
+                               nrow(results_list[[pool]][DropletType == "doublet"])),
                 Classification = c("singlet", "singlet", "doublet", "doublet"),
                 Expected_Observed = rep(c("Expected", "Observed"), 2))
 })

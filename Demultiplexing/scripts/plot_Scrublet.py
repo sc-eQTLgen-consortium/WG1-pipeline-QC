@@ -5,10 +5,7 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser(description="")
-parser.add_argument("--settings", required=True, nargs="+", type=str, help="")
-parser.add_argument("--results", required=True, nargs="+", type=str, help="")
-parser.add_argument("--stats", required=True, nargs="+", type=str, help="")
-parser.add_argument("--manifolds", required=True, nargs="+", type=str, help="")
+parser.add_argument("--infolers", required=True, nargs="+", type=str, help="")
 parser.add_argument("--n_jobs", required=False, default=-1, type=int, help="")
 parser.add_argument("--pool", required=True, type=str, help="")
 parser.add_argument("--out", required=True, type=str, help="The output directory where results will be saved.")
@@ -125,7 +122,7 @@ def plot_embedding(axs, embedding, embedding_name, color_dat, called_doubs):
 
 ################################################################################
 
-nrows = len(args.settings)
+nrows = len(args.infolders)
 
 print("Plotting")
 plt.rc('font', size=14)
@@ -134,13 +131,16 @@ fig, axs = plt.subplots(nrows, 5, figsize=(20, 4 * nrows), gridspec_kw={"width_r
 if nrows == 1:
     axs = axs[np.newaxis, ...]
 
-for row_index, (settings_path, results_path, stats_path, manifold_path) in enumerate(list(zip(args.settings, args.results, args.stats, args.manifolds))):
+for row_index, (infolder) in enumerate(args.infolders):
     print("\tRow {}:".format(row_index))
-    print("\t  --settings {}".format(settings_path))
-    print("\t  --result {}".format(results_path))
-    print("\t  --stats {}".format(stats_path))
-    print("\t  --manifold {}".format(manifold_path))
+    print("\t  --infolder {}".format(infolder))
     print("")
+
+    settings_path = os.path.join(infolder, "Scrublet_settings.json")
+    results_path = os.path.join(infolder, "Scrublet_doublets_singlets.tsv.gz")
+    sim_results_path = os.path.join(infolder, "Scrublet_doublets_singlets_sim.tsv.gz")
+    stats_path = os.path.join(infolder, "Scrublet_stats.json")
+    manifold_path = os.path.join(infolder, "Scrublet_manifold.tsv.gz")
 
     fh = open(settings_path)
     settings = {}
@@ -173,7 +173,7 @@ for row_index, (settings_path, results_path, stats_path, manifold_path) in enume
         title='Observed transcriptomes'
     )
 
-    results_sim_df = pd.read_csv(results_path, sep="\t", header=0, index_col=None)
+    results_sim_df = pd.read_csv(sim_results_path, sep="\t", header=0, index_col=None)
     plot_histogram(
         ax=axs[row_index, 2],
         y=results_sim_df["scrublet_DoubletScores"].to_numpy(),
@@ -184,8 +184,6 @@ for row_index, (settings_path, results_path, stats_path, manifold_path) in enume
 
     manifold_df = pd.read_csv(manifold_path, sep="\t", header=None, index_col=None)
     umap_embedding = umap.UMAP(n_neighbors=10, min_dist=0.3, metric='euclidean', random_state=0, n_jobs=args.n_jobs).fit_transform(manifold_df.to_numpy())
-
-    results_df = pd.read_csv(results_path, sep="\t", header=0, index_col=None)
 
     plot_embedding(
         axs=axs[row_index, 3:],

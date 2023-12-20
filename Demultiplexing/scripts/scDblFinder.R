@@ -139,6 +139,6 @@ write_delim(results, file=gzfile(paste0(args$out, "scDblFinder_doublets_singlets
 ### Calculate number of doublets and singlets ###
 summary <- as.data.frame(table(results$scDblFinder_DropletType))
 colnames(summary) <- c("Classification", "Droplet N")
-message(paste0("Writing summary to ", args$out, "scDblFinder_doublet_summary.tsv."))
-write_delim(summary, paste0(args$out, "scDblFinder_doublet_summary.tsv"), "\t")
+message(paste0("Writing summary to ", args$out, "scDblFinder_doublet_summary.tsv.gz."))
+write_delim(summary, gzfile(paste0(args$out, "scDblFinder_doublet_summary.tsv.gz")), "\t")
 

@@ -102,21 +102,19 @@ plot <- ggplot(bcmvn, aes(pK, BCmetric)) +
 	geom_point()
 ggsave(plot, filename=paste0(args$out, "/pKvBCmetric.png"))
 
-optimal.pk <- args$expected_doublet_scaling_factor
-if (is.null(args$expected_doublet_scaling_factor)) {
-	# Optimal pK is the max of the bomodality coefficent (BCmvn) distribution
-	bcmvn.max <- bcmvn[which.max(bcmvn$BCmetric),]
-	optimal.pk <- bcmvn.max$pK
-	optimal.pk <- as.numeric(levels(optimal.pk))[optimal.pk]
-	paste0("PC neighborhood size used to compute pANN: ", optimal.pk)
-}
+# Optimal pK is the max of the bomodality coefficent (BCmvn) distribution
+bcmvn.max <- bcmvn[which.max(bcmvn$BCmetric),]
+optimal.pk <- bcmvn.max$pK
+optimal.pk <- as.numeric(levels(optimal.pk))[optimal.pk]
+paste0("PC neighborhood size used to compute pANN: ", optimal.pk)
 
 ## Homotypic doublet proportion estimate
 annotations <- seu@meta.data$seurat_clusters
 # Defaults: https://github.com/chris-mcginnis-ucsf/DoubletFinder/blob/master/R/modelHomotypic.R
 # None
 homotypic.prop <- modelHomotypic(annotations)
-nExp.poi <- round(optimal.pk * nrow(seu@meta.data))
+nExp.poi <- round(args$expected_doublet_scaling_factor * ncol(counts) * ncol(counts))
+paste0("Expected number of doublets: ", nExp.poi)
 nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
 paste0("pANN therhold used to make final doublet/singlet prediction: ", nExp.poi.adj)
 
@@ -153,8 +151,8 @@ write_delim(doublets, file=gzfile(paste0(args$out, "DoubletFinder_doublets_singl
 ### Calculate number of doublets and singlets ###
 summary <- as.data.frame(table(doublets$DoubletFinder_DropletType))
 colnames(summary) <- c("Classification", "Droplet N")
-message(paste0("Writing summary to ", args$out, "DoubletFinder_doublet_summary.tsv."))
-write_delim(summary, paste0(args$out, "DoubletFinder_doublet_summary.tsv"), "\t")
+message(paste0("Writing summary to ", args$out, "DoubletFinder_doublet_summary.tsv.gz."))
+write_delim(summary, gzfile(paste0(args$out, "DoubletFinder_doublet_summary.tsv.gz")), "\t")
 
 # Save the stats.
 write(toJSON(list(min.pc=min.pc,

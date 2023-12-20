@@ -95,5 +95,5 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Doublet detection methods now use the `h5` file as input (required to align with new `WG0-Propocessing` pipeline)
 - Changed scripts to align with [Demuxafy](https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/v0.0.4/) v0.0.4 code
 - Update rules `filter4demultiplexing`, `sort4demultiplexing`, `popscle_pileup`, `popscle_demuxlet`, `souporcell` to use / output gzipped VCF files
-- Made all `*_doublets_singlets.tsv` files gzipped
-- Merged old `expected_observed_numbers` rule into new `combine_results` rule
+- Made all files gzipped
+- Moved merging of the pools to WG3, only keep merging of the droplet assignments metadata in this WG

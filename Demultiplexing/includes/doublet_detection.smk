@@ -13,7 +13,7 @@ rule DoubletFinder:
         bcmvn = config["outputs"]["output_dir"] + "{pool}/DoubletFinderRun{run}/DoubletFinder_bcmvn.tsv.gz",
         figure = config["outputs"]["output_dir"] + "{pool}/DoubletFinderRun{run}/pKvBCmetric.png",
         unwated_figure = temp(config["outputs"]["output_dir"] + "{pool}/DoubletFinderRun{run}/Rplots.pdf"),
-        summary = config["outputs"]["output_dir"] + "{pool}/DoubletFinderRun{run}/DoubletFinder_doublet_summary.tsv",
+        summary = config["outputs"]["output_dir"] + "{pool}/DoubletFinderRun{run}/DoubletFinder_doublet_summary.tsv.gz",
         stats = config["outputs"]["output_dir"] + "{pool}/DoubletFinderRun{run}/DoubletFinder_stats.json"
     resources:
         mem = lambda wildcards, attempt: (attempt * config["doubletfinder"]["doubletfinder_memory"] * config["doubletfinder"]["doubletfinder_threads"] - config["settings_extra"]["r_memory_buffer"]),
@@ -59,13 +59,13 @@ rule plot_DoubletFinder:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/plot_DoubletFinder.py",
+        infolders = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/DoubletFinderRun{run}/", pool=wildcards.pool, run=DOUBLETFINDER_SETTINGS[wildcards.pool].keys(), allow_missing=True),
         out = config["outputs"]["output_dir"] + "QC_figures/{pool}/"
     log: config["outputs"]["output_dir"] + "log/plot_DoubletFinder.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \
-            --settings {input.settings} \
-            --bcmvns {input.bcmvns} \
+            --infolders {params.infolders} \
             --pool {wildcards.pool} \
             --out {params.out}
         """
@@ -79,7 +79,7 @@ rule scDblFinder:
     output:
         settings = config["outputs"]["output_dir"] + "{pool}/scDblFinderRun{run}/scDblFinder_settings.json",
         doublets = config["outputs"]["output_dir"] + "{pool}/scDblFinderRun{run}/scDblFinder_doublets_singlets.tsv.gz",
-        summary = config["outputs"]["output_dir"] + "{pool}/scDblFinderRun{run}/scDblFinder_doublet_summary.tsv"
+        summary = config["outputs"]["output_dir"] + "{pool}/scDblFinderRun{run}/scDblFinder_doublet_summary.tsv.gz"
     resources:
         mem = lambda wildcards, attempt: (attempt * config["scdblfinder"]["scfblfinder_memory"] * config["scdblfinder"]["scdblfinder_threads"] - config["settings_extra"]["r_memory_buffer"]),
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["scdblfinder"]["scfblfinder_memory"],
@@ -137,7 +137,7 @@ rule DoubletDetection:
         settings = config["outputs"]["output_dir"] + "{pool}/DoubletDetectionRun{run}/DoubletDetection_settings.json",
         doublets = config["outputs"]["output_dir"] + "{pool}/DoubletDetectionRun{run}/DoubletDetection_doublets_singlets.tsv.gz",
         figure = config["outputs"]["output_dir"] + "{pool}/DoubletDetectionRun{run}/convergence_test.pdf",
-        summary = config["outputs"]["output_dir"] + "{pool}/DoubletDetectionRun{run}/DoubletDetection_summary.tsv",
+        summary = config["outputs"]["output_dir"] + "{pool}/DoubletDetectionRun{run}/DoubletDetection_summary.tsv.gz",
         pvalues = config["outputs"]["output_dir"] + "{pool}/DoubletDetectionRun{run}/DoubletDetection_log_p_values.tsv.gz"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["doubletdetection"]["doubletdetection_memory"],
@@ -195,13 +195,13 @@ rule plot_DoubletDetection:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/plot_DoubletDetection.py",
+        infolders = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/DoubletDetectionRun{run}/", pool=wildcards.pool, run=DOUBLETDETECTION_SETTINGS[wildcards.pool].keys(), allow_missing=True),
         out = config["outputs"]["output_dir"] + "QC_figures/{pool}/"
     log: config["outputs"]["output_dir"] + "log/plot_DoubletDetection.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \
-            --settings {input.settings} \
-            --log_p_values {input.log_p_values} \
+            --infolders {params.infolders} \
             --pool {wildcards.pool} \
             --out {params.out}
         """
@@ -217,7 +217,7 @@ rule scds:
     output:
         settings = config["outputs"]["output_dir"] + "{pool}/scdsRun{run}/scds_settings.json",
         doublets = config["outputs"]["output_dir"] + "{pool}/scdsRun{run}/scds_doublets_singlets.tsv.gz",
-        summary = config["outputs"]["output_dir"] + "{pool}/scdsRun{run}/scds_doublet_summary.tsv"
+        summary = config["outputs"]["output_dir"] + "{pool}/scdsRun{run}/scds_doublet_summary.tsv.gz"
     resources:
         mem = lambda wildcards, attempt: (attempt * config["scds"]["scds_memory"] * config["scds"]["scds_threads"] - config["settings_extra"]["r_memory_buffer"]),
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["scds"]["scds_memory"],
@@ -262,7 +262,7 @@ rule Scrublet:
         figure = config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/doublet_score_histogram.png",
         umap = config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/UMAP.png",
         results = config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_doublets_singlets.tsv.gz",
-        summary = config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_summary.tsv",
+        summary = config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_summary.tsv.gz",
         results_sim = config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_doublets_singlets_sim.tsv.gz",
         manifold = config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_manifold.tsv.gz",
         manifold_sim = config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_manifold_sim.tsv.gz",
@@ -319,6 +319,7 @@ rule plot_Scrublet:
     input:
         settings = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_settings.json", run=SCRUBLET_SETTINGS[wildcards.pool].keys(), allow_missing=True),
         results = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_doublets_singlets.tsv.gz", run=SCRUBLET_SETTINGS[wildcards.pool].keys(), allow_missing=True),
+        results_sim =lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_doublets_singlets_sim.tsv.gz", run=SCRUBLET_SETTINGS[wildcards.pool].keys(), allow_missing=True),
         stats = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_stats.json", run=SCRUBLET_SETTINGS[wildcards.pool].keys(), allow_missing=True),
         manifolds = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_manifold.tsv.gz", run=SCRUBLET_SETTINGS[wildcards.pool].keys(), allow_missing=True),
     output:
@@ -332,15 +333,13 @@ rule plot_Scrublet:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/plot_Scrublet.py",
+        infolders = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/", pool=wildcards.pool, run=SCRUBLET_SETTINGS[wildcards.pool].keys(), allow_missing=True),
         out = config["outputs"]["output_dir"] + "QC_figures/{pool}/"
     log: config["outputs"]["output_dir"] + "log/plot_Scrublet.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \
-            --settings {input.settings} \
-            --results {input.results} \
-            --stats {input.stats} \
-            --manifolds {input.manifolds} \
+            --infolders {params.infolders} \
             --n_jobs {threads} \
             --pool {wildcards.pool} \
             --out {params.out}

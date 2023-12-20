@@ -4,8 +4,7 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser(description="")
-parser.add_argument("--settings", required=True, nargs="+", type=str, help="")
-parser.add_argument("--log_p_values", required=True, nargs="+", type=str, help="")
+parser.add_argument("--infolders", required=True, nargs="+", type=str, help="")
 parser.add_argument("--pool", required=True, type=str, help="")
 parser.add_argument("--out", required=True, type=str, help="The output directory where results will be saved.")
 args = parser.parse_args()
@@ -106,7 +105,7 @@ def threshold(f, ax, all_log_p_values, log10=True, log_p_grid=None, voter_grid=N
 
 ################################################################################
 
-nrows = len(args.settings)
+nrows = len(args.infolders)
 
 print("Plotting")
 # Ignore warning for convergence plot
@@ -116,11 +115,13 @@ with warnings.catch_warnings():
     if nrows == 1:
         axs = axs[np.newaxis, ...]
 
-    for row_index, (settings_path, log_p_values_path) in enumerate(list(zip(args.settings, args.log_p_values))):
+    for row_index, (infolder) in enumerate(args.infolders):
         print("\tRow {}:".format(row_index))
-        print("\t  --settings {}".format(settings_path))
-        print("\t  --p_values {}".format(log_p_values_path))
+        print("\t  --infolder {}".format(infolder))
         print("")
+
+        settings_path = os.path.join(infolder, "DoubletDetection_settings.json")
+        log_p_values_path = os.path.join(infolder, "DoubletDetection_log_p_values.tsv.gz")
 
         fh = open(settings_path)
         settings = {}

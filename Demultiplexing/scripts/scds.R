@@ -139,6 +139,6 @@ write_delim(Doublets, gzfile(paste0(args$out, "scds_doublets_singlets.tsv.gz")),
 
 summary <- as.data.frame(table(Doublets$scds_DropletType))
 colnames(summary) <- c("Classification", "Droplet N")
-message(paste0("Writing summary to ", args$out, "scds_doublet_summary.tsv."))
-write_delim(summary, paste0(args$out, "scds_doublet_summary.tsv"), "\t")
+message(paste0("Writing summary to ", args$out, "scds_doublet_summary.tsv.gz."))
+write_delim(summary, gzfile(paste0(args$out, "scds_doublet_summary.tsv.gz")), "\t")
 

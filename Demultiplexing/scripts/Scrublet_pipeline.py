@@ -142,7 +142,7 @@ summary.reset_index(inplace=True)
 summary = summary.rename({'scrublet_DropletType': 'Droplet N'}, axis=1)
 save_df(
     df=summary,
-    fpath=os.path.join(args.out, 'Scrublet_summary.tsv'),
+    fpath=os.path.join(args.out, 'Scrublet_summary.tsv.gz'),
     name="summary"
 )
 
