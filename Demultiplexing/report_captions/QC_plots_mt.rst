@@ -1,1 +1,0 @@
-Mitochondrial percent with NO MAD thresholds plotted.

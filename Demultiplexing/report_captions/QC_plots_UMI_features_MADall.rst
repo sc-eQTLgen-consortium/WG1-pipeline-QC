@@ -1,1 +1,0 @@
-Number of UMIs vs genes with MAD thresholds calculated across singlets and all pools.

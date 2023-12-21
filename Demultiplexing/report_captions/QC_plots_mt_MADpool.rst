@@ -1,1 +1,0 @@
-Mitochondrial percent with MAD thresholds calculated per pool.
