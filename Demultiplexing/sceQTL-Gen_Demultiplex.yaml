@@ -6,7 +6,7 @@ inputs:
   bind_path: /path/to/bind/to/mount ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
   repo_dir: /path/to/repo/dir/ ### Path to the github repository directory
-  poolsheet_path: /path/to/sample/metadata/file.tsv ### tab separated file that has a header. Each line has a pool name used for the scRNA-seq directories and the number of individuals in each pool
+  poolsheet_path: /path/to/sample/metadata/file.tsv ### tab separated file that has a header. Each line has a pool name used for the scRNA-seq directories, the BAM file, the barcode files, and the number of individuals in each pool
   individual_list_dir: /path/to/individual_list/directory/ ### Directory that has a different file for each pool. Each file contains a list of the individuals IDs that are in the pool separated by line (match the genotype individual IDs)
   vcf: [] ### the path to the genotype file(s) per ancestry
 
@@ -17,10 +17,10 @@ outputs:
   output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
 
 settings:
-  is_multiplexed: True
-  sc_data_type: "single-cell"
+  is_multiplexed: True ### Whether or not the dataset is multiplexed (i.e. multiple samples per pool)
+  sc_data_type: "single-cell" ### The single-cell data type of the input dataset
 
-cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"}
+cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"} ### Options for dynamic time usage for cluster submissions of jobs
 
 ##############################################################################################################
 ##### The following arguments are common parameters that may need to be changed depending on the dataset #####
@@ -182,16 +182,16 @@ refs_extra:
   relative_hg38_exons_ucsc_bed_path: "hg38exonsUCSC.bed"
 
 settings_extra:
-  r_memory_buffer: 1
-  java_memory_buffer: 2 ### Amount of gigs to add to the Java memory for buffer
-  multiplexing_methods: ["popscle", "souporcell"]
-  sc_doubletdetection_methods: ["DoubletDetection", "scds", "Scrublet"]
-  sn_doubletdetection_methods: ["DoubletFinder", "scDblFinder"],
-  expected_doublet_scaling_factor: 8e-06
+  r_memory_buffer: 1 ### Buffer to prevent R memory overflow, available memory is reduced by this amount in GB
+  java_memory_buffer: 2 ### Buffer to prevent Java memory overflow, available memory is reduced by this amount in GB
+  multiplexing_methods: ["popscle", "souporcell"] ### Methods to be run for demultiplexing
+  sc_doubletdetection_methods: ["DoubletDetection", "scds", "Scrublet"] ### Methods to be run for single-cell input data
+  sn_doubletdetection_methods: ["DoubletFinder", "scDblFinder"] ### Methods to be run for single-nucleus input data
+  expected_doublet_scaling_factor: 8e-06 ### Proportion of expected doublets. For example see the Chromium User Guide
 
 demultiplex_preprocessing_extra:
-  filter4demultiplexing_maf: 0.05
-  filter4demultiplexing_r2: 0.3
+  filter4demultiplexing_maf: 0.05 ### The Minor Allele Frequency to filter on before demultiplexing
+  filter4demultiplexing_r2: 0.3 ### The R-squared to filter on before demultiplexing
 
 popscle_extra:
   exclude_flag: 1796 ### SAM/BAM flag to exclude
