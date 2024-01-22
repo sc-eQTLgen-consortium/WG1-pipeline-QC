@@ -29,6 +29,8 @@ parser.add_argument("-cr", "--call_rate", type=float, dest='thresh_cr', default=
 parser.add_argument("-hwe", "--hardy_weinberg_equilibrium", type=float, dest='thresh_hwe', default=1E-6, help="The hardy weinberg equilibrium threshold. Default: 1e-6.")
 parser.add_argument("-dp", "--filtered_depth", type=float, dest='thresh_dp', default=10., help="The filtered depth threshold. Default: 10.")
 parser.add_argument("--keep_info_column", dest='strip_info_col', action='store_false', help="Add this flag to keep the INFO column. Default: True.")
+parser.add_argument("--ignore_homref_stats", action='store_true', help="Some VCF files have no DP, AB, or AD information for homozygous reference calls. Exclude such calls from QC tests. Default: True.")
+parser.add_argument("--replace_poor_quality_genotypes", action='store_true', help="Replace poor quality genotypes with ./. Default: False.")
 args = parser.parse_args()
 
 print("Options in effect:")
@@ -86,7 +88,7 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
 
     # check if this is a multiAllelic
     if args.remove_multiallelic and len(alt) > 1:
-        return [line_number, False, logid + "\tMultiAllelic\t-\n"]
+        return [line_number, False, logid + "\tMultiAllelic\t-\t-\n"]
 
     # check if this variant is an indel
     is_indel = False
@@ -103,15 +105,15 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
     if is_indel:
         if filter.startswith("VQSR") and args.check_vqsr_indel:
             if not parse_vqsr(filter, is_indel):
-                return [line_number, False, logid + "\tIndelBelowVQSR\t-\n"]
+                return [line_number, False, logid + "\tIndelBelowVQSR\t-\t-\n"]
         elif args.remove_non_pass_indel and filter != "PASS":
-            return [line_number, False, logid + "\tIndelNonPass\t-\n"]
+            return [line_number, False, logid + "\tIndelNonPass\t-\t-\n"]
     else:
         if filter.startswith("VQSR") and args.check_vqsr_snv:
             if not parse_vqsr(filter, is_indel):
-                return [line_number, False, logid + "\tSNVBelowVQSR\t-\n"]
+                return [line_number, False, logid + "\tSNVBelowVQSR\t-\t-\n"]
         elif args.remove_non_pass_snv and filter != "PASS":
-            return [line_number, False, logid + "\tSNVNonPass\t-\n"]
+            return [line_number, False, logid + "\tSNVNonPass\t-\t-\n"]
 
     # parse info string
     infoelems = elems[7].split(";")
@@ -122,10 +124,10 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
             value = vals[1]
             if key == "InbreedingCoeff":
                 if value == ".":
-                    return [line_number, False, logid + "\tIncorrectInbreedingCoeff:" + value + "\t-\n"]
+                    return [line_number, False, logid + "\tIncorrectInbreedingCoeff:" + value + "\t-\t-\n"]
                 valuef = float(value)
                 if valuef < args.thresh_ib:
-                    return [line_number, False, logid + "\tBelowInbreedingCoeff:" + value + "\t-\n"]
+                    return [line_number, False, logid + "\tBelowInbreedingCoeff:" + value + "\t-\t-\n"]
         # other filters based on info column can be implemented here...
 
     # parse genotypes
@@ -135,6 +137,7 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
     adcol = -1
     dpcol = -1
     gqcol = -1
+    plcol = -1
     for c in range(0, len(format)):
         if format[c] == "GT":
             gtcol = c
@@ -144,6 +147,8 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
             dpcol = c
         elif format[c] == "GQ":
             gqcol = c
+        elif format[c] == "PL":
+            plcol = c
 
     format_out = ""
     if gtcol > -1:
@@ -155,10 +160,12 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
         format_out += ":AB"
     if gqcol > -1:
         format_out += ":GQ"
+    if plcol > -1:
+        format_out += ":PL"
 
     # only continue if there are genotypes to parse
     if gtcol < 0:
-        return [line_number, False, logid + "\tNoGTCol\t-\n"]
+        return [line_number, False, logid + "\tNoGTCol\t-\t-\n"]
 
     # get current dosages
     # store split columns temporarily
@@ -167,7 +174,7 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
     dosage_pre_filter = None
     sampledosages = [-1] * len(elems)
     cctr = 0
-    gtsep = ""
+
     for i in range(9, len(elems)):
         if sample_mask[cctr]:
             # split the sample columns
@@ -177,7 +184,6 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
             if len(gt) < 2:
                 # less than two alleles; perhaps the data is phased
                 gt = sampledata[gtcol].split("|")
-                gtsep = "|"
             if len(gt) < 2 or len(gt) > 2:
                 # malformatted genotypes
                 # more than two alleles.. skip variant?
@@ -199,7 +205,7 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
         chr=chr
     )
     if not stats[0]:
-        return [line_number, False, logid + "\tFailedPrefilterVarStats\t" + stats[1] + "\n"]
+        return [line_number, False, logid + "\tFailedPrefilterVarStats\t" + stats[1] + "\t-\n"]
 
     # check whether variant becomes monomorphic after filtering poor calls
     # iterate samples
@@ -217,67 +223,78 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
     for i in range(9, len(elems)):
         sampledata = sampledataelems[i]
         if sampledata is not None:
-            dosage = sampledosages[i]
+            dosage_pre_filter = sampledosages[i]
+            dosage_post_filter = dosage_pre_filter
             ab = -1
             dp = 0
-            # if the genotype is not missing
-            # check genotype qual
-            if dpcol > -1 and dpcol < len(sampledata):  # ugh, VCF really allows all kind of stuff in their genotype format... even if you parse the FORMAT column, there's no telling what is actually provided per sample..
-                # determine read depth
-                if sampledata[dpcol] == ".":
-                    dp = 0
-                else:
-                    dp = int(sampledata[dpcol])
-                    average_depth += dp
-                    average_depth_calls += 1
-                if dp < args.thresh_dp:
-                    dosage = -1
-                    poor_dp += 1
-                    nr_genotypes_replaced += 1
-            if gqcol > -1 and dosage > -1 and gqcol < len(sampledata):
-                gq = float(sampledata[gqcol])
-                if gq < args.thresh_gq:
-                    if dosage == 0 and gq == 0 and dp >= args.thresh_dp:
-                        # bypass potential error in gVCF merging, see: https://github.com/broadinstitute/gatk/issues/5445
-                        # best way would to also parse the PL field, if available, and check whether the homRef and het fields are both 0 (unlikely for a homRef call)
-                        pass
+            # some VCF files have no information specifically for homozygous reference calls.
+            # for those calls it makes sense to ignore the quality statistics
+            if args.ignore_homref_stats and dosage_post_filter == 0:
+                dosages_post_filter.append(dosage_post_filter)
+            else:
+                # check genotype qual if the genotype is not missing
+                if dpcol > -1 and dpcol < len(sampledata):  # ugh, VCF really allows all kind of stuff in their genotype format... even if you parse the FORMAT column, there's no telling what is actually provided per sample..
+                    # determine read depth
+                    if sampledata[dpcol] == ".":
+                        dp = 0
                     else:
-                        dosage = -1
+                        dp = int(sampledata[dpcol])
+                        average_depth += dp
+                        average_depth_calls += 1
+                    if dp < args.thresh_dp:
+                        dosage_post_filter = -1
+                        poor_dp += 1
                         nr_genotypes_replaced += 1
-                        poor_gq += 1
-            # check allelic balance
-            # only need to check this for hets, I guess
-            if dosage > -1 and adcol > -1 and adcol < len(sampledata):
-                ad = sampledata[adcol].split(",")
-                ad1 = float(ad[0])
-                ad2 = float(ad[1])
-                if ad1 + ad2 == 0:
-                    dosage = -1
-                    nr_genotypes_replaced += 1
-                else:
-                    ab = ad2 / (ad1 + ad2)
-                    # data is already corrected for DP, so no need to check again.
-                    if dosage == 0:
-                        if ab > args.thresh_ab_lower:
-                            dosage = -1
+                if gqcol > -1 and dosage_post_filter > -1 and gqcol < len(sampledata):
+                    gq = float(sampledata[gqcol])
+                    if gq < args.thresh_gq:
+                        if dosage_post_filter == 0 and gq == 0 and dp >= args.thresh_dp:
+                            # bypass potential error in gVCF merging, see: https://github.com/broadinstitute/gatk/issues/5445
+                            # best way would to also parse the PL field, if available, and check whether the homRef and het fields are both 0 (unlikely for a homRef call)
+                            pass
+                        else:
+                            dosage_post_filter = -1
                             nr_genotypes_replaced += 1
-                            poor_ab_hom_a += 1
-                    if dosage == 1:
-                        if ab < args.thresh_ab_lower or ab > args.thresh_ab_upper:
-                            dosage = -1
-                            nr_genotypes_replaced += 1
-                            poor_ab_het += 1
-                    if dosage == 2:
-                        if ab < args.thresh_ab_upper:
-                            dosage = -1
-                            nr_genotypes_replaced += 1
-                            poor_ab_hom_b += 1
-            dosages_post_filter.append(dosage)
+                            poor_gq += 1
+                # check allelic balance
+                # only need to check this for hets, I guess
+                if dosage_post_filter > -1 and adcol > -1 and adcol < len(sampledata):
+                    ad = sampledata[adcol].split(",")
+                    ad1 = float(ad[0])
+                    ad2 = float(ad[1])
+                    if ad1 + ad2 == 0:
+                        dosage_post_filter = -1
+                        nr_genotypes_replaced += 1
+                    else:
+                        ab = ad2 / (ad1 + ad2)
+                        # data is already corrected for DP, so no need to check again.
+                        if dosage_post_filter == 0:
+                            if ab > args.thresh_ab_lower:
+                                dosage_post_filter = -1
+                                nr_genotypes_replaced += 1
+                                poor_ab_hom_a += 1
+                        if dosage_post_filter == 1:
+                            if ab < args.thresh_ab_lower or ab > args.thresh_ab_upper:
+                                dosage_post_filter = -1
+                                nr_genotypes_replaced += 1
+                                poor_ab_het += 1
+                        if dosage_post_filter == 2:
+                            if ab < args.thresh_ab_upper:
+                                dosage_post_filter = -1
+                                nr_genotypes_replaced += 1
+                                poor_ab_hom_b += 1
+                dosages_post_filter.append(dosage_post_filter)
 
             sampleinfo = []
             gtout = sampledata[gtcol]
-            if dosage_pre_filter == -1:
-                gtout = "." + gtsep + "."
+
+            if args.replace_poor_quality_genotypes:
+                if dosage_post_filter == -1:
+                    gtout = "./."
+            else:
+                if dosage_pre_filter == -1:
+                    gtout = "./."
+
             sampleinfo.append(gtout)
 
             # append original information, but note that missing genotypes
@@ -289,6 +306,8 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
                 sampleinfo.append(str(round(ab, 2)))
             if gqcol > -1 and gqcol < len(sampledata):
                 sampleinfo.append(sampledata[gqcol])
+            if plcol > -1 and plcol < len(sampledata):
+                sampleinfo.append(sampledata[plcol])
 
             sampleinfos.append(":".join(sampleinfo))
         cctr += 1
@@ -300,17 +319,24 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
         average_depth = 0
 
     # variant level quals
+    # calculate allele frequency etc before filtering
+    stats_post_filter = get_stats(
+        dosages=dosages_post_filter,
+        sample_male_mask=sample_male_mask,
+        chr=chr
+    )
+
     _, _, _, _, _, maf_postfilter = get_maf(
         dosages=dosages_post_filter,
         sample_male_mask=sample_male_mask,
         chr=chr
     )
     if maf_postfilter == 0:
-        logoutln = "{}\tMonomorphicPostFilter\t{};NrGenosReplaced:{}" \
+        logoutln = "{}\tMonomorphicPostFilter\t-\t{};NrGenosReplaced:{}" \
                    ";PoorDP:{};AvgDP:{:.2f} ({} calls);PoorGQ:{}" \
                    ";PoorABHomA:{};PoorABHomB:{};PoorABHet:{}" \
                    "\n".format(logid,
-                               stats[1],
+                               stats_post_filter[1],
                                nr_genotypes_replaced,
                                poor_dp,
                                average_depth,
@@ -331,6 +357,8 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
         format_out += ":AB"
     if gqcol > -1:
         format_out += ":GQ"
+    if plcol > -1:
+        format_out += ":PL"
 
     elems[8] = format_out
 
@@ -339,8 +367,12 @@ def parse_line(line_number, line, sample_mask, sample_male_mask):
     outln = "\t".join(elems[0:9])  # construct line header
     # write variant, somehow
     outln += "\t" + "\t".join(sampleinfos) + "\n"
-    return [line_number, True, logid + "\tPASSQC\t" + stats[1] + "\n", outln]
 
+    var_ok = stats_post_filter[0]
+    if var_ok:
+        return [line_number, True, logid + "\tPASSQC\t" + stats[1] + "\t" + stats_post_filter[1] + "\n", outln]
+    else:
+        return [line_number, False, logid + "\tFailQCPostFilter\t" + stats[1] + "\t" + stats_post_filter[1] + "\n", outln]
 
 def parse_vqsr(vqsrstring, is_indel):
     if not vqsrstring.startswith("VQSR"):
@@ -477,7 +509,7 @@ def calculate_hwe(obs_hets, obs_hom1, obs_hom2):
 fh = gzip.open(args.input_path, 'rt')
 fho = gzip.open(args.output_path, 'wt')
 fhlog = gzip.open(args.log_path, 'wt')
-fhlog.write("Id\tReason\tStats\n")
+fhlog.write("Id\tReason\tPreFilterStats\tPostFilterStats\n")
 
 sample_mask = []
 sample_male_mask = []
@@ -490,28 +522,30 @@ for line in fh:
                 "tresh_AB_upper={};tresh_IB={};check_VQSR_SNV={};" \
                 "tresh_VQSR_SNV={};check_VQSR_Indel={};" \
                 "tresh_VQSR_Indel={};remove_multiAllelic={};" \
-                "remove_nonPASS_SNV={};remove_nonPASS_indel={};" \
+                "remove_nonPASS_indel={};remove_nonPASS_SNV={};" \
                 "filter_lowcomplexity={};tresh_MAF={};tresh_CR={};" \
-                "tresh_HWE={};tresh_DP={}" \
-                "strip_INFO_col={}\n".format(args.input_path,
-                                             args.thresh_gq,
-                                             args.thresh_ab_lower,
-                                             args.thresh_ab_upper,
-                                             args.thresh_ib,
-                                             args.check_vqsr_snv,
-                                             args.thresh_vqsr_snv,
-                                             args.check_vqsr_indel,
-                                             args.thresh_vqsr_indel,
-                                             args.remove_multiallelic,
-                                             args.remove_non_pass_snv,
-                                             args.remove_non_pass_indel,
-                                             args.filer_low_complexity,
-                                             args.thresh_maf,
-                                             args.thresh_cr,
-                                             args.thresh_hwe,
-                                             args.thresh_dp,
-                                             args.strip_info_col
-                                             )
+                "tresh_HWE={};tresh_DP={};ignore_homref_stats={};" \
+                "replace_poor_quality_genotypes={}\n".format(args.input_path,
+                                                             args.thresh_gq,
+                                                             args.thresh_ab_lower,
+                                                             args.thresh_ab_upper,
+                                                             args.thresh_ib,
+                                                             args.check_vqsr_snv,
+                                                             args.thresh_vqsr_snv,
+                                                             args.check_vqsr_indel,
+                                                             args.thresh_vqsr_indel,
+                                                             args.remove_multiallelic,
+                                                             args.remove_non_pass_indel,
+                                                             args.remove_non_pass_snv,
+                                                             args.filer_low_complexity,
+                                                             args.thresh_maf,
+                                                             args.thresh_cr,
+                                                             args.thresh_hwe,
+                                                             args.thresh_dp,
+                                                             args.strip_info_col,
+                                                             args.ignore_homref_stats,
+                                                             args.replace_poor_quality_genotypes
+                                                             )
         fho.write(outln)
 
         # header line with samples

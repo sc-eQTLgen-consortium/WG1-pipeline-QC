@@ -35,6 +35,7 @@ def read_filter_logfile(filepath, thresh_maf, thresh_cr, thresh_hwe):
     below_inbreeding_coeff = 0
     no_gt_col = 0
     failed_pre_filter_var_stats = 0
+    fail_qc_post_filter = 0
     n_failed_cr = 0
     n_failed_maf = 0
     n_failed_hwe = 0
@@ -44,7 +45,7 @@ def read_filter_logfile(filepath, thresh_maf, thresh_cr, thresh_hwe):
         with gzip.open(filepath, 'rt') as f:
             for line in f:
                 variants += 1
-                (_, reason, stats) = line.split("\t")
+                (_, reason, pre_filter_stats, post_filter_stats) = line.split("\t")
                 if reason == "MultiAllelic":
                     multi_allelic += 1
                 elif reason == "IndelBelowVQSR":
@@ -64,7 +65,21 @@ def read_filter_logfile(filepath, thresh_maf, thresh_cr, thresh_hwe):
                 elif reason == "FailedPrefilterVarStats":
                     failed_pre_filter_var_stats += 1
 
-                    splitted_stats = stats.split(";")
+                    splitted_stats = pre_filter_stats.split(";")
+                    cr = float(splitted_stats[0].replace("CR=", ""))
+                    maf = float(splitted_stats[1].replace("MAF=", ""))
+                    hwe = float(splitted_stats[2].replace("HWE=", ""))
+
+                    if cr <= thresh_cr:
+                        n_failed_cr += 1
+                    if maf <= thresh_maf:
+                        n_failed_maf += 1
+                    if hwe != -1 and hwe <= thresh_hwe:
+                        n_failed_hwe += 1
+                elif reason == "FailQCPostFilter":
+                    fail_qc_post_filter += 1
+
+                    splitted_stats = post_filter_stats.split(";")
                     cr = float(splitted_stats[0].replace("CR=", ""))
                     maf = float(splitted_stats[1].replace("MAF=", ""))
                     hwe = float(splitted_stats[2].replace("HWE=", ""))
@@ -87,12 +102,12 @@ def read_filter_logfile(filepath, thresh_maf, thresh_cr, thresh_hwe):
 
     return [variants, multi_allelic, indel_below_vqsr, indel_non_pass,
             snv_below_vqsr, snv_non_pass, incorrect_inbreeding_coeff,
-            below_inbreeding_coeff, no_gt_col, failed_pre_filter_var_stats,
+            below_inbreeding_coeff, no_gt_col, failed_pre_filter_var_stats, fail_qc_post_filter,
             n_failed_cr, n_failed_maf, n_failed_hwe, monomorphic_post_filter, pass_qc,
             np.round(pass_qc / variants, 2)]
 
 
-df = pd.DataFrame(np.nan, index=[i for i in range(len(args.input_paths) + 1)], columns=["Chromosome", "Variants", "MultiAllelic", "IndelBelowVQSR", "IndelNonPass", "SNVBelowVQSR", "SNVNonPass", "IncorrectInbreedingCoeff", "BelowInbreedingCoeff", "NoGTCol", "FailedPrefilterVarStats", "FailedCR", "FailedMAF", "FailedHWE", "MonomorphicPostFilter", "PASSQC", "PctKept"])
+df = pd.DataFrame(np.nan, index=[i for i in range(len(args.input_paths) + 1)], columns=["Chromosome", "Variants", "MultiAllelic", "IndelBelowVQSR", "IndelNonPass", "SNVBelowVQSR", "SNVNonPass", "IncorrectInbreedingCoeff", "BelowInbreedingCoeff", "NoGTCol", "FailedPrefilterVarStats", "FailQCPostFilter", "FailedCR", "FailedMAF", "FailedHWE", "MonomorphicPostFilter", "PASSQC", "PctKept"])
 df["Chromosome"] = df["Chromosome"].astype(str)
 prev_filter_thresh = None
 prev_failed_var_thresh = None
@@ -106,7 +121,7 @@ for i, input_path in enumerate(args.input_paths):
         thresh_hwe=args.thresh_hwe
     )
 df.iloc[df.shape[0] - 1, 0] = "Total"
-df.iloc[df.shape[0] - 1, 1:16] = df.iloc[:, 1:16].sum(axis=0)
-df.iloc[df.shape[0] - 1, 16] = np.round(df.iloc[df.shape[0] - 1, 15] / df.iloc[df.shape[0] - 1, 1], 2)
-df.iloc[:, 1:16] = df.iloc[:, 1:16].astype(int)
+df.iloc[df.shape[0] - 1, 1:17] = df.iloc[:, 1:17].sum(axis=0)
+df.iloc[df.shape[0] - 1, 17] = np.round(df.iloc[df.shape[0] - 1, 16] / df.iloc[df.shape[0] - 1, 1], 2)
+df.iloc[:, 1:17] = df.iloc[:, 1:17].astype(int)
 df.to_csv(args.output_path, sep="\t", header=True, index=False)
