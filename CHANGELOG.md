@@ -96,4 +96,4 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Changed scripts to align with [Demuxafy](https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/v0.0.4/) v0.0.4 code
 - Update rules `filter4demultiplexing`, `sort4demultiplexing`, `popscle_pileup`, `popscle_demuxlet`, `souporcell` to use / output gzipped VCF files
 - Made all files gzipped
-- Moved merging of the pools to WG3, only keep merging of the droplet assignments metadata in this WG
+- Moved merging of the pools and related rule `barcode_qc_plots` to WG3, only keep merging of the droplet assignments metadata in this WG

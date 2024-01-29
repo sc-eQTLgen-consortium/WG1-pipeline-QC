@@ -29,6 +29,7 @@ for outfile in outfiles:
             continue
         pool_df = pd.read_csv(inpath, sep="\t", header=0, index_col=None)
         pool_df.insert(0, "Pool", row["Pool"])
+        pool_df["Barcode"] = pool_df["Barcode"].str.split('-').str[0] + "_" + pool_df["Pool"]
         pool_df_list.append(pool_df)
 
     if len(pool_df_list) == 0:

@@ -73,9 +73,9 @@ def darken_cmap(cmap, scale_factor):
     cdat = np.zeros((cmap.N, 4))
     for ii in range(cdat.shape[0]):
         curcol = cmap(ii)
-        cdat[ii, 0] = curcol[0] * .9
-        cdat[ii, 1] = curcol[1] * .9
-        cdat[ii, 2] = curcol[2] * .9
+        cdat[ii, 0] = curcol[0] * scale_factor
+        cdat[ii, 1] = curcol[1] * scale_factor
+        cdat[ii, 2] = curcol[2] * scale_factor
         cdat[ii, 3] = 1
     cmap = cmap.from_list(cmap.N, cdat)
     return cmap
