@@ -290,7 +290,7 @@ rule het:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         out = config["outputs"]["output_dir"] + "het/{ancestry}_het",
-        script = config["inputs"]["repo_dir"] + "Imputation/report_captions/filter_het.R"
+        script = config["inputs"]["repo_dir"] + "Imputation/scripts/filter_het.R"
     log: config["outputs"]["output_dir"] + "log/het.{ancestry}.log"
     shell:
         """
@@ -392,7 +392,7 @@ rule kinship:
         pairwise_r2_threshold = config["imputation_extra"]["kinship_pairwise_r2_threshold"],
         out_pruning = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruning",
         out_pruned = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruned",
-        script = config["inputs"]["repo_dir"] + "Imputation/report_captions/kinship.R",
+        script = config["inputs"]["repo_dir"] + "Imputation/scripts/kinship.R",
     log: config["outputs"]["output_dir"] + "log/kinship.{ancestry}.log"
     shell:
         """
@@ -499,7 +499,7 @@ rule merge_eagle_prephasing_stats:
     params:
         sif = config["inputs"]["singularity_image"],
         bind = config["inputs"]["bind_path"],
-        script = config["inputs"]["repo_dir"] + "Imputation/report_captions/merge_eagle_prephasing_stats.py",
+        script = config["inputs"]["repo_dir"] + "Imputation/scripts/merge_eagle_prephasing_stats.py",
     log: config["outputs"]["output_dir"] + "log/merge_eagle_prephasing_stats.{ancestry}.log"
     shell:
         """
@@ -553,7 +553,8 @@ rule merge_vcfs:
         vcfs = expand(config["outputs"]["output_dir"] + "minimac_imputation_by_chr/{ancestry}_chr_{chr}.dose.vcf.gz", ancestry=ANCESTRIES, chr=CHROMOSOMES)
     output:
         vcf = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_imputed_hg38.vcf.gz",
-        index = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_imputed_hg38.vcf.gz.csi"
+        index1 = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_imputed_hg38.vcf.gz.csi",
+        index2 = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_imputed_hg38.vcf.gz.tbi"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["combine_vcfs_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["combine_vcfs_memory"],
@@ -567,6 +568,7 @@ rule merge_vcfs:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools concat -Oz {input.vcfs} > {output.vcf}
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
+        singularity exec --bind {params.bind} {params.sif} tabix -p vcf {output.vcf}
         """
 
 
@@ -574,7 +576,8 @@ rule merge_vcfs:
 rule split_by_dataset:
     input:
         vcf = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_imputed_hg38.vcf.gz",
-        index = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_imputed_hg38.vcf.gz.csi",
+        index1 = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_imputed_hg38.vcf.gz.csi",
+        index2 = config["outputs"]["output_dir"] + "minimac_imputed/{ancestry}_imputed_hg38.vcf.gz.tbi",
         samples = lambda wildcards: config["inputs"]["dataset_samples"][wildcards.dataset]
     output:
         vcf = config["outputs"]["output_dir"] + "minimac_imputed_by_datatset/{dataset}_{ancestry}_imputed_hg38.vcf.gz",
@@ -592,4 +595,5 @@ rule split_by_dataset:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools view -S {input.samples} {input.vcf} --force-samples -Oz -o {output.vcf}
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
+        singularity exec --bind {params.bind} {params.sif} tabix -p vcf {output.vcf}
         """
