@@ -15,6 +15,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Support for build 36 and 38 genotypes as input (as a result, also using build 38 1000G as reference for sex / ancestry check now)
 - Functionality to split the output in datasets per ancestry (rule `split_per_dataset`)
 - Added rule to combine phasing confidence stats
+- Added option to ignore 1000G ancestry assignment and force an ancestry on all individuals
 
 #### Fixes
 - Fixed issue where some rules did not have dynamic time / memory usage

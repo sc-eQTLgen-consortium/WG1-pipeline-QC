@@ -19,6 +19,7 @@ outputs:
 
 settings:
   is_wgs: False ### whether or not the input genotype is from whole genome sequencing
+  force_ancestry: null
 
 cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"} ### Options for dynamic time usage for cluster submissions of jobs
 

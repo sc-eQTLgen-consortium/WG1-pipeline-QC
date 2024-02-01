@@ -386,20 +386,28 @@ if os.path.exists(sex_man_select_path) and os.path.exists(ancestry_man_select_pa
         logger.info("\nApplying manual selection in ancestry_update_remove.tsv to update input PSAM.")
 
         manual_anc_select = pd.read_csv(ancestry_man_select_path, sep="\t", dtype=str)
-        if not manual_anc_select.loc[manual_anc_select["UPDATE/REMOVE/KEEP"].isin(["UPDATE", "REMOVE", "KEEP"]), "UPDATE/REMOVE/KEEP"].count() == len(manual_anc_select):
-            logger.info("\tError, your UPDATE/REMOVE/KEEP column in ancestry_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
-            exit("WrongAncestryUpdateFile")
+        if config["settings"]["force_ancestry"] is not None:
+            logger.info("\tWarning, forcing all provided ancestries to '{}' regardless of 1000G assignment.".format(config["settings"]["force_ancestry"]))
+            if config["settings"]["force_ancestry"] not in required_columns["Provided_Ancestry"][2].keys():
+                logger.info("\t\tError, forcing ancestry is not one of '{}'".format(", ".join(required_columns["Provided_Ancestry"][2].keys())))
+                exit("WrongForceAncestryArgument")
+            logger.info("\tYou indicated to update the ancestry of {:,} individual(s).".format(np.sum(updated_psam_df["Provided_Ancestry"] != config["settings"]["force_ancestry"])))
+            updated_psam_df.loc[:, "Provided_Ancestry"] = config["settings"]["force_ancestry"]
+        else:
+            if not manual_anc_select.loc[manual_anc_select["UPDATE/REMOVE/KEEP"].isin(["UPDATE", "REMOVE", "KEEP"]), "UPDATE/REMOVE/KEEP"].count() == len(manual_anc_select):
+                logger.info("\tError, your UPDATE/REMOVE/KEEP column in ancestry_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
+                exit("WrongAncestryUpdateFile")
 
-        # if there are any individuals chosen to remove, remove them from the psam.
-        if manual_anc_select["UPDATE/REMOVE/KEEP"].str.contains("REMOVE").any():
-            logger.info("\tYou indicated to remove {:,} individual(s) due to ancestry assignments.".format(np.sum(manual_anc_select["UPDATE/REMOVE/KEEP"] == "REMOVE")))
-            remove_samples.extend(manual_anc_select.loc[manual_anc_select["UPDATE/REMOVE/KEEP"] == "REMOVE", "IID"].values.tolist())
+            # if there are any individuals chosen to remove, remove them from the psam.
+            if manual_anc_select["UPDATE/REMOVE/KEEP"].str.contains("REMOVE").any():
+                logger.info("\tYou indicated to remove {:,} individual(s) due to ancestry assignments.".format(np.sum(manual_anc_select["UPDATE/REMOVE/KEEP"] == "REMOVE")))
+                remove_samples.extend(manual_anc_select.loc[manual_anc_select["UPDATE/REMOVE/KEEP"] == "REMOVE", "IID"].values.tolist())
 
-        # if there are any individuals chosen to update the ancestry, update them in the psam.
-        if manual_anc_select["UPDATE/REMOVE/KEEP"].str.contains("UPDATE").any():
-            logger.info("\tYou indicated to update the ancestry of {:,} individual(s).".format(np.sum(manual_anc_select["UPDATE/REMOVE/KEEP"] == "UPDATE")))
-            for _, row in manual_anc_select.iterrows():
-                updated_psam_df.loc[updated_psam_df["IID"] == row["IID"], "Provided_Ancestry"] = row["PCA_Assignment"]
+            # if there are any individuals chosen to update the ancestry, update them in the psam.
+            if manual_anc_select["UPDATE/REMOVE/KEEP"].str.contains("UPDATE").any():
+                logger.info("\tYou indicated to update the ancestry of {:,} individual(s).".format(np.sum(manual_anc_select["UPDATE/REMOVE/KEEP"] == "UPDATE")))
+                for _, row in manual_anc_select.iterrows():
+                    updated_psam_df.loc[updated_psam_df["IID"] == row["IID"], "Provided_Ancestry"] = row["PCA_Assignment"]
 
         #############################
         ### REMOVE SAMPLES + SAVE ###
