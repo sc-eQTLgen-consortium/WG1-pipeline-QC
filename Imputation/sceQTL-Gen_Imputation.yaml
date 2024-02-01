@@ -18,8 +18,8 @@ outputs:
   output_dir: /path/to/parent/out/dir/ ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
 
 settings:
-  is_wgs: False ### whether or not the input genotype is from whole genome sequencing
-  force_ancestry: null
+  is_wgs: False ### Whether or not the input genotype is from whole genome sequencing
+  force_ancestry: null ### Option to ignore 100G ancestry assignments and impute all individuals as ancestry 'X'. Use with caution.
 
 cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"} ### Options for dynamic time usage for cluster submissions of jobs
 
