@@ -422,7 +422,7 @@ def get_maf(dosages, sample_male_mask, chr):
     nrmiss = 0
 
     for dosage, is_male in zip(dosages, sample_male_mask):
-        if chr in ["X", "y"] and (is_male is None or is_male):
+        if chr.lstrip("chr") in ["X", "Y"] and (is_male is None or is_male):
             continue
 
         if dosage == 0:
