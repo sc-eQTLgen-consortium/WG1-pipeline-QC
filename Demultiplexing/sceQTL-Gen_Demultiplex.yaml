@@ -5,9 +5,10 @@
 inputs:
   bind_path: /path/to/bind/to/mount ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
-  repo_dir: /path/to/repo/dir/ ### Path to the github repository directory
+  repo_dir: /path/to/repo/dir/ ### Path to the GitHub repository directory
   poolsheet_path: /path/to/sample/metadata/file.tsv ### tab separated file that has a header. Each line has a pool name used for the scRNA-seq directories, the BAM file, the barcode files, and the number of individuals in each pool
   individual_list_dir: /path/to/individual_list/directory/ ### Directory that has a different file for each pool. Each file contains a list of the individuals IDs that are in the pool separated by line (match the genotype individual IDs)
+  individual_coupling: /path/to/individual/coupling/file.tsv ### tab separated file that has a header. Each line has the pool identifier and the genotype identifier. Only use if the data is not multiplxed.
   vcf: [] ### the path to the genotype file(s) per ancestry
 
 refs:
@@ -19,6 +20,8 @@ outputs:
 settings:
   is_multiplexed: True ### Whether or not the dataset is multiplexed (i.e. multiple samples per pool)
   sc_data_type: "single-cell" ### The single-cell data type of the input dataset
+  rename_bam: False ### Whether or not to rename the chromosomes from chr1 to 1 of all input BAMs
+  check_sample_swaps: True ### Whether or not to run verifyBamID
 
 cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"} ### Options for dynamic time usage for cluster submissions of jobs
 
@@ -34,13 +37,17 @@ demultiplex_preprocessing:
   filter4demultiplexing_threads: 1 ### Number of threads to use
   filter4demultiplexing_time: 0 ### The time setting to use
 
-  sort4demultiplexing_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  sort4demultiplexing_memory: 10 ### Amount of gigs that will be used for memory and disk space per thread
   sort4demultiplexing_threads: 1 ### Number of threads to use
   sort4demultiplexing_time: 0 ### The time setting to use
 
+  rename4demultiplexing_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  rename4demultiplexing_threads: 1 ### Number of threads to use
+  rename4demultiplexing_time: 0 ### The time setting to use
+
 popscle:
   popscle_bam_filter_memory: 5 ### This is the number of gigs that will be used for memory when subsetting the bam file.
-  popscle_bam_filter_threads : 2 ### This is the number of threads that will be used for memory when subsetting the bam file.
+  popscle_bam_filter_threads: 2 ### This is the number of threads that will be used for memory when subsetting the bam file.
   popscle_bam_filter_time: 0 ### The time setting to use
 
   popscle_pileup_memory: 10 ### This is the number of gigs that will be used for memory and disk space per thread for the pileup step.
@@ -76,6 +83,10 @@ souporcell:
   souporcell_retag_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell retag step
   souporcell_retag_threads: 1 ### The number threads that will be used for the souporcell retag step
   souporcell_retag_time: 0 ### The time setting to use
+
+  souporcell_samtools_merge_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the merging of the BAM files
+  souporcell_samtools_merge_threads: 1 ### The number threads that will be used for the souporcell retag step
+  souporcell_samtools_merge_time: 0 ### The time setting to use
 
   souporcell_freebayes_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell freebayes step
   souporcell_freebayes_threads: 1 ### The number threads that will be used for the souporcell freebayes step
@@ -117,6 +128,15 @@ souporcell:
   souporcell_correlations_memory: 5 ### Amount of memory (in GB) that will be allocated for each thread
   souporcell_correlations_threads: 2 ### The number of threads to be used to run R script that will correlate the souporcell cluster genotypes wiht the reference genotypes
   souporcell_correlations_time: 0 ### The time setting to use
+
+verifybamid:
+  verifybamid_memory: 16 ### Amount of memory (in GB) that will be allocated for each thread
+  verifybamid_threads: 1 ### The number of threads to be used to check for sample swaps with verifyBamID
+  verifybamid_time: 0 ### The time setting to use
+
+  combine_verifybamid_memory: 4 ### Amount of memory (in GB) that will be allocated for each thread
+  combine_verifybamid_threads: 1 ### The number threads that will be used for the sample swaps with verifyBamID
+  combine_verifybamid_time: 0 ### The time setting to use
 
 scrublet:
   scrublet_memory: 16 ### The number amount of memory that will be used for scrublet doublet detection (in GB)
@@ -216,6 +236,7 @@ popscle_extra:
   min_umi: 0 ### Minimum number of UMIs for a droplet/cell to be considered
 
 souporcell_extra:
+  skip_remap: True ### don't remap with minimap2
   no_umi: False ### set to True if your bam has no UMI tag, will ignore/override --umi_tag
   umi_tag: "UB" ### set if your umi tag is not UB
   min_ref: 10 ### min ref to use locus
@@ -223,6 +244,27 @@ souporcell_extra:
   max_loci: 2048 ### max loci per cell, affects speed
   restarts: 100 ### number of restarts in clustering, when there are > 12 clusters we recommend increasing this to avoid local minima
   ploidy: 2 ### ploidy, must be 1 or 2
+
+verifybamid_extra:
+  skip_remap: True ### don't remap with minimap2; uses the remapped BAM from the souporcell pipeline.
+  geno_error: 0.001 ### error rate of the external genotype file
+  min_af: 0.01 ### minimum allele frequency of the markers to include
+  min_call_rate: 0.50 ### minimum call rate of the markers to include
+  ind_to_compare: "best" ### Options: site (use only site information in the VCF and do not compare with the actual genotypes), self (Only compare the ID-matching individuals between the VCF and BAM file), best (Find the best matching individuals. This option is substantially longer than the default option)
+  chip_free: "mix" ### Options: none (Do not perform sequence-only method to estimate parameters) , mix (Estimate contamination using sequence-only method with Brent's single dimensional optimization), refBias (Estimate the reference bias parameters using sequence-only method with Simplex method), full (Estimate both reference bias parameters and the contamination parameters using sequence-only method)
+  with_chip: "mix" ### Options: none (Do not perform sequence+array method to estimate parameters), mix (Estimate contamination using sequence+array method with Brent's single dimensional optimization), refBias (Estimate the refernece bias parameters using sequence+array method with Simplex method), full (Estimate both reference bias parameters and the contamination parameters using sequence+array method)
+  ignore_rg: False ### ignore the read grouup level comparison and compare samples only (recommended for an expedited run)
+  ignore_overlap_pair: False ### ignore overlapping pair end fragment covering the same base. Disabling this option may decrease the sensitivity of the method when the insert size is short (with slight gain in the computational speed)
+  no_eof: False ### do not check the EOF marker of the BAM file (for earlier version of BAM)
+  precise: False ### calculate the likelihood in log-scale for high-depth data (recommended when   maxDepth is greater than 20. Can be a little bit slower)
+  min_map_q: 10 ### minimum mapping quality of the sequence reads to compare
+  max_depth: 20 ###
+  min_q: 13 ### minimum base quality to include
+  max_q: 40 ### maximum base quality to cap
+  grid: 0.05 ### the grid interval to search the optimum before running Brent's algorithm.
+  ref_ref: 1 ### Initial Pr(refBase|HOMREFGeno) parameter
+  ref_het: 0.5 ### Initial Pr(refBase|HETGeno) parameter
+  ref_alt: 0 ### Initial Pr(refBase|HOMALTGeno) parameter
 
 doubletfinder_extra:
   dims: 10 ### Number of PCs to use. Estimate significant PCs if null

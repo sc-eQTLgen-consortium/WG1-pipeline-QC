@@ -31,6 +31,7 @@ parser$add_argument("-b", "--ref", required=FALSE, type="character", default=NUL
 parser$add_argument("-p", "--pct_agreement", required=FALSE, type="double", default=0.7, help="The proportion of a cluster that match the 'ref' assignment to assign that cluster the individual assignment from the reference. Can be between 0.5 and 1. Default is 0.9.")
 parser$add_argument("-m", "--method", required=FALSE, type="character", default=NULL, help="Combination method. Options are 'MajoritySinglet'. 'AtLeastHalfSinglet', 'AnySinglet' or 'AnyDoublet'. We have found that 'MajoritySinglet' provides the most accurate results in most situations and therefore recommend this method. See https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/latest/CombineResults.html for detailed explanation of each intersectional method. Leave blank if you just want all the softwares to be merged into a single dataframe.")
 parser$add_argument("-y", "--pool", required=TRUE, type="character", help="")
+parser$add_argument("-z", "--assignment", required=FALSE, type="character", default="NA", help="")
 parser$add_argument("-o", "--out", required=TRUE, type="character", help="The folder where results will be saved")
 
 # get command line options, if help option encountered print help and exit,
@@ -93,7 +94,7 @@ if (!dir.exists(gsub(basename(args$out), "", args$out))){
 
 
 ### Check to make sure user has provided at least two softwares to combine ###
-if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(args$scSplit), !is.null(args$souporcell), !is.null(args$vireo),!is.null(args$DoubletDecon), !is.null(args$DoubletDetection), !is.null(args$DoubletFinder), !is.null(args$scDblFinder), !is.null(args$scds), !is.null(args$scrublet), !is.null(args$solo)))) < 1){
+if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(args$scSplit), !is.null(args$souporcell), !is.null(args$verifybamid), !is.null(args$vireo),!is.null(args$DoubletDecon), !is.null(args$DoubletDetection), !is.null(args$DoubletFinder), !is.null(args$scDblFinder), !is.null(args$scds), !is.null(args$scrublet), !is.null(args$solo)))) < 1){
 	message("You didn't provide any software results to combine. Please try again - this time providing at least one inputs.")
 	q()
 }
@@ -674,7 +675,7 @@ if (!is.null(args$demuxlet) |
 	if (!("Souporcell_Individual_Assignment" %in% columns) & "Souporcell_Cluster" %in% colnames(combined_results)) {
 		columns <- c(columns, "Souporcell_Cluster")
 	}
-	print(columns)
+
 	demultiplex_combined_results_summary <- combined_results[, .(N = .N), by = c(columns)]
 	demultiplex_combined_results_summary <- demultiplex_combined_results_summary[order(-N)]
 	data.table::fwrite(demultiplex_combined_results_summary, paste0(args$out, "combined_results_demultiplexing_summary.tsv.gz"), sep = "\t", append = FALSE)
@@ -730,7 +731,7 @@ if (is.null(args$method)) {
 				combined_results$MajoritySinglet_Individual_Assignment <- ifelse(combined_results$MajoritySinglet_DropletType == "singlet" & combined_results$MajoritySinglet_Individual_Assignment == "doublet", "unassigned", combined_results$MajoritySinglet_Individual_Assignment)
 			} else {
 				### method when no demultiplexing softwares
-				combined_results$MajoritySinglet_Individual_Assignment <- args$pool
+				combined_results$MajoritySinglet_Individual_Assignment <- args$assignment
 				combined_results$MajoritySinglet_DropletType <- ifelse(rowSums(combined_results[, .SD, .SDcols = grep("DropletType", colnames(combined_results), value = TRUE)] == "singlet") > length(grep("DropletType", colnames(combined_results))) / 2, "singlet", "doublet")
 			}
 		} else if (args$method == "AtLeastHalfSinglet") { ### Only call a singlet if at least half of softwares call a singlet AND at least half of demultiplexing (if present) call the same donor
@@ -744,7 +745,7 @@ if (is.null(args$method)) {
 				combined_results$AtLeastHalfSinglet_Individual_Assignment <- ifelse(combined_results$AtLeastHalfSinglet_DropletType == "singlet" & combined_results$AtLeastHalfSinglet_Individual_Assignment == "doublet", "unassigned", combined_results$AtLeastHalfSinglet_Individual_Assignment)
 			} else {
 				### method when no demultiplexing softwares
-				combined_results$AtLeastHalfSinglet_Individual_Assignment <- args$pool
+				combined_results$AtLeastHalfSinglet_Individual_Assignment <- args$assignment
 				combined_results$AtLeastHalfSinglet_DropletType <- ifelse(rowSums(combined_results[, .SD, .SDcols = grep("DropletType", colnames(combined_results), value = TRUE)] == "singlet") >= length(grep("DropletType", colnames(combined_results))) / 2, "singlet", "doublet")
 			}
 		} else if (args$method == "AnySinglet") { ### Call a singlet if any softwares calls that droplet a singlet AND using the donor with the most consensus (call doublet if no consensus)
@@ -758,7 +759,7 @@ if (is.null(args$method)) {
 				combined_results$AnySinglet_Individual_Assignment <- ifelse(combined_results$AnySinglet_DropletType == "singlet" & combined_results$AnySinglet_Individual_Assignment == "doublet", "unassigned", combined_results$AnySinglet_Individual_Assignment)
 			} else {
 				### method when no demultiplexing softwares
-				combined_results$AnySinglet_Individual_Assignment <- args$pool
+				combined_results$AnySinglet_Individual_Assignment <- args$assignment
 				combined_results$AnySinglet_DropletType <- ifelse(rowSums(combined_results[, .SD, .SDcols = grep("DropletType", colnames(combined_results), value = TRUE)] == "singlet") > 0, "singlet", "doublet")
 			}
 		} else if (args$method == "AnyDoublet") { ### Call a singlet if all softwares calls that droplet a singlet AND all softwares call the same donor
@@ -772,7 +773,7 @@ if (is.null(args$method)) {
 				combined_results$AnyDoublet_Individual_Assignment <- ifelse(combined_results$AnyDoublet_DropletType == "singlet" & combined_results$AnyDoublet_Individual_Assignment == "doublet", "unassigned", combined_results$AnyDoublet_Individual_Assignment)
 			} else {
 				### method when no demultiplexing softwares
-				combined_results$AnyDoublet_Individual_Assignment <- args$pool
+				combined_results$AnyDoublet_Individual_Assignment <- args$assignment
 				combined_results$AnyDoublet_DropletType <- ifelse(rowSums(combined_results[, .SD, .SDcols = grep("DropletType", colnames(combined_results), value = TRUE)] == "doublet") > 0, "doublet", "singlet")
 			}
 		}

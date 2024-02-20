@@ -4,6 +4,7 @@
 #################################
 ######## COMBINE RESULTS ########
 #################################
+# TODO: --assignment only works if there are no demultiplexing methods applied. Not sure how to implement this for multiplexed data yet.
 rule combine_results:
     input:
         demuxlet = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best" if "popscle" in METHODS else [],
@@ -42,6 +43,7 @@ rule combine_results:
         scrublet = lambda wildcards: "--scrublet " + config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_doublets_singlets.tsv.gz".format(pool=wildcards.pool,run=SCRUBLET_SELECTION[wildcards.pool]) if "Scrublet" in METHODS else [],
         pct_agreement = config["combine_results_extra"]["pct_agreement"],
         method = config["combine_results_extra"]["method"],
+        assignment = lambda wildcards: "--assignment " + ASSIGNMENT_COUPLING[wildcards.pool] if wildcards.pool in ASSIGNMENT_COUPLING else "",
         out = config["outputs"]["output_dir"] + "{pool}/CombinedResults/"
     log: config["outputs"]["output_dir"] + "log/combine_results.{pool}.log"
     shell:
@@ -59,6 +61,7 @@ rule combine_results:
             --pct_agreement {params.pct_agreement} \
             --method {params.method} \
             --pool {wildcards.pool} \
+            {params.assignment} \
             --out {params.out}
         """
 

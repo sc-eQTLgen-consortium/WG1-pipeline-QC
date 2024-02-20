@@ -28,7 +28,7 @@ MAINTAINER Drew Neavin <d.neavin@garvan.org.au>, Martijn Vochteloo <m.vochteloo@
 ADD . /tmp/repo
 WORKDIR /tmp/repo
 
-ENV PATH=/opt:/usr/games:/opt/conda/envs/py311/bin:/opt/conda/bin:/opt/minimap2-2.26:/opt/bedtools2-2.31.0/bin:/opt/.cargo/bin:/opt/souporcell:/opt/souporcell/souporcell/target/release:/opt/souporcell/troublet/target/release:/opt/vartrix-1.1.22:/opt/freebayes-1.3.7:/opt/freebayes-1.3.7/scripts:/opt/popscle/bin:/opt/DoubletDetection:/opt/Eagle_v2.4.1:/opt/bin/:/opt/GenotypeHarmonizer-1.4.27:/opt/plink:/opt/plink2:$PATH
+ENV PATH=/opt:/usr/games:/opt/conda/envs/py311/bin:/opt/conda/bin:/opt/minimap2-2.26:/opt/bedtools2-2.31.0/bin:/opt/.cargo/bin:/opt/souporcell:/opt/souporcell/souporcell/target/release:/opt/souporcell/troublet/target/release:/opt/vartrix-1.1.22:/opt/freebayes-1.3.7:/opt/freebayes-1.3.7/scripts:/opt/popscle/bin:/opt/DoubletDetection:/opt/Eagle_v2.4.1:/opt/bin:/opt/GenotypeHarmonizer-1.4.27:/opt/plink:/opt/plink2:/opt/verifyBamID-1.1.3/bin:$PATH
 ENV BCFTOOLS_PLUGINS=/opt/bcftools-1.18/plugins
 ENV SHELL=/bin/bash
 ENV LC_ALL=C
@@ -554,9 +554,9 @@ RUN cd /opt \
 RUN cd /opt \
     && mkdir plink2 \
     && cd plink2 \
-      && wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20231005.zip \
-      && unzip -q plink2_linux_x86_64_20231005.zip \
-      && rm plink2_linux_x86_64_20231005.zip
+      && wget https://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20240205.zip \
+      && unzip -q plink2_linux_x86_64_20240205.zip \
+      && rm plink2_linux_x86_64_20240205.zip
 
 # Requires openjdk-17-jdk.
 # Uses 62 MB, mainly in /opt/picard-3.1.0/build/libs/picard.jar (62 MB)
@@ -602,6 +602,21 @@ RUN cd /opt \
         && cmake ..  \
         && make \
     && rm -rf /opt/popscle/.git
+
+RUN cd /opt \
+    && wget https://github.com/statgen/libStatGen/archive/refs/tags/v1.0.15.tar.gz \
+    && tar -xzf v1.0.15.tar.gz \
+    && rm v1.0.15.tar.gz \
+    && cd libStatGen-1.0.15 \
+        && make
+
+RUN cd /opt \
+    && wget https://github.com/statgen/verifyBamID/archive/refs/tags/v1.1.3.tar.gz \
+    && tar -xzf v1.1.3.tar.gz \
+    && rm v1.1.3.tar.gz \
+    && cd verifyBamID-1.1.3 \
+      && sed -i 's/LIB_PATH_VERIFY_BAM_ID ?= $(LIB_PATH_GENERAL)/LIB_PATH_VERIFY_BAM_ID = \/opt\/libStatGen-1.0.15\//' Makefile.inc \
+      && make
 
 ####################################
 ################ CLEAN #############

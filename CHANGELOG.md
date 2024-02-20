@@ -64,13 +64,16 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Added `scDblFinder` doublet detection method
 - Added Flag `is_multiplexed` to skip demultiplexing
 - Added Flag `sc_data_type` denoting the single-cell data type to automatically select doublet detection method
+- Added rule `rename4demultiplexing` to enable the input of BAM files which have chromosomes encoded as `chr1` instead of `1`
 - Added fixes by Roy Oelen and Dan Kaptijn improving performance of `souporcell` including reduced memory usage and allowing gzipped barcodes as input
 - Added parallel (re-)processing of all method with fully dynamic settings per run without overwriting previous results
 - Added `plot_DoubletDetection`, `plot_DoubletFinder` and `plot_Scrublet` rule to create combined plots for multiple runs 
 - Added demultiplexing rules from the `Imputation` pipeline
 - Added adaptive `combine_results` rule from [Demuxafy](https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/v0.0.4/) v0.0.4 using the results of whichever doublet detection methods was used
 - Split `souporcell_pipeline.py` into separate rules and refactored to use gzipped files for computational efficiency
+- Added `skip_remap` for `souporcell`
 - Made parameter `expected_doublet_rate` for `DoubletFinder` and `Scrublet` variable dependend on expected doublet rate
+- Added rule `verifyBamID`, optionally using the `remap` functionality of `souporcell`, to check for sample swaps
 
 #### Fixes
 - Fixed issue where some rules did not have dynamic time / memory usage
@@ -98,3 +101,6 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Update rules `filter4demultiplexing`, `sort4demultiplexing`, `popscle_pileup`, `popscle_demuxlet`, `souporcell` to use / output gzipped VCF files
 - Made all files gzipped
 - Moved merging of the pools and related rule `barcode_qc_plots` to WG3, only keep merging of the droplet assignments metadata in this WG
+
+#### Known issues
+- option `assignment` in rule `combine_results`  (i.e. checking for sample swaps) only works if there is no demultiplexing method applied.

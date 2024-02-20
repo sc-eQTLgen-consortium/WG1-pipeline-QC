@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import json
+import os
 
 #########################################
 ############# PREPROCESSING #############
@@ -34,7 +35,8 @@ rule combine_vcfs_all:
 # TODO: maybe this fails if the input VCF is not gzipped?
 rule filter4demultiplexing:
     input:
-        vcf = config["inputs"]["vcf"][0] if len(config["inputs"]["vcf"]) == 1 else config["outputs"]["output_dir"] + "vcf_all_merged/imputed_hg38.vcf.gz",
+        vcf = config["inputs"]["vcf"][0] if len(config["inputs"]["vcf"]) == 1 else config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38.vcf.gz",
+        bed = config["refs"]["ref_dir"] + config["refs_extra"]["relative_hg38_exons_ucsc_bed_path"]
     output:
         info_filled = temp(config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_info_filled.vcf.gz"),
         qc_filtered = temp(config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_qc_filtered.vcf.gz"),
@@ -49,8 +51,7 @@ rule filter4demultiplexing:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         maf = config["demultiplex_preprocessing_extra"]["filter4demultiplexing_maf"],
-        r2 = config["demultiplex_preprocessing_extra"]["filter4demultiplexing_r2"],
-        bed = config["refs"]["ref_dir"] + config["refs_extra"]["relative_hg38_exons_ucsc_bed_path"]
+        r2 = config["demultiplex_preprocessing_extra"]["filter4demultiplexing_r2"]
     log: config["outputs"]["output_dir"] + "log/filter4demultiplexing.log"
     shell:
         """
@@ -60,7 +61,7 @@ rule filter4demultiplexing:
             --gzvcf {output.qc_filtered} \
             --max-alleles 2 \
             --remove-indels \
-            --bed {params.bed} \
+            --bed {input.bed} \
             --recode \
             --recode-INFO-all \
             --stdout | gzip -c > {output.location_filtered}
@@ -97,6 +98,38 @@ rule sort4demultiplexing:
         """
 
 
+rule rename4demultiplexing:
+    input:
+        bam = lambda wildcards: POOL_DF.loc[wildcards.pool, "Bam"]
+    output:
+        bam = config["outputs"]["output_dir"] + "{pool}/bam/renamed_possorted_genome_bam.bam"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["rename4demultiplexing_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["rename4demultiplexing_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["demultiplex_preprocessing"]["rename4demultiplexing_time"]]
+    threads: config["demultiplex_preprocessing"]["rename4demultiplexing_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"],
+    log: config["outputs"]["output_dir"] + "log/rename4demultiplexing.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} samtools view -H {input.bam} | \
+            sed -e 's/SN:chr\([0-9XY]*\)/SN:\\1/' -e 's/SN:chrM/SN:MT/' | \
+            singularity exec --bind {params.bind} {params.sif} samtools reheader - {input.bam} > {output.bam}
+        """
+
+
+def get_bam(wildcards):
+    if config["settings"]["rename_bam"]:
+        return config["outputs"]["output_dir"] + "{pool}/bam/renamed_possorted_genome_bam.bam"
+    else:
+        return POOL_DF.loc[wildcards.pool, "Bam"]
+
+def get_bam_index(wildcards):
+    return get_bam(wildcards)[0] + ".bai"
+
+
 ###################################
 ############# POPSCLE #############
 ###################################
@@ -107,9 +140,11 @@ rule popscle_bam_filter:
     input:
         vcf = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz",
         barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
-        bam = lambda wildcards: POOL_DF.loc[wildcards.pool, "Bam"]
+        bam = get_bam
     output:
-        bam = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/snpfiltered_alignment.bam"
+        bed = temp(config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/snpfiltered_alignment.bed"),
+        bam = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/snpfiltered_alignment.bam",
+        bai = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/snpfiltered_alignment.bam.bai"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_bam_filter_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_bam_filter_memory"],
@@ -123,15 +158,14 @@ rule popscle_bam_filter:
     log: config["outputs"]["output_dir"] + "log/popscle_bam_filter.{pool}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} bedtools merge -i {input.vcf} | \
-            singularity exec --bind {params.bind} {params.sif} samtools view \
-                --target-file \
-                - \
-                --tag-file {params.tag_group}:{input.barcodes} \
-                --output {output.bam} \
-                --write-index \
-                --threads {threads} \
-                {input.bam}
+        singularity exec --bind {params.bind} {params.sif} bedtools merge -i {input.vcf} > {output.bed}
+        singularity exec --bind {params.bind} {params.sif} samtools view \
+            --target-file {output.bed} \
+            --tag-file {params.tag_group}:{input.barcodes} \
+            --output {output.bam}##idx##{output.bai} \
+            --write-index \
+            --threads {threads} \
+               {input.bam}
         """
 
 
@@ -260,7 +294,6 @@ rule popscle_demuxlet:
 ####################################
 ############ SOUPORCELL ############
 ####################################
-#!/usr/bin/env python
 # Adapted from: https://github.com/wheaton5/souporcell/blob/master/souporcell_pipeline.py
 # Author: Martijn Vochteloo
 # Note: some functionality from the original souporcell_pipeline is not implemented if it isn't used by us.
@@ -272,7 +305,7 @@ wildcard_constraints:
 
 rule souporcell_preflights:
     input:
-        bam = lambda wildcards: POOL_DF.loc[wildcards.pool, "Bam"],
+        bam = get_bam,
         barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
         fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
         common_variants = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz"
@@ -326,7 +359,7 @@ rule souporcell_preflights:
 rule souporcell_define_remap_bam_regions:
     input:
         settings = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_settings.json",
-        bam = lambda wildcards: POOL_DF.loc[wildcards.pool, "Bam"]
+        bam = get_bam
     output:
         bam_regions = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/bam_remap_regions.json")
     resources:
@@ -362,8 +395,8 @@ def get_remap_bam_region_info(wildcards):
 
 rule souporcell_make_fastqs:
     input:
-        bam = lambda wildcards: POOL_DF.loc[wildcards.pool, "Bam"],
-        bam_index = lambda wildcards: POOL_DF.loc[wildcards.pool, "Bam"] + ".bai",
+        bam = get_bam,
+        bam_index = get_bam_index,
         barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool,"Barcodes"],
         fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
         fasta_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"] + ".fai",
@@ -496,10 +529,10 @@ rule souporcell_samtools_merge:
         final_bam = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam"),
         final_index = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam.bai")
     resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_souporcell_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_souporcell_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_souporcell_time"]]
-    threads: config["souporcell"]["souporcell_souporcell_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_samtools_merge_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_samtools_merge_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_samtools_merge_time"]]
+    threads: config["souporcell"]["souporcell_samtools_merge_threads"]
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"]
@@ -511,9 +544,21 @@ rule souporcell_samtools_merge:
         """
 
 
+def get_souporcell_bam(wildcards):
+    if config["souporcell_extra"]["skip_remap"]:
+        return get_bam(wildcards)
+    else:
+        return config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam"
+
+
+def get_souporcell_bam_index(wildcards):
+    return get_souporcell_bam(wildcards)[0] + ".bai"
+
+
 rule souporcell_define_bam_regions:
     input:
-        bam = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam",
+        settings = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_settings.json",
+        bam = get_souporcell_bam,
     output:
         bam_regions = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/bam_regions.json")
     resources:
@@ -554,8 +599,8 @@ def get_bam_region_info(wildcards):
 # has no limit.
 rule souporcell_freebayes:
     input:
-        bam = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam",
-        index = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam.bai",
+        bam = get_souporcell_bam,
+        index = get_souporcell_bam_index,
         fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
         region = config["outputs"]["output_dir"] + "{pool}/souporcell/bam_regions.json"
     output:
@@ -577,8 +622,10 @@ rule souporcell_freebayes:
         """
         singularity exec --bind {params.bind} {params.sif} touch -c {input.index}
         
-        singularity exec --bind {params.bind} {params.sif} samtools view -hb {input.bam} {params.region_args} | singularity exec --bind {params.bind} {params.sif} samtools depth - | singularity exec --bind {params.bind} {params.sif} awk '{{ if ($3 >= {params.min_cov} && $3 < {params.max_cov}) {{ print $1 "\t" $2 "\t" $2+1 "\t" $3 }} }}' > {output.bed}
-        
+        singularity exec --bind {params.bind} {params.sif} samtools view -hb {input.bam} {params.region_args} | \
+            singularity exec --bind {params.bind} {params.sif} samtools depth - | \
+            singularity exec --bind {params.bind} {params.sif} awk '{{ if ($3 >= {params.min_cov} && $3 < {params.max_cov}) {{ print $1 "\t" $2 "\t" $2+1 "\t" $3 }} }}' > {output.bed}
+
         singularity exec --bind {params.bind} {params.sif} bedtools merge -i {output.bed} > {output.merged_bed}
         """
 
@@ -637,8 +684,8 @@ rule souporcell_common_variants:
 rule souporcell_vartrix:
     input:
         final_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/common_variants_covered.vcf.gz",
-        final_bam = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam",
-        final_index = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam.bai",
+        final_bam = get_souporcell_bam,
+        final_index = get_souporcell_bam_index,
         barcodes= lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
         fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"]
     output:
@@ -875,5 +922,117 @@ rule souporcell_correlate_genotypes:
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
             --reference_vcf {input.reference_vcf} \
             --cluster_vcf {input.cluster_vcf} \
+            --out {params.out}
+        """
+
+####################################
+############ SAMPLE SWAPS ##########
+####################################
+
+def get_verifybamid_bam(wildcards):
+    # This can use the remapped bam of souporcell if you want.
+    if config["verifybamid_extra"]["skip_remap"]:
+        return config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/snpfiltered_alignment.bam",
+    else:
+        return config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam"
+
+
+def get_verifybamid_bam_index(wildcards):
+    return get_verifybamid_bam(wildcards)[0] + ".bai"
+
+
+rule verifybamid:
+    input:
+        vcf = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz",
+        bam = get_verifybamid_bam,
+        bai = get_verifybamid_bam_index
+    output:
+        sample_match = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.selfSM",
+        sample_depth = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.depthSM",
+        sample_best_match = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.bestSM",
+        read_group_match = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.selfRG" if not config["verifybamid_extra"]["ignore_rg"] else "",
+        read_group_depth = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.depthRG" if not config["verifybamid_extra"]["ignore_rg"] else "",
+        read_group_best_match = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.bestRG" if config["verifybamid_extra"]["ind_to_compare"] == "best" and not config["verifybamid_extra"]["ignore_rg"] else ""
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["verifybamid"]["verifybamid_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["verifybamid"]["verifybamid_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["verifybamid"]["verifybamid_time"]]
+    threads: config["verifybamid"]["verifybamid_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        verifybamid = "/opt/verifyBamID-1.1.3/bin/verifyBamID",
+        geno_error = config["verifybamid_extra"]["geno_error"],
+        min_af = config["verifybamid_extra"]["min_af"],
+        min_call_rate = config["verifybamid_extra"]["min_call_rate"],
+        ind_to_compare = "--" + config["verifybamid_extra"]["ind_to_compare"],
+        chip_free =  "--free-" + config["verifybamid_extra"]["chip_free"] if config["verifybamid_extra"]["chip_free"] != "mix" else "",
+        with_chip = "--chip-" + config["verifybamid_extra"]["with_chip"] if config["verifybamid_extra"]["with_chip"] != "mix" else "",
+        ignore_rg = "--ignoreRG" if config["verifybamid_extra"]["ignore_rg"] else "",
+        ignore_overlap_pair = "--ignoreOverlapPair" if config["verifybamid_extra"]["ignore_overlap_pair"] else "",
+        no_eof = "--noEOF" if config["verifybamid_extra"]["no_eof"] else "",
+        precise = "--precise" if config["verifybamid_extra"]["precise"] else "",
+        min_map_q = config["verifybamid_extra"]["min_map_q"],
+        max_depth = config["verifybamid_extra"]["max_depth"],
+        min_q = config["verifybamid_extra"]["min_q"],
+        max_q = config["verifybamid_extra"]["max_q"],
+        grid = config["verifybamid_extra"]["grid"],
+        ref_ref = config["verifybamid_extra"]["ref_ref"],
+        ref_het = config["verifybamid_extra"]["ref_het"],
+        ref_alt = config["verifybamid_extra"]["ref_alt"],
+        out = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck",
+    log: config["outputs"]["output_dir"] + "log/verifybamid.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} {params.verifybamid} \
+            --vcf {input.vcf} \
+            --bam {input.bam} \
+            --genoError {params.geno_error} \
+            --minAF {params.min_af} \
+            --minCallRate {params.min_call_rate} \
+            {params.ind_to_compare} \
+            {params.chip_free} \
+            {params.with_chip} \
+            {params.ignore_rg} \
+            {params.ignore_overlap_pair} \
+            {params.no_eof} \
+            {params.precise} \
+            --minMapQ {params.min_map_q} \
+            --maxDepth {params.max_depth} \
+            --minQ {params.min_q} \
+            --maxQ {params.max_q} \
+            --grid {params.grid} \
+            --refRef {params.ref_ref} \
+            --refHet {params.ref_het} \
+            --refAlt {params.ref_alt} \
+            --out {params.out}
+        """
+
+rule combine_verifybamid:
+    input:
+        poolsheet = config["outputs"]["output_dir"] + "manual_selection/poolsheet.tsv",
+        sample_best_match = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.bestSM", pool=SS_POOLS),
+        ind_coupling = config["inputs"]["individual_coupling"] if os.path.exists(config["settings"]["is_multiplexed"]) else [],
+    output:
+        man_select = config["outputs"]["output_dir"] + "manual_selection/verifyBamID_manual_selection.tsv"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["verifybamid"]["combine_verifybamid_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["verifybamid"]["combine_verifybamid_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["verifybamid"]["combine_verifybamid_time"]]
+    threads: config["verifybamid"]["combine_verifybamid_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/combine_verifybamid.py",
+        main_dir = config["outputs"]["output_dir"],
+        ind_coupling = "--ind_coupling " + config["inputs"]["individual_coupling"] if os.path.exists(config["settings"]["is_multiplexed"]) else "",
+        out = config["outputs"]["output_dir"] + "manual_selection/"
+    log: config["outputs"]["output_dir"] + "log/verifybamid.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} python {params.script} \
+            --poolsheet {input.poolsheet} \
+            --main_dir {params.main_dir} \
+            {params.ind_coupling} \
             --out {params.out}
         """

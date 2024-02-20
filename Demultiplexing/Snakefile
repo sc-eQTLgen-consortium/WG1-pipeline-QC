@@ -10,17 +10,21 @@ import os
 # Add trailing /.
 if not config["inputs"]["repo_dir"].endswith("/"):
     config["inputs"]["repo_dir"] += "/"
-if not config["inputs"]["individual_list_dir"].endswith("/"):
+if config["inputs"]["individual_list_dir"] is not None and not config["inputs"]["individual_list_dir"].endswith("/"):
     config["inputs"]["individual_list_dir"] += "/"
 if not config["refs"]["ref_dir"].endswith("/"):
     config["refs"]["ref_dir"] += "/"
 if not config["outputs"]["output_dir"].endswith("/"):
     config["outputs"]["output_dir"] += "/"
+if not isinstance(config["inputs"]["vcf"], list):
+    config["inputs"]["vcf"] = [config["inputs"]["vcf"]]
 
 # Find which methods to run.
 METHODS = []
 if config["settings"]["is_multiplexed"]:
     METHODS.extend(config["settings_extra"]["multiplexing_methods"])
+if config["settings"]["check_sample_swaps"]:
+    METHODS.append("verifyBamID")
 if config["settings"]["sc_data_type"] is None:
     METHODS.extend(config["settings_extra"]["sc_doubletdetection_methods"])
     METHODS.extend(config["settings_extra"]["sn_doubletdetection_methods"])
@@ -36,6 +40,7 @@ else:
 supp_methods = {
     "popscle": {"Barcodes", "Bam", "Individuals", "INPUT_VCF", "REF_BED"},
     "souporcell": {"Barcodes", "Bam", "N_Individuals", "INPUT_VCF", "REF_FASTA", "REF_BED"},
+    "verifyBamID": {"Bam", "INPUT_VCF"},
     "DoubletFinder": {"Counts"},
     "scDblFinder": {"Counts"},
     "DoubletDetection": {"Counts", "Barcodes"},
@@ -61,6 +66,11 @@ if not os.path.exists(config["inputs"]["singularity_image"]):
 if not os.path.exists(config["inputs"]["poolsheet_path"]):
     logger.info("Error, the poolsheet file does not exist.\n\nExiting.")
     exit("MissingPoolSheetFile")
+
+# Check if the individual coupling exists.
+if config["inputs"]["individual_coupling"] is not None and not os.path.exists(config["inputs"]["individual_coupling"]):
+    logger.info("Error, the individual coupling file does not exist.\n\nExiting.")
+    exit("InvalidIndividualCouplingFile")
 
 def get_individuals_from_vcf(vcf_filepath):
     individuals = None
@@ -103,6 +113,9 @@ for method in METHODS:
             required_columns[requirement] = default_columns[requirement]
         elif requirement == "INPUT_VCF":
             # Check if the input VCF exists.
+            if len(config["inputs"]["vcf"]) == 0:
+                logger.info("Error, no input VCF given. Please fill in the imputed VCF file in the settings file.\n\nExiting.")
+                exit("MissingVCFFile")
             for vcf in config["inputs"]["vcf"]:
                 if os.path.exists(vcf):
                     input_vcf_individuals.extend(get_individuals_from_vcf(vcf))
@@ -194,7 +207,7 @@ for column, (must_be_unique, must_be_numeric, must_exist) in required_columns.it
     if must_exist:
         for fpath in POOL_DF[column]:
             if not os.path.exists(fpath) or not os.path.isfile(fpath):
-                logger.info("\tYour {} column contains a file {} that does niot exist, please make sure all input files exist.".format(column, os.path.basename(fpath)))
+                logger.info("\tYour {} column contains a file {} that does not exist, please make sure all input files exist.".format(column, os.path.basename(fpath)))
                 poolsheet_is_valid = False
                 break
 
@@ -204,6 +217,18 @@ if not poolsheet_is_valid:
 
 logger.info("\tValid.")
 POOLS = POOL_DF["Pool"]
+
+# Check if the individual coupling file is valid
+SS_POOLS = POOLS
+if os.path.exists(config["inputs"]["individual_coupling"]):
+    logger.info("Loading individual coupling file.")
+    ind_coupling_df = pd.read_csv(config["inputs"]["individual_coupling"], sep="\t", dtype=str)
+    if ind_coupling_df.columns.tolist() != ["Pool", "Assignment"]:
+        logger.info("Error, the individual coupling file does not have a header: 'Pool', 'Assignment'.\n\nExiting.")
+        exit("InvalidIndividualCouplingFile")
+
+    logger.info("\tValid.")
+    SS_POOLS = ind_coupling_df["Pool"]
 
 def process_manual_selection_method(name, settings=None, extra_settings=None, settings_dtype=None, max_manual_runs=25):
     """
@@ -366,6 +391,46 @@ if "souporcell" in METHODS:
     input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_summary.tsv.gz", pool=POOLS))
     input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt.gz", pool=POOLS))
 
+ASSIGNMENT_COUPLING = {}
+if config["settings"]["check_sample_swaps"]:
+    logger.info("Running verifyBamID.")
+    man_select_path = config["outputs"]["output_dir"] + "manual_selection/verifyBamID_manual_selection.tsv"
+    if not os.path.exists(man_select_path):
+        input_files.append(man_select_path)
+        all_passed = False
+    else:
+        updated_coupling_path = config["outputs"]["output_dir"] + "manual_selection/updated_coupling.txt"
+        if not os.path.exists(updated_coupling_path):
+            logger.info("\nApplying manual selection in verifyBamID_manual_selection.tsv to update coupling file.")
+
+            if config["inputs"]["individual_coupling"] is not None:
+                updated_coupling_df = pd.read_csv(config["inputs"]["individual_coupling"], sep="\t", dtype=str)
+            else:
+                updated_coupling_df = pd.DataFrame([[pool, "NA"] for pool in POOLS], columns=["Pool", "Assignment"])
+
+            manual_coupling_select = pd.read_csv(man_select_path, sep="\t", header=0, index_col=None)
+            if not manual_coupling_select.loc[manual_coupling_select["UPDATE/REMOVE/KEEP"].isin(["UPDATE", "REMOVE", "KEEP"]), "UPDATE/REMOVE/KEEP"].count() == len(manual_coupling_select):
+                logger.info("\tError, your UPDATE/REMOVE/KEEP column in verifyBamID_manual_selection.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
+                exit("WrongVerifyBamIDUpdateRemove")
+
+            remove_samples = []
+            if manual_coupling_select["UPDATE/REMOVE/KEEP"].str.contains("REMOVE").any():
+                logger.info("\tYou indicated to remove the coupling of {:,} individual(s).".format(np.sum(manual_coupling_select["UPDATE/REMOVE/KEEP"] == "REMOVE")))
+                updated_coupling_df = updated_coupling_df.loc[~updated_coupling_df["Pool"].isin(manual_coupling_select.loc[manual_coupling_select["UPDATE/REMOVE/KEEP"] == "REMOVE", "#SEQ_ID"].values.tolist()), :]
+
+            if manual_coupling_select["UPDATE/REMOVE/KEEP"].str.contains("UPDATE").any():
+                logger.info("\tYou indicated to update the coupling of {:,} individual(s).".format(np.sum(manual_coupling_select["UPDATE/REMOVE/KEEP"] == "UPDATE")))
+                for _, row in manual_coupling_select.loc[manual_coupling_select["UPDATE/REMOVE/KEEP"] == "UPDATE", :].iterrows():
+                    updated_coupling_df.loc[updated_coupling_df["Assignment"] == row["#SEQ_ID"], "Assignment"] = row["CHIP_ID"]
+
+            updated_coupling_df.to_csv(updated_coupling_path, sep="\t", index=False, header=True)
+            logger.info("\tSaved 'manual_selection/updated_coupling.txt'.")
+        else:
+            updated_coupling_df = pd.read_csv(updated_coupling_path, sep="\t", dtype=str, keep_default_na=False)
+
+        updated_coupling_df = updated_coupling_df.loc[updated_coupling_df["Assignment"] != "NA", :]
+        ASSIGNMENT_COUPLING = dict(zip(updated_coupling_df["Pool"], updated_coupling_df["Assignment"]))
+
 if "DoubletFinder" in METHODS:
     logger.info("Running DoubletFinder.")
     doubletfinder_passed, doubletfinder_output_folders, DOUBLETFINDER_SELECTION, DOUBLETFINDER_SETTINGS = process_manual_selection_method(
@@ -381,7 +446,7 @@ if "DoubletFinder" in METHODS:
     )
 
     if not doubletfinder_passed:
-        input_files.append(expand(config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletFinder_pKvBCmetrics.png", pool=POOLS))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletFinder_pKvBCmetrics.png", pool=POOLS))
         all_passed = False
 
 if "scDblFinder" in METHODS:
@@ -437,7 +502,7 @@ if "DoubletDetection" in METHODS:
     )
 
     if not doubletdetection_passed:
-        input_files.append(expand(config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletDetection_convergence_and_threshold_test.png", pool=POOLS))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletDetection_convergence_and_threshold_test.png", pool=POOLS))
         all_passed = False
 
 if "scds" in METHODS:
@@ -488,7 +553,7 @@ if "Scrublet" in METHODS:
     )
 
     if not scrublet_passed:
-        input_files.append(expand(config["outputs"]["output_dir"] + "QC_figures/{pool}/Scrublet_histograms_and_UMAPs.png", pool=POOLS))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "QC_figures/{pool}/Scrublet_histograms_and_UMAPs.png", pool=POOLS))
         all_passed = False
 
 # Note: combine_results rule is usefull if we only use one method.
