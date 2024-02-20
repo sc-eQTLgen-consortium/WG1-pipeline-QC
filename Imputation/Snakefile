@@ -377,7 +377,7 @@ if os.path.exists(sex_man_select_path) and os.path.exists(ancestry_man_select_pa
 
         if manual_sex_select["UPDATE/REMOVE/KEEP"].str.contains("UPDATE").any():
             logger.info("\tYou indicated to update the sex of {:,} individual(s).".format(np.sum(manual_sex_select["UPDATE/REMOVE/KEEP"] == "UPDATE")))
-            for _, row in manual_sex_select.iterrows():
+            for _, row in manual_sex_select.loc[manual_sex_select["UPDATE/REMOVE/KEEP"] == "UPDATE", :].iterrows():
                 updated_psam_df.loc[updated_psam_df["IID"] == row["IID"], "SEX"] = row["SNPSEX"]
 
         #################################
@@ -406,7 +406,7 @@ if os.path.exists(sex_man_select_path) and os.path.exists(ancestry_man_select_pa
             # if there are any individuals chosen to update the ancestry, update them in the psam.
             if manual_anc_select["UPDATE/REMOVE/KEEP"].str.contains("UPDATE").any():
                 logger.info("\tYou indicated to update the ancestry of {:,} individual(s).".format(np.sum(manual_anc_select["UPDATE/REMOVE/KEEP"] == "UPDATE")))
-                for _, row in manual_anc_select.iterrows():
+                for _, row in manual_anc_select.loc[manual_anc_select["UPDATE/REMOVE/KEEP"] == "UPDATE", :].iterrows():
                     updated_psam_df.loc[updated_psam_df["IID"] == row["IID"], "Provided_Ancestry"] = row["PCA_Assignment"]
 
         #############################
