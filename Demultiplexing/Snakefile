@@ -220,7 +220,7 @@ POOLS = POOL_DF["Pool"]
 
 # Check if the individual coupling file is valid
 SS_POOLS = POOLS
-if os.path.exists(config["inputs"]["individual_coupling"]):
+if config["inputs"]["individual_coupling"] is not None and os.path.exists(config["inputs"]["individual_coupling"]):
     logger.info("Loading individual coupling file.")
     ind_coupling_df = pd.read_csv(config["inputs"]["individual_coupling"], sep="\t", dtype=str)
     if ind_coupling_df.columns.tolist() != ["Pool", "Assignment"]:

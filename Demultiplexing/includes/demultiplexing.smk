@@ -1012,7 +1012,7 @@ rule combine_verifybamid:
     input:
         poolsheet = config["outputs"]["output_dir"] + "manual_selection/poolsheet.tsv",
         sample_best_match = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.bestSM", pool=SS_POOLS),
-        ind_coupling = config["inputs"]["individual_coupling"] if os.path.exists(config["settings"]["is_multiplexed"]) else [],
+        ind_coupling = config["inputs"]["individual_coupling"] if config["inputs"]["individual_coupling"] is not None and os.path.exists(config["settings"]["is_multiplexed"]) else [],
     output:
         man_select = config["outputs"]["output_dir"] + "manual_selection/verifyBamID_manual_selection.tsv"
     resources:
@@ -1025,7 +1025,7 @@ rule combine_verifybamid:
         sif = config["inputs"]["singularity_image"],
         script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/combine_verifybamid.py",
         main_dir = config["outputs"]["output_dir"],
-        ind_coupling = "--ind_coupling " + config["inputs"]["individual_coupling"] if os.path.exists(config["settings"]["is_multiplexed"]) else "",
+        ind_coupling = "--ind_coupling " + config["inputs"]["individual_coupling"] if config["inputs"]["individual_coupling"] is not None and os.path.exists(config["inputs"]["individual_coupling"]) else "",
         out = config["outputs"]["output_dir"] + "manual_selection/"
     log: config["outputs"]["output_dir"] + "log/verifybamid.log"
     shell:
