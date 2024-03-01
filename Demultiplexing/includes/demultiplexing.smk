@@ -135,7 +135,9 @@ def get_bam_index(wildcards):
 ###################################
 
 
-# TODO, gives error if barcodes is gzipped?
+# samtools view --tag-file does not accept gzipped text file.
+# I added a check for the number of reads in the output BAM file since other programs will continue
+# without an error even if it is empty.
 rule popscle_bam_filter:
     input:
         vcf = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz",
@@ -154,18 +156,25 @@ rule popscle_bam_filter:
         out_dir = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/",
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        tag_group = config["popscle"]["popscle_pileup_tag_group"]
+        tag_group = config["popscle"]["popscle_pileup_tag_group"],
+        tag_file = lambda wildcards, input: "<(zcat {})".format(input.barcodes) if input.barcodes.endswith(".gz") else input.barcodes
     log: config["outputs"]["output_dir"] + "log/popscle_bam_filter.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bedtools merge -i {input.vcf} > {output.bed}
         singularity exec --bind {params.bind} {params.sif} samtools view \
             --target-file {output.bed} \
-            --tag-file {params.tag_group}:{input.barcodes} \
+            --tag-file {params.tag_group}:{params.tag_file} \
             --output {output.bam}##idx##{output.bai} \
             --write-index \
             --threads {threads} \
                {input.bam}
+        
+        if [[ "$(singularity exec --bind {params.bind} {params.sif} samtools view -c {output.bam})" -eq "0" ]]; 
+        then
+           echo "Error, total number of reads in output bam is 0"
+           rm {output.bam}
+        fi
         """
 
 
