@@ -249,8 +249,8 @@ rule filter_preimpute_vcf:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        hwe = config["imputation"]["filter_preimpute_vcf_snp_hwe"],
-        missing = config["imputation"]["filter_preimpute_vcf_snp_missing_pct"],
+        hwe = config["imputation_extra"]["filter_preimpute_vcf_snp_hwe"],
+        missing = config["imputation_extra"]["filter_preimpute_vcf_snp_missing_pct"],
         maf = lambda wildcards: ANCESTRY_MAF_DICT[wildcards.ancestry]
     log: config["outputs"]["output_dir"] + "log/filter_preimpute_vcf.{ancestry}.log"
     shell:
@@ -289,6 +289,7 @@ rule het:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
+        threshold = config["imputation_extra"]["het_threshold"],
         out = config["outputs"]["output_dir"] + "het/{ancestry}_het",
         script = config["inputs"]["repo_dir"] + "Imputation/scripts/filter_het.R"
     log: config["outputs"]["output_dir"] + "log/het.{ancestry}.log"
@@ -301,6 +302,7 @@ rule het:
             --out {params.out}
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
             --input {output.het} \
+            --threshold {params.threshold} \
             --out {params.out}
         """
 
@@ -581,7 +583,8 @@ rule split_by_dataset:
         samples = lambda wildcards: config["inputs"]["dataset_samples"][wildcards.dataset]
     output:
         vcf = config["outputs"]["output_dir"] + "minimac_imputed_by_datatset/{dataset}_{ancestry}_imputed_hg38.vcf.gz",
-        index = config["outputs"]["output_dir"] + "minimac_imputed_by_datatset/{dataset}_{ancestry}_imputed_hg38.vcf.gz.csi"
+        index1 = config["outputs"]["output_dir"] + "minimac_imputed_by_datatset/{dataset}_{ancestry}_imputed_hg38.vcf.gz.csi",
+        index2 = config["outputs"]["output_dir"] + "minimac_imputed_by_datatset/{dataset}_{ancestry}_imputed_hg38.vcf.gz.tbi"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_dataset_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["split_by_dataset_memory"],

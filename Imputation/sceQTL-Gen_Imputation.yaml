@@ -105,8 +105,6 @@ imputation:
   filter_preimpute_vcf_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   filter_preimpute_vcf_threads: 1 ### Number of threads to use
   filter_preimpute_vcf_time: 0 ### The time setting to use
-  filter_preimpute_vcf_snp_hwe: 1e-6 ### the threshold used for calling a SNP outside of HWE
-  filter_preimpute_vcf_snp_missing_pct: 0.05 ### the minimum proportion that can be missing for a snp to be included (5% by default)
 
   het_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
   het_threads: 1 ### Amount of gigs that will be used for memory and disk space per thread
@@ -192,6 +190,11 @@ ancestry_sex_qc_extra:
   prune_1000g_pairwise_r2_threshold: 0.5 ### pairwise r2 threshold
 
 imputation_extra:
+  filter_preimpute_vcf_snp_hwe: 1e-6 ### the threshold used for calling a SNP outside of HWE
+  filter_preimpute_vcf_snp_missing_pct: 0.05 ### the minimum proportion that can be missing for a snp to be included (5% by default)
+
+  het_threshold: 3 ### the number of standard deviation that the proportion of non-homozygous sites can maximally deviate
+
   kinship_maf: 0.05 ### filters out all variants with allele frequency below the provided threshold
   kinship_hwe: 1e-6 ### filters out all variants which have Hardy-Weinberg equilibrium exact test p-value below the provided threshold
   kinship_indep_window_size: 250 ### a window size in variant count or kilobase (if the 'kb' modifier is present) units

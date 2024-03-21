@@ -82,6 +82,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Fixed edge case where the Demuxafy `combine_results` rule fails if only one doublet detection method was run
 - Fixed issue in `Singlet_QC_Figures.R` where gene symbols were stored as ENSG
 - Fixed issue in `expected_observed_individuals_doublets.R` where the figure width exceeds the maximum if there are too many pools 
+- Fixed issue in `filter_het.R` where the heterozygosity passed samples included sampels below -N standard deviations
 
 #### Changes
 - Refactor code to (mostly) PEP8
@@ -104,3 +105,4 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 
 #### Known issues
 - option `assignment` in rule `combine_results`  (i.e. checking for sample swaps) only works if there is no demultiplexing method applied.
+- due to the way the input_files for rule `all` depend on the status of the pipeline (multiple runs), options like `--delete-temp-output` to remove old temp files will not work since old rules are not rechecked
