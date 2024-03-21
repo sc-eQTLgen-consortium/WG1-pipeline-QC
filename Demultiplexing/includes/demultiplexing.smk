@@ -168,7 +168,7 @@ rule popscle_bam_filter:
             --output {output.bam}##idx##{output.bai} \
             --write-index \
             --threads {threads} \
-               {input.bam}
+            {input.bam}
         
         if [[ "$(singularity exec --bind {params.bind} {params.sif} samtools view -c {output.bam})" -eq "0" ]]; 
         then
@@ -1017,13 +1017,25 @@ rule verifybamid:
             --out {params.out}
         """
 
+
 rule combine_verifybamid:
     input:
         poolsheet = config["outputs"]["output_dir"] + "manual_selection/poolsheet.tsv",
+        sample_match = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.selfSM", pool=SS_POOLS),
+        sample_depth = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.depthSM", pool=SS_POOLS),
         sample_best_match = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.bestSM", pool=SS_POOLS),
+        read_group_match = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.selfRG", pool=SS_POOLS) if not config["verifybamid_extra"]["ignore_rg"] else "",
+        read_group_depth = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.depthRG", pool=SS_POOLS) if not config["verifybamid_extra"]["ignore_rg"] else "",
+        read_group_best_match = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.bestRG", pool=SS_POOLS) if config["verifybamid_extra"]["ind_to_compare"] == "best" and not config["verifybamid_extra"]["ignore_rg"] else "",
         ind_coupling = config["inputs"]["individual_coupling"] if config["inputs"]["individual_coupling"] is not None and os.path.exists(config["settings"]["is_multiplexed"]) else [],
     output:
-        man_select = config["outputs"]["output_dir"] + "manual_selection/verifyBamID_manual_selection.tsv"
+        sample_match = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.selfSM",
+        sample_depth = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.depthSM",
+        sample_best_match = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.bestSM",
+        read_group_match = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.selfRG" if not config["verifybamid_extra"]["ignore_rg"] else "",
+        read_group_depth = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.depthRG" if not config["verifybamid_extra"]["ignore_rg"] else "",
+        read_group_best_match = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.bestRG" if config["verifybamid_extra"]["ind_to_compare"] == "best" and not config["verifybamid_extra"]["ignore_rg"] else "",
+        man_select = config["outputs"]["output_dir"] + "manual_selection/verifyBamID_manual_selection.tsv",
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["verifybamid"]["combine_verifybamid_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["verifybamid"]["combine_verifybamid_memory"],
@@ -1035,7 +1047,7 @@ rule combine_verifybamid:
         script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/combine_verifybamid.py",
         main_dir = config["outputs"]["output_dir"],
         ind_coupling = "--ind_coupling " + config["inputs"]["individual_coupling"] if config["inputs"]["individual_coupling"] is not None and os.path.exists(config["inputs"]["individual_coupling"]) else "",
-        out = config["outputs"]["output_dir"] + "manual_selection/"
+        out = config["outputs"]["output_dir"]
     log: config["outputs"]["output_dir"] + "log/verifybamid.log"
     shell:
         """

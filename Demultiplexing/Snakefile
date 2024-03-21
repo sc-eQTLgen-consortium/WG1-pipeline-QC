@@ -227,6 +227,11 @@ if config["inputs"]["individual_coupling"] is not None and os.path.exists(config
         logger.info("Error, the individual coupling file does not have a header: 'Pool', 'Assignment'.\n\nExiting.")
         exit("InvalidIndividualCouplingFile")
 
+    for column in ind_coupling_df.columns:
+        if not ind_coupling_df[column].is_unique:
+            logger.info("\tYour {} column contains duplicates, please make sure all values are unique.".format(column))
+            exit("InvalidIndividualCouplingFile")
+
     logger.info("\tValid.")
     SS_POOLS = ind_coupling_df["Pool"]
 
@@ -422,6 +427,11 @@ if config["settings"]["check_sample_swaps"]:
                 logger.info("\tYou indicated to update the coupling of {:,} individual(s).".format(np.sum(manual_coupling_select["UPDATE/REMOVE/KEEP"] == "UPDATE")))
                 for _, row in manual_coupling_select.loc[manual_coupling_select["UPDATE/REMOVE/KEEP"] == "UPDATE", :].iterrows():
                     updated_coupling_df.loc[updated_coupling_df["Assignment"] == row["#SEQ_ID"], "Assignment"] = row["CHIP_ID"]
+
+            for column in updated_coupling_df.columns:
+                if not updated_coupling_df[column].is_unique:
+                    logger.info("\tYour {} column contains duplicates, please make sure all values are unique.".format(column))
+                    exit("InvalidIndividualCouplingFile")
 
             updated_coupling_df.to_csv(updated_coupling_path, sep="\t", index=False, header=True)
             logger.info("\tSaved 'manual_selection/updated_coupling.txt'.")
