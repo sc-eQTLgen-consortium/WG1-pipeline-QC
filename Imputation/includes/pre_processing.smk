@@ -13,9 +13,9 @@ rule input_vcf_to_pgen:
         vcf = config["inputs"]["genotype_path"] + ".vcf.gz",
         index = config["inputs"]["genotype_path"] + ".vcf.gz.tbi"
     output:
-        pgen = config["outputs"]["output_dir"] + "pre_processed/data.pgen",
-        pvar = config["outputs"]["output_dir"] + "pre_processed/data.pvar",
-        psam = config["outputs"]["output_dir"] + "pre_processed/data.psam",
+        pgen = temp(config["outputs"]["output_dir"] + "pre_processed/data.pgen"),
+        pvar = temp(config["outputs"]["output_dir"] + "pre_processed/data.pvar"),
+        psam = temp(config["outputs"]["output_dir"] + "pre_processed/data.psam"),
         log = config["outputs"]["output_dir"] + "pre_processed/data.log",
     resources:
         plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["vcf_to_plink_memory"] * config["generic"]["vcf_to_plink_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
@@ -64,9 +64,9 @@ rule input_pgen:
         pvar = config["inputs"]["genotype_path"] + ".pvar",
         psam = config["inputs"]["genotype_path"] + ".pvar"
     output:
-        pgen = config["outputs"]["output_dir"] + "pre_processed/data.pgen",
-        pvar = config["outputs"]["output_dir"] + "pre_processed/data.pvar",
-        psam = config["outputs"]["output_dir"] + "pre_processed/data.psam",
+        pgen = temp(config["outputs"]["output_dir"] + "pre_processed/data.pgen"),
+        pvar = temp(config["outputs"]["output_dir"] + "pre_processed/data.pvar"),
+        psam = temp(config["outputs"]["output_dir"] + "pre_processed/data.psam"),
         log = config["outputs"]["output_dir"] + "pre_processed/data.log",
     resources:
         plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["process_plink_memory"] * config["generic"]["process_plink_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
@@ -110,9 +110,9 @@ rule input_vcf_to_pgen_per_chr:
         vcf = lambda wildcards: config["inputs"]["genotype_path"].replace("CHR", wildcards.chr) + ".vcf.gz" if INPUT_OPTION == "VCF per chromosome" else "",
         index = lambda wildcards: config["inputs"]["genotype_path"].replace("CHR", wildcards.chr) + ".vcf.gz.tbi" if INPUT_OPTION == "VCF per chromosome" else ""
     output:
-        pgen = config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data_{chr}.pgen",
-        pvar = config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data_{chr}.pvar",
-        psam = config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data_{chr}.psam",
+        pgen = temp(config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data_{chr}.pgen"),
+        pvar = temp(config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data_{chr}.pvar"),
+        psam = temp(config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data_{chr}.psam"),
         log = config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data_{chr}.log"
     resources:
         plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["vcf_to_plink_memory"] * config["generic"]["vcf_to_plink_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
@@ -154,9 +154,9 @@ rule merge_vcf_to_pgens:
         merge_pgen = temp(config["outputs"]["output_dir"] + "pre_processed/merged.pgen"),
         merge_pvar = temp(config["outputs"]["output_dir"] + "pre_processed/merged.pvar"),
         merge_psam = temp(config["outputs"]["output_dir"] + "pre_processed/merged.psam"),
-        pgen = config["outputs"]["output_dir"] + "pre_processed/data.pgen",
-        pvar = config["outputs"]["output_dir"] + "pre_processed/data.pvar",
-        psam = config["outputs"]["output_dir"] + "pre_processed/data.psam",
+        pgen = temp(config["outputs"]["output_dir"] + "pre_processed/data.pgen"),
+        pvar = temp(config["outputs"]["output_dir"] + "pre_processed/data.pvar"),
+        psam = temp(config["outputs"]["output_dir"] + "pre_processed/data.psam"),
         log = config["outputs"]["output_dir"] + "pre_processed/data.log"
     resources:
         plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["process_plink_memory"] * config["generic"]["process_plink_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,

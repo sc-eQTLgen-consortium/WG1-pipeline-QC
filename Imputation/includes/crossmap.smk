@@ -26,10 +26,10 @@ rule crossmap:
         pvar = config["outputs"]["output_dir"] + ("wgs_filtered/" if config["settings"]["is_wgs"] else "pre_processed/") + "data.pvar",
         psam = config["outputs"]["output_dir"] + ("wgs_filtered/" if config["settings"]["is_wgs"] else "pre_processed/") + "data.psam",
     output:
-        inbed = config["outputs"]["output_dir"] + "crossmapped/input.bed",
-        outbed = config["outputs"]["output_dir"] + "crossmapped/output.bed",
+        inbed = temp(config["outputs"]["output_dir"] + "crossmapped/input.bed"),
+        outbed = temp(config["outputs"]["output_dir"] + "crossmapped/output.bed"),
         outbed_unmap = config["outputs"]["output_dir"] + "crossmapped/output.bed.unmap",
-        crossmapped_pvar = config["outputs"]["output_dir"] + "crossmapped/crossmapped.pvar",
+        crossmapped_pvar = temp(config["outputs"]["output_dir"] + "crossmapped/crossmapped.pvar"),
         excluded_ids = config["outputs"]["output_dir"] + "crossmapped/excluded_ids.txt",
         pgen = config["outputs"]["output_dir"] + "crossmapped/data.pgen",
         pvar = config["outputs"]["output_dir"] + "crossmapped/data.pvar",

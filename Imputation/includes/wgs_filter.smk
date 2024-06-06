@@ -12,8 +12,8 @@ rule split_input_vcf_by_chr:
         vcf = config["inputs"]["genotype_path"] + ".vcf.gz",
         index = config["inputs"]["genotype_path"] + ".vcf.gz.tbi"
     output:
-        vcf = config["outputs"]["output_dir"] + "split_input_vcf_by_chr/chr_{chr}.vcf.gz",
-        index = config["outputs"]["output_dir"] + "split_input_vcf_by_chr/chr_{chr}.vcf.gz.csi"
+        vcf = temp(config["outputs"]["output_dir"] + "split_input_vcf_by_chr/chr_{chr}.vcf.gz"),
+        index = temp(config["outputs"]["output_dir"] + "split_input_vcf_by_chr/chr_{chr}.vcf.gz.csi")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["split_by_chr_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["split_by_chr_memory"],
@@ -38,7 +38,7 @@ rule bcftools_norm:
         vcf = lambda wildcards: config["inputs"]["genotype_path"].replace("CHR", wildcards.chr) + ".vcf.gz" if INPUT_OPTION == "VCF per chromosome" else config["outputs"]["output_dir"] + "split_input_vcf_by_chr/chr_{chr}.vcf.gz",
         index = lambda wildcards: config["inputs"]["genotype_path"].replace("CHR", wildcards.chr) + ".vcf.gz.tbi" if INPUT_OPTION == "VCF per chromosome" else config["outputs"]["output_dir"] + "split_input_vcf_by_chr/chr_{chr}.vcf.gz.tbi",
     output:
-        vcf = config["outputs"]["output_dir"] + "bcftools_norm_by_chr/chr_{chr}_normalised.vcf.gz"
+        vcf = temp(config["outputs"]["output_dir"] + "bcftools_norm_by_chr/chr_{chr}_normalised.vcf.gz")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["wgs_filter"]["bcftools_norm_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["wgs_filter"]["bcftools_norm_memory"],
@@ -63,7 +63,7 @@ rule wgs_filter:
     input:
         vcf = config["outputs"]["output_dir"] + "bcftools_norm_by_chr/chr_{chr}_normalised.vcf.gz"
     output:
-        vcf = config["outputs"]["output_dir"] + "wgs_filter_by_chr/chr_{chr}_normalised_filtered.vcf.gz",
+        vcf = temp(config["outputs"]["output_dir"] + "wgs_filter_by_chr/chr_{chr}_normalised_filtered.vcf.gz"),
         log = config["outputs"]["output_dir"] + "wgs_filter_by_chr/chr_{chr}_normalised_filtered.log.gz"
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["wgs_filter"]["wgs_filter_memory"],
@@ -125,9 +125,9 @@ rule wgs_filtered_vcf_to_pgen:
     input:
         vcf = config["outputs"]["output_dir"] + "wgs_filter_by_chr/chr_{chr}_normalised_filtered.vcf.gz"
     output:
-        pgen = config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.pgen",
-        pvar = config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.pvar",
-        psam = config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.psam",
+        pgen = temp(config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.pgen"),
+        pvar = temp(config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.pvar"),
+        psam = temp(config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.psam"),
         log = config["outputs"]["output_dir"] + "wgs_filter_by_chr_pgen/chr_{chr}_normalised_filtered.log"
     resources:
         plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["vcf_to_plink_memory"] * config["generic"]["vcf_to_plink_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,

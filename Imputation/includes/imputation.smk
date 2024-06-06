@@ -12,9 +12,9 @@ rule harmonize:
         ref_vcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"],
         ref_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"] + ".tbi"
     output:
-        bed = config["outputs"]["output_dir"] + "harmonize/{ancestry}.bed",
-        bim = config["outputs"]["output_dir"] + "harmonize/{ancestry}.bim",
-        fam = config["outputs"]["output_dir"] + "harmonize/{ancestry}.fam",
+        bed = temp(config["outputs"]["output_dir"] + "harmonize/{ancestry}.bed"),
+        bim = temp(config["outputs"]["output_dir"] + "harmonize/{ancestry}.bim"),
+        fam = temp(config["outputs"]["output_dir"] + "harmonize/{ancestry}.fam"),
         log = config["outputs"]["output_dir"] + "harmonize/{ancestry}.log",
         id_updates = config["outputs"]["output_dir"] + "harmonize/{ancestry}_idUpdates.txt",
         snp_log = config["outputs"]["output_dir"] + "harmonize/{ancestry}_snpLog.log",
@@ -52,8 +52,8 @@ rule harmonized_bed_to_vcf:
         bim = config["outputs"]["output_dir"] + "harmonize/{ancestry}.bim",
         fam = config["outputs"]["output_dir"] + "harmonize/{ancestry}.fam"
     output:
-        vcf = config["outputs"]["output_dir"] + "harmonized_bed_to_vcf/{ancestry}_harmonised_hg38.vcf.gz",
-        index = config["outputs"]["output_dir"] + "harmonized_bed_to_vcf/{ancestry}_harmonised_hg38.vcf.gz.csi",
+        vcf = temp(config["outputs"]["output_dir"] + "harmonized_bed_to_vcf/{ancestry}_harmonised_hg38.vcf.gz"),
+        index = temp(config["outputs"]["output_dir"] + "harmonized_bed_to_vcf/{ancestry}_harmonised_hg38.vcf.gz.csi"),
         log = config["outputs"]["output_dir"] + "harmonized_bed_to_vcf/{ancestry}_harmonised_hg38.log",
     resources:
         plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["plink_to_vcf_memory"] * config["generic"]["plink_to_vcf_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
@@ -91,9 +91,9 @@ rule split_by_chr_for_harmonize:
         bim = config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_subset.bim",
         fam = config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_subset.fam"
     output:
-        bed = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.bed",
-        bim = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.bim",
-        fam = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.fam",
+        bed = temp(config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.bed"),
+        bim = temp(config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.bim"),
+        fam = temp(config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.fam"),
         log = config["outputs"]["output_dir"] + "split_by_chr_for_harmonize/{ancestry}_chr_{chr}_subset.log",
     resources:
         plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["split_by_chr_memory"] * config["generic"]["split_by_chr_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
@@ -128,11 +128,11 @@ rule harmonize_per_chr:
         ref_vcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"],
         ref_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_vcf_path"] + ".tbi"
     output:
-        bed = config["outputs"]["output_dir"] + "harmonize_per_chr/{ancestry}_chr_{chr}.bed",
-        bim = config["outputs"]["output_dir"] + "harmonize_per_chr/{ancestry}_chr_{chr}.bim",
-        fam = config["outputs"]["output_dir"] + "harmonize_per_chr/{ancestry}_chr_{chr}.fam",
+        bed = temp(config["outputs"]["output_dir"] + "harmonize_per_chr/{ancestry}_chr_{chr}.bed"),
+        bim = temp(config["outputs"]["output_dir"] + "harmonize_per_chr/{ancestry}_chr_{chr}.bim"),
+        fam = temp(config["outputs"]["output_dir"] + "harmonize_per_chr/{ancestry}_chr_{chr}.fam"),
         log = config["outputs"]["output_dir"] + "harmonize/{ancestry}_chr_{chr}.log",
-        id_updates = config["outputs"]["output_dir"] + "harmonize/{ancestry}_chr_{chr}_idUpdates.txt",
+        id_updates = temp(config["outputs"]["output_dir"] + "harmonize/{ancestry}_chr_{chr}_idUpdates.txt"),
         snp_log = config["outputs"]["output_dir"] + "harmonize/{ancestry}_chr_{chr}_snpLog.log",
     resources:
         java_mem = lambda wildcards, attempt: attempt * config["imputation"]["harmonize_memory"] * config["imputation"]["harmonize_threads"] - config["settings_extra"]["java_memory_buffer"],
@@ -168,8 +168,8 @@ rule harmonized_bed_per_chr_to_vcf:
         bim = expand(config["outputs"]["output_dir"] + "harmonize_per_chr/{ancestry}_chr_{chr}.bim", ancestry=ANCESTRIES, chr=CHROMOSOMES),
         fam = expand(config["outputs"]["output_dir"] + "harmonize_per_chr/{ancestry}_chr_{chr}.fam", ancestry=ANCESTRIES, chr=CHROMOSOMES)
     output:
-        vcf = config["outputs"]["output_dir"] + "harmonized_bed_per_chr_to_vcf/{ancestry}_harmonised_hg38.vcf.gz",
-        index = config["outputs"]["output_dir"] + "harmonized_bed_per_chr_to_vcf/{ancestry}_harmonised_hg38.vcf.gz.csi",
+        vcf = temp(config["outputs"]["output_dir"] + "harmonized_bed_per_chr_to_vcf/{ancestry}_harmonised_hg38.vcf.gz"),
+        index = temp(config["outputs"]["output_dir"] + "harmonized_bed_per_chr_to_vcf/{ancestry}_harmonised_hg38.vcf.gz.csi"),
         log = config["outputs"]["output_dir"] + "harmonized_bed_per_chr_to_vcf/{ancestry}_harmonised_hg38.log",
     resources:
         plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["plink_to_vcf_memory"] * config["generic"]["plink_to_vcf_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
@@ -209,8 +209,8 @@ rule fixref:
         vcf = config["outputs"]["output_dir"] + ("harmonized_bed_per_chr_to_vcf/" if config["settings"]["is_wgs"] else "harmonized_bed_to_vcf/") + "{ancestry}_harmonised_hg38.vcf.gz",
         index = config["outputs"]["output_dir"] + ("harmonized_bed_per_chr_to_vcf/" if config["settings"]["is_wgs"] else "harmonized_bed_to_vcf/") + "{ancestry}_harmonised_hg38.vcf.gz.csi"
     output:
-        vcf = config["outputs"]["output_dir"] + "fixref/{ancestry}_fixref_hg38.vcf.gz",
-        index = config["outputs"]["output_dir"] + "fixref/{ancestry}_fixref_hg38.vcf.gz.csi"
+        vcf = temp(config["outputs"]["output_dir"] + "fixref/{ancestry}_fixref_hg38.vcf.gz"),
+        index = temp(config["outputs"]["output_dir"] + "fixref/{ancestry}_fixref_hg38.vcf.gz.csi")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["fixref_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["fixref_memory"],
@@ -238,9 +238,9 @@ rule filter_preimpute_vcf:
         vcf = config["outputs"]["output_dir"] + "fixref/{ancestry}_fixref_hg38.vcf.gz",
         index = config["outputs"]["output_dir"] + "fixref/{ancestry}_fixref_hg38.vcf.gz.csi"
     output:
-        tagged_vcf = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_tagged.vcf.gz",
-        filtered_vcf = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_filtered.vcf.gz",
-        filtered_index = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_filtered.vcf.gz.csi"
+        tagged_vcf = temp(config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_tagged.vcf.gz"),
+        filtered_vcf = temp(config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_filtered.vcf.gz"),
+        filtered_index = temp(config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_filtered.vcf.gz.csi")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["filter_preimpute_vcf_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["filter_preimpute_vcf_memory"],
@@ -277,10 +277,10 @@ rule het:
         index = config["outputs"]["output_dir"] + "filter_preimpute_vcf/{ancestry}_filtered.vcf.gz.csi"
     output:
         tmp_vcf = temp(config["outputs"]["output_dir"] + "het/{ancestry}_filtered_temp.vcf.gz"),
-        het = config["outputs"]["output_dir"] + "het/{ancestry}_het.het",
-        failed_inds = config["outputs"]["output_dir"] + "het/{ancestry}_het_failed.inds",
-        passed_inds = config["outputs"]["output_dir"] + "het/{ancestry}_het_passed.inds",
-        passed_list = config["outputs"]["output_dir"] + "het/{ancestry}_het_passed.txt"
+        het = temp(config["outputs"]["output_dir"] + "het/{ancestry}_het.het"),
+        failed_inds = temp(config["outputs"]["output_dir"] + "het/{ancestry}_het_failed.inds"),
+        passed_inds = temp(config["outputs"]["output_dir"] + "het/{ancestry}_het_passed.inds"),
+        passed_list = temp(config["outputs"]["output_dir"] + "het/{ancestry}_het_passed.txt")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["het_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["het_memory"],
@@ -340,7 +340,7 @@ rule calculate_missingness:
         index = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz.csi"
     output:
         tmp_vcf = temp(config["outputs"]["output_dir"] + "calculate_missingness/{ancestry}_het_filtered_temp.vcf.gz"),
-        miss = config["outputs"]["output_dir"] + "calculate_missingness/{ancestry}_genotypes.imiss"
+        miss = temp(config["outputs"]["output_dir"] + "calculate_missingness/{ancestry}_genotypes.imiss")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["calculate_missingness_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["calculate_missingness_memory"],
@@ -365,16 +365,16 @@ rule kinship:
     input:
         vcf = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz"
     output:
-        subset_pgen = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset.pgen",
-        subset_pvar = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset.pvar",
-        subset_psam = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset.psam",
+        subset_pgen = temp(config["outputs"]["output_dir"] + "kinship/{ancestry}_subset.pgen"),
+        subset_pvar = temp(config["outputs"]["output_dir"] + "kinship/{ancestry}_subset.pvar"),
+        subset_psam = temp(config["outputs"]["output_dir"] + "kinship/{ancestry}_subset.psam"),
         subset_log = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset.log",
-        prune_in = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruning.prune.in",
-        prune_out = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruning.prune.out",
+        prune_in = temp(config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruning.prune.in"),
+        prune_out = temp(config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruning.prune.out"),
         prune_log = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruning.log",
         pruned_log = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruned.log",
-        king = config["outputs"]["output_dir" ] + "kinship/{ancestry}_subset_pruned.king",
-        king_id = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruned.king.id",
+        king = temp(config["outputs"]["output_dir" ] + "kinship/{ancestry}_subset_pruned.king"),
+        king_id = temp(config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruned.king.id"),
         kinship = config["outputs"]["output_dir"] + "kinship/{ancestry}_subset_pruned.kinship"
     resources:
         plink_mem_mb = lambda wildcards, attempt: (attempt * config["imputation"]["kinship_memory"] * config["imputation"]["kinship_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
@@ -438,8 +438,8 @@ rule split_by_chr_for_prephasing:
         vcf = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz",
         index = config["outputs"]["output_dir"] + "het_filter/{ancestry}_het_filtered.vcf.gz.csi"
     output:
-        vcf = config["outputs"]["output_dir"] + "split_by_chr_for_prephasing/{ancestry}_chr_{chr}.vcf.gz",
-        index = config["outputs"]["output_dir"] + "split_by_chr_for_prephasing/{ancestry}_chr_{chr}.vcf.gz.csi"
+        vcf = temp(config["outputs"]["output_dir"] + "split_by_chr_for_prephasing/{ancestry}_chr_{chr}.vcf.gz"),
+        index = temp(config["outputs"]["output_dir"] + "split_by_chr_for_prephasing/{ancestry}_chr_{chr}.vcf.gz.csi")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["split_by_chr_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["split_by_chr_memory"],
@@ -459,12 +459,12 @@ rule split_by_chr_for_prephasing:
 rule eagle_prephasing:
     input:
         vcf = config["outputs"]["output_dir"] + "split_by_chr_for_prephasing/{ancestry}_chr_{chr}.vcf.gz",
-        map_file = config["refs"]["ref_dir"] + config["refs_extra"]["relative_map_path"],
         phasing_bcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"] + "chr{chr}.bcf",
-        phasing_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"] + "chr{chr}.bcf.csi"
+        phasing_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"] + "chr{chr}.bcf.csi",
+        map_file = config["refs"]["ref_dir"] + config["refs_extra"]["relative_map_path"],
     output:
-        vcf = config["outputs"]["output_dir"] + "eagle_prephasing_by_chr/{ancestry}_chr_{chr}_phased.vcf.gz",
-        index = config["outputs"]["output_dir"] + "eagle_prephasing_by_chr/{ancestry}_chr_{chr}_phased.vcf.gz.csi"
+        vcf = temp(config["outputs"]["output_dir"] + "eagle_prephasing_by_chr/{ancestry}_chr_{chr}_phased.vcf.gz"),
+        index = temp(config["outputs"]["output_dir"] + "eagle_prephasing_by_chr/{ancestry}_chr_{chr}_phased.vcf.gz.csi")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["eagle_prephasing_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["eagle_prephasing_memory"],
@@ -522,7 +522,7 @@ rule minimac_imputation:
         target = config["outputs"]["output_dir"] + "eagle_prephasing_by_chr/{ancestry}_chr_{chr}_phased.vcf.gz",
         target_index = config["outputs"]["output_dir"] + "eagle_prephasing_by_chr/{ancestry}_chr_{chr}_phased.vcf.gz.csi"
     output:
-        vcf = config["outputs"]["output_dir"] + "minimac_imputation_by_chr/{ancestry}_chr_{chr}.dose.vcf.gz",
+        vcf = temp(config["outputs"]["output_dir"] + "minimac_imputation_by_chr/{ancestry}_chr_{chr}.dose.vcf.gz"),
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["minimac_imputation_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["imputation"]["minimac_imputation_memory"],
@@ -532,8 +532,8 @@ rule minimac_imputation:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         temp_prefix = config["outputs"]["output_dir"] + "minimac_imputation_by_chr/{ancestry}_chr_{chr}_m4_",
-        chunk = config["imputation"]["minimac_chunk"],
-        overlap = config["imputation"]["minimac_overlap"]
+        chunk = config["imputation_extra"]["minimac_chunk"],
+        overlap = config["imputation_extra"]["minimac_overlap"]
     log: config["outputs"]["output_dir"] + "log/minimac_imputation.{ancestry}.chr_{chr}.log"
     shell:
         """

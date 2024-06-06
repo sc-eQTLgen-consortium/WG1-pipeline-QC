@@ -20,9 +20,9 @@ rule check_sex:
         pvar = config["outputs"]["output_dir"] + get_input_path() + "data.pvar",
         psam = config["outputs"]["output_dir"] + get_input_path() + "data.psam"
     output:
-        bed = config["outputs"]["output_dir"] + "check_sex/data.bed",
-        bim = config["outputs"]["output_dir"] + "check_sex/data.bim",
-        fam = config["outputs"]["output_dir"] + "check_sex/data.fam",
+        bed = temp(config["outputs"]["output_dir"] + "check_sex/data.bed"),
+        bim = temp(config["outputs"]["output_dir"] + "check_sex/data.bim"),
+        fam = temp(config["outputs"]["output_dir"] + "check_sex/data.fam"),
         log = config["outputs"]["output_dir"] + "check_sex/data.log",
         hh = config["outputs"]["output_dir"] + "check_sex/check_sex.hh",
         nosex = config["outputs"]["output_dir"] + "check_sex/check_sex.nosex",
@@ -73,18 +73,18 @@ rule prune_1000g:
     input:
         pvar = config["outputs"]["output_dir"] + get_input_path() + "data.pvar",
     output:
-        snps_data = config["outputs"]["output_dir"] + "common_snps/snps_data.tsv",
-        snps_1000g = config["outputs"]["output_dir"] + "common_snps/snps_1000g.tsv",
-        common_pgen = config["outputs"]["output_dir"] + "common_snps/subset_1000g.pgen",
-        common_pvar = config["outputs"]["output_dir"] + "common_snps/subset_1000g.pvar",
-        common_psam = config["outputs"]["output_dir"] + "common_snps/subset_1000g.psam",
+        snps_data = temp(config["outputs"]["output_dir"] + "common_snps/snps_data.tsv"),
+        snps_1000g = temp(config["outputs"]["output_dir"] + "common_snps/snps_1000g.tsv"),
+        common_pgen = temp(config["outputs"]["output_dir"] + "common_snps/subset_1000g.pgen"),
+        common_pvar = temp(config["outputs"]["output_dir"] + "common_snps/subset_1000g.pvar"),
+        common_psam = temp(config["outputs"]["output_dir"] + "common_snps/subset_1000g.psam"),
         common_log = config["outputs"]["output_dir"] + "common_snps/subset_1000g.log",
-        prune_in_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_1000g_pruning.prune.in",
-        prune_out_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_1000g_pruning.prune.out",
+        prune_in_1000g = temp(config["outputs"]["output_dir"] + "prune_1000g/subset_1000g_pruning.prune.in"),
+        prune_out_1000g = temp(config["outputs"]["output_dir"] + "prune_1000g/subset_1000g_pruning.prune.out"),
         prune_log = config["outputs"]["output_dir"] + "prune_1000g/subset_1000g_pruning.log",
-        pruned_pgen = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pgen",
-        pruned_pvar = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pvar",
-        pruned_psam = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.psam",
+        pruned_pgen = temp(config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pgen"),
+        pruned_pvar = temp(config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pvar"),
+        pruned_psam = temp(config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.psam"),
         pruned_log = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.log",
     resources:
         plink_mem_mb = lambda wildcards, attempt: (attempt * config["ancestry_sex_qc"]["prune_1000g_memory"] * config["ancestry_sex_qc"]["prune_1000g_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
@@ -153,10 +153,10 @@ rule pca_1000g:
         pvar_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pvar",
         psam_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.psam"
     output:
-        frq = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.acount",
-        eig_all = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.eigenvec.allele",
-        eig_vec = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.eigenvec",
-        eig = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.eigenval",
+        frq = temp(config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.acount"),
+        eig_all = temp(config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.eigenvec.allele"),
+        eig_vec = temp(config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.eigenvec"),
+        eig = temp(config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.eigenval"),
         log = config["outputs"]["output_dir"] + "pca_projection/subset_pruned_1000g_pcs.log"
     resources:
         plink_mem_mb = lambda wildcards, attempt: (attempt * config["ancestry_sex_qc"]["pca_1000g_memory"] * config["ancestry_sex_qc"]["pca_1000g_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
@@ -191,11 +191,11 @@ rule prune_data:
         psam = config["outputs"]["output_dir"] + get_input_path() + "data.psam",
         pvar_1000g = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_1000g.pvar",
     output:
-        snps_data = config["outputs"]["output_dir"] + "prune_1000g/snps_data.tsv",
-        snps_1000g = config["outputs"]["output_dir"] + "prune_1000g/snps_1000g.tsv",
-        pgen = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.pgen",
-        pvar = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.pvar",
-        psam = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.psam",
+        snps_data = temp(config["outputs"]["output_dir"] + "prune_1000g/snps_data.tsv"),
+        snps_1000g = temp(config["outputs"]["output_dir"] + "prune_1000g/snps_1000g.tsv"),
+        pgen = temp(config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.pgen"),
+        pvar = temp(config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.pvar"),
+        psam = temp(config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.psam"),
         log = config["outputs"]["output_dir"] + "prune_1000g/subset_pruned_data.log",
     resources:
         plink_mem_mb = lambda wildcards, attempt: (attempt * config["ancestry_sex_qc"]["prune_1000g_memory"] * config["ancestry_sex_qc"]["prune_1000g_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,
@@ -229,7 +229,7 @@ rule prune_data:
         """
 
 
-# TODO: OMP_NUM_THREADS not used?
+# OMP_NUM_THREADS is part of fix from 'Common Errors and How to Fix Them' page
 # use plink pca results to plot with R
 rule pca_project:
     input:
@@ -355,10 +355,10 @@ rule split_by_ancestry:
         pgen = config["outputs"]["output_dir"] + get_input_path() + "data.pgen",
         pvar = config["outputs"]["output_dir"] + get_input_path() + "data.pvar"
     output:
-        keep = config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_individuals.psam",
-        bed = config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_subset.bed",
-        bim = config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_subset.bim",
-        fam = config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_subset.fam",
+        keep = temp(config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_individuals.psam"),
+        bed = temp(config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_subset.bed"),
+        bim = temp(config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_subset.bim"),
+        fam = temp(config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_subset.fam"),
         log = config["outputs"]["output_dir"] + "split_by_ancestry/{ancestry}_subset.log"
     resources:
         plink_mem_mb = lambda wildcards, attempt: (attempt * config["generic"]["process_plink_memory"] * config["generic"]["process_plink_threads"] - config["settings_extra"]["plink_memory_buffer"]) * 1000,

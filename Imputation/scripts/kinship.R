@@ -18,10 +18,15 @@ parser$add_argument("-o", "--out", required=TRUE, type="character", help="")
 args <- parser$parse_args()
 
 print("Options in effect:")
-paste0("  --king ", args$king)
-paste0("  --king_id ", args$king_id)
-paste0("  --out ", args$out)
+for (name in names(args)) {
+	print(paste0("  --", name, " ", args[[name]]))
+}
 print("")
+
+# check date is provided
+if (any(unlist(lapply(c(args$king, args$king_id, args$out), is.na)))) {
+  stop("required parameters (king, king_id & out) must be provided.")
+}
 
 kin <- read.delim(args$king,header=F)
 kinIds <- read.delim(args$king_id)

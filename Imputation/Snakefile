@@ -22,10 +22,20 @@ if not config["refs_extra"]["relative_phasing_dir"].endswith("/"):
 if not config["refs_extra"]["relative_imputation_dir"].endswith("/"):
     config["refs_extra"]["relative_imputation_dir"] += "/"
 
+# Function that quits the program.
+# This is seperated so I can ignore errors if I want to.
+if config["settings_extra"]["ignore_file_checks"]:
+    logger.warning("Ignoring errors, please note that this may cause rules to crash!\n")
+
+def stop(message):
+    if config["settings_extra"]["ignore_file_checks"]:
+        return
+    exit(message)
+
 # Check if the singularity image exists.
 if not os.path.exists(config["inputs"]["singularity_image"]):
     logger.info("Error, the singularity image does not exist.\n\nExiting.")
-    exit("MissingSIFFile")
+    stop("MissingSIFFile")
 
 # Check if the input files exist.
 input_options = []
@@ -48,7 +58,7 @@ if "CHR" not in config["inputs"]["genotype_path"] and os.path.exists(config["inp
     # Setting the PSAM to the genotype_path psam.
     if config["inputs"]["psam"] is not None and config["inputs"]["psam"] != config["inputs"]["genotype_path"] + ".psam":
         logger.info("Error, the input PSAM must be empty or equal to the genotype_path psam if using a single plink file as input.\n\nExiting.")
-        exit("InputPSAMDoesNotMatch")
+        stop("InputPSAMDoesNotMatch")
 
     config["inputs"]["psam"] = config["inputs"]["genotype_path"] + ".psam"
 
@@ -82,21 +92,21 @@ if "CHR" in config["inputs"]["genotype_path"] and len(config["inputs"]["genotype
 # Check if there is exactly one valid input option.
 if len(input_options) == 0:
     logger.info("Error, no valid genotype input found for {}.\n\nExiting.".format(config["inputs"]["genotype_path"]))
-    exit("WrongGenotypeInput")
+    stop("WrongGenotypeInput")
 if len(input_options) > 1:
     logger.info("Error, too many valid genotype inputs found for {}. The following options where valid: {}.\n\nExiting.".format(config["inputs"]["genotype_path"], ", ".join(input_option)))
-    exit("WrongGenotypeInput")
+    stop("WrongGenotypeInput")
 INPUT_OPTION = input_options[0]
 
 # Check if the input is in VCF if WGS is true.
 if config["settings"]["is_wgs"] and "PLINK" in INPUT_OPTION:
     logger.info("Error, a VCF input is required for WGS filtering.\n\nExiting.")
-    exit("WrongWGSFilteringInputFile")
+    stop("WrongWGSFilteringInputFile")
 
 # Check if the PSAM exists.
 if not os.path.exists(config["inputs"]["psam"]):
     logger.info("Error, could not find the {} file. Please check that the file exists.\n\nExiting.".format(config["inputs"]["psam"]))
-    exit("MissingPSAMFile")
+    stop("MissingPSAMFile")
 
 def get_samples_from_vcf(vcf_filepath):
     samples = None
@@ -134,7 +144,7 @@ def get_genotype_path_samples(input_path, input_option):
             else:
                 if samples != chr_samples:
                     logger.info("Error, not all chromosome VCF files contain the same samples.\n\nExiting.")
-                    exit("WrongGenotypeInput")
+                    stop("WrongGenotypeInput")
         return samples
     elif input_option == "PLINK per chromosome":
         samples = None
@@ -145,30 +155,30 @@ def get_genotype_path_samples(input_path, input_option):
             else:
                 if samples != chr_samples:
                     logger.info("Error, not all chromosome PSAM files contain the same samples.\n\nExiting.")
-                    exit("WrongGenotypeInput")
+                    stop("WrongGenotypeInput")
         return samples
     else:
         logger.info("Error, unexpected input_option.\n\nExiting.")
-        exit("UnexpectedInputOption")
+        stop("UnexpectedInputOption")
 
 # Check if the PSAM matches the genotype input.
 psam_samples = get_samples_from_psam(config["inputs"]["psam"])
 genotype_input_samples = get_genotype_path_samples(config["inputs"]["genotype_path"], INPUT_OPTION)
 if psam_samples != genotype_input_samples:
     logger.info("Error, the {} file does not match the genotype input {}. Please check that the same samples are given in the same order.\n\nExiting.".format(config["inputs"]["psam"], config["inputs"]["genotype_path"]))
-    exit("PSAMFileDoesNotMatchGenotypeInput")
+    stop("PSAMFileDoesNotMatchGenotypeInput")
 
 # Check if the genome build is valid.
 if not config["inputs"]["genome_build"] in ['hg18', 'b36', 'hg19', 'b37', 'hg38', 'b38']:
     logger.info("Error, invalid genome build. Accepted input are hg18, b36 (=GRCh36), hg19, b37 (=GRCh37), hg38 and b38 (=GRCh38).\n\nExiting.")
-    exit("WrongGenomeBuild")
+    stop("WrongGenomeBuild")
 
 # Check if the dataset sample files exist and that the samples are present.
 DATASETS = []
 for dataset, samples_path in config["inputs"]["dataset_samples"].items():
     if not os.path.exists(samples_path):
         logger.info("Error, could not find the {} file. Please check that the file exists.\n\nExiting.".format(samples_path))
-        exit("WrongDatasetSamplesFile")
+        stop("WrongDatasetSamplesFile")
 
     missing_samples = []
     with open(samples_path, "r") as f:
@@ -179,7 +189,7 @@ for dataset, samples_path in config["inputs"]["dataset_samples"].items():
 
     if len(missing_samples) > 0:
         logger.info("Error, dataset subset called for sample(s) that does not exist in header: '{}'..\n\nExiting.".format(", ".join(missing_samples)))
-        exit("MissingSamplesInDatasetSubset")
+        stop("MissingSamplesInDatasetSubset")
 
     DATASETS.append(dataset)
 
@@ -188,22 +198,22 @@ for extension in [".pgen", ".pvar", ".psam"]:
     onekg_file = config["refs"]["ref_dir"] + config["refs_extra"]["relative_1000g_files"] + extension
     if not os.path.exists(onekg_file):
         logger.info("Error, could not find the {} file. Please check that the file exists.\n\nExiting.".format(onekg_file))
-        exit("Missing1000GFile")
+        stop("Missing1000GFile")
 for ref_path in ["relative_grch37_to_grch38_chain_path", "relative_hg18_to_hg38_chain_path", "relative_vcf_path", "relative_fasta_path", "relative_map_path"]:
     if not os.path.exists(config["refs"]["ref_dir"] + config["refs_extra"][ref_path]):
         logger.info("Error, ould not find the {} file. Please check that the file exists.\n\nExiting.".format(config["refs"]["ref_dir"] + config["refs_extra"][ref_path]))
-        exit("MissingReferenceFile")
+        stop("MissingReferenceFile")
 for chr in CHROMOSOMES:
     phasing_bcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"] + "chr{}.bcf".format(chr)
     phasing_bcf_index = phasing_bcf + ".csi"
     if not os.path.exists(phasing_bcf_index) or not os.path.exists(phasing_bcf_index):
         logger.info("Error, could not find the {}(.csi) file. Please check that the file exists.\n\nExiting.".format(phasing_bcf_index))
-        exit("MissingPhasingFile")
+        stop("MissingPhasingFile")
 
     imputation_file = config["refs"]["ref_dir"] + config["refs_extra"]["relative_imputation_dir"] + "chr{}.msav".format(chr)
     if not os.path.exists(imputation_file):
         logger.info("Error, could not find the {} file. Please check that the file exists.\n\nExiting.".format(imputation_file))
-        exit("MissingImputationFile")
+        stop("MissingImputationFile")
 
 logger.info("Found all the required reference files:")
 logger.info("\tThe 1000G plink files: {}".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_1000g_files"]))
@@ -218,7 +228,7 @@ logger.info("\tThe imputation files: {}chrCHR.msav\n".format(config["refs"]["ref
 # Check if the PSAM exists.
 if not os.path.exists(config["inputs"]["psam"]):
     logger.info("Error, the PSAM file does not exist.\n\nExiting.")
-    exit("MissingPSAMFile")
+    stop("MissingPSAMFile")
 
 # Check if the input PSAM is valid.
 required_columns = {
@@ -267,7 +277,7 @@ if len(missing_columns) > 0:
                 "The columns that you are missing or whose spelling does not match the required input is/are: {}.\n\t"
                 "They should be: '#FID', 'IID', 'PAT', 'MAT', 'SEX', 'Provided_Ancestry','genotyping_platform', 'array_available', 'wgs_available','wes_available', 'age', 'age_range', 'Study', 'smoking_status', 'hormonal_contraception_use_currently', 'menopause',  'pregnancy_status'.\n\t"
                 "If the names look the same, check that the file is tab separated, without any spaces or other weird characters.".format(",".join(missing_columns)))
-    exit()
+    stop("InvalidPSAM")
 
 psam_is_valid = True
 # Check for underscores in the FID and IID columns
@@ -317,7 +327,7 @@ for female_column in ["hormonal_contraception_use_currently", "menopause", "preg
 
 if not psam_is_valid:
     logger.info("\n\nExiting.")
-    exit("InvalidPSAM")
+    stop("InvalidPSAM")
 
 logger.info("\tValid.")
 
@@ -369,7 +379,7 @@ if os.path.exists(sex_man_select_path) and os.path.exists(ancestry_man_select_pa
         manual_sex_select = pd.read_csv(sex_man_select_path, sep="\t", dtype=str)
         if not manual_sex_select.loc[manual_sex_select["UPDATE/REMOVE/KEEP"].isin(["UPDATE", "REMOVE", "KEEP"]), "UPDATE/REMOVE/KEEP"].count() == len(manual_sex_select):
             logger.info("\tError, your UPDATE/REMOVE/KEEP column in sex_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
-            exit("WrongSexUpdateRemove")
+            stop("WrongSexUpdateRemove")
 
         if manual_sex_select["UPDATE/REMOVE/KEEP"].str.contains("REMOVE").any():
             logger.info("\tYou indicated to remove {:,} individual(s) due to sex assignments.".format(np.sum(manual_sex_select["UPDATE/REMOVE/KEEP"] == "REMOVE")))
@@ -390,13 +400,13 @@ if os.path.exists(sex_man_select_path) and os.path.exists(ancestry_man_select_pa
             logger.info("\tWarning, forcing all provided ancestries to '{}' regardless of 1000G assignment.".format(config["settings"]["force_ancestry"]))
             if config["settings"]["force_ancestry"] not in required_columns["Provided_Ancestry"][2].keys():
                 logger.info("\t\tError, forcing ancestry is not one of '{}'".format(", ".join(required_columns["Provided_Ancestry"][2].keys())))
-                exit("WrongForceAncestryArgument")
+                stop("WrongForceAncestryArgument")
             logger.info("\tYou indicated to update the ancestry of {:,} individual(s).".format(np.sum(updated_psam_df["Provided_Ancestry"] != config["settings"]["force_ancestry"])))
             updated_psam_df.loc[:, "Provided_Ancestry"] = config["settings"]["force_ancestry"]
         else:
             if not manual_anc_select.loc[manual_anc_select["UPDATE/REMOVE/KEEP"].isin(["UPDATE", "REMOVE", "KEEP"]), "UPDATE/REMOVE/KEEP"].count() == len(manual_anc_select):
                 logger.info("\tError, your UPDATE/REMOVE/KEEP column in ancestry_update_remove.tsv does not have just UPDATE, REMOVE, or KEEP, please make sure all values in this column are valid.\n\nExiting.")
-                exit("WrongAncestryUpdateFile")
+                stop("WrongAncestryUpdateFile")
 
             # if there are any individuals chosen to remove, remove them from the psam.
             if manual_anc_select["UPDATE/REMOVE/KEEP"].str.contains("REMOVE").any():
@@ -466,7 +476,7 @@ if os.path.exists(sex_man_select_path) and os.path.exists(ancestry_man_select_pa
 
         if not str(row["MAF"]).replace(".", "").isnumeric():
             logger.info("\tError, your MAF value for ancestry {} in ancestry_mafs.tsv is not a digit, please make sure all values in this column are valid.\n\nExiting.".format(row["Ancestry"]))
-            exit("WrongMAFInput")
+            stop("WrongMAFInput")
         else:
             logger.info("\tYou indicated that you want to impute {:,} individuals ({:,} male(s) / {:,} female(s)) from {} ancestry with MAF {}.".format(individuals, males, females, row["Ancestry"], row["MAF"]))
             ANCESTRIES.append(row["Ancestry"])
@@ -474,7 +484,7 @@ if os.path.exists(sex_man_select_path) and os.path.exists(ancestry_man_select_pa
 
     if len(ANCESTRIES) == 0:
         logger.info("\tError, please select at least one ancestry to impute.")
-        exit("MissingAncestryToImpute")
+        stop("MissingAncestryToImpute")
 
     ############################
 

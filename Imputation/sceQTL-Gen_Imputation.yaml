@@ -137,8 +137,6 @@ imputation:
   minimac_imputation_memory: 8 ### Amount of gigs that will be used for memory and disk space per thread
   minimac_imputation_threads: 4 ### Number of threads to use
   minimac_imputation_time: 1 ### The time setting to use
-  minimac_chunk: 20000000 ###  Maximum chunk length in base pairs to impute at once (default: 20000000)
-  minimac_overlap: 3000000 ### Size (in base pairs) of overlap before and after impute region to use as input to HMM (default: 3000000)
 
   split_by_dataset_memory: 8 ### Amount of gigs that will be used for memory and disk space per thread
   split_by_dataset_threads: 1 ### Number of threads to use
@@ -153,12 +151,13 @@ refs_extra:
   relative_hg18_to_hg38_chain_path: "hg18ToHg38.over.chain"
   relative_vcf_path: "hg38/ref_panel_QC/30x-GRCh38_NoSamplesSorted.vcf.gz"
   relative_fasta_path: "hg38/ref_genome_QC/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
-  relative_map_path: "hg38/phasing/genetic_map/genetic_map_hg38_withX.txt.gz"
   relative_phasing_dir: "hg38/phasing/phasing_reference/"
+  relative_map_path: "hg38/phasing/genetic_map/genetic_map_hg38_withX.txt.gz"
   relative_imputation_dir: "hg38/imputation/"
 
 settings_extra:
-  plink_memory_buffer: 1 ### Buffer to prevent plinnk memory overflow, available memory is reduced by this amount in GB
+  ignore_file_checks: False ### Boolean to ignore missing file errors in the Snakefile.
+  plink_memory_buffer: 1 ### Buffer to prevent plink memory overflow, available memory is reduced by this amount in GB
   java_memory_buffer: 2  ### Buffer to prevent Java memory overflow, available memory is reduced by this amount in GB
 
 wgs_filter_extra:
@@ -200,3 +199,6 @@ imputation_extra:
   kinship_indep_window_size: 250 ### a window size in variant count or kilobase (if the 'kb' modifier is present) units
   kinship_indep_step_size: 50 ### a variant count to shift the window at the end of each step
   kinship_pairwise_r2_threshold: 0.2 ### pairwise r2 threshold
+
+  minimac_chunk: 20000000 ###  Maximum chunk length in base pairs to impute at once (default: 20000000)
+  minimac_overlap: 3000000 ### Size (in base pairs) of overlap before and after impute region to use as input to HMM (default: 3000000)
