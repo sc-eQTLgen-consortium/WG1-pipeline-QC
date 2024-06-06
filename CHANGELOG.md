@@ -25,7 +25,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Fixed issue where 1000G reference contains a duplicate variant (`X_68204280_rs1361839_C_T`). Fixed by switching to the build 38 reference
 - Fixed issue where the MAF per ancestry selection was limited to two ancestries and any subsequent ancestries overwrote the setting of previous ancestries
 - Fixed issue where `F_MISSING` was missing for rule `filter_preimpute_vcf` to filter on. Fixed by upgrading `bcftools` version to 1.18
-- Fixed issue in `prune_1000g` where the variants in LD were extracted instead of the variants NOT in lD
+- Fixed issue in `prune_1000g` where the variants in LD were extracted instead of the variants NOT in LD
 - Fixed issue in `Singlet_QC_Figures.R` where combining pools from CellRanger v>=6.0.0 (i.e. containing variable numer of genes) results in a `number of rows of matrices must match` error
 - Fixed issue where some R scripts had hard-coded `future.globals.maxSize`
 - Fixed issue in `scds.R` where `bcds()` would fail if some barcodes had zero counts for the selected genes
@@ -36,6 +36,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Moved all filepaths to settings file
 - Moved all settings to settings file
 - Reduced amount of temporary files
+- Mark temporary files as `temp()` so they will be removed after use
 - Moved demultiplexing rules to `Demultiplexing` pipeline
 - Switched from singularity to Docker
 - Updated all software versions
@@ -64,8 +65,10 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Added `scDblFinder` doublet detection method
 - Added Flag `is_multiplexed` to skip demultiplexing
 - Added Flag `sc_data_type` denoting the single-cell data type to automatically select doublet detection method
-- Added rule `rename4demultiplexing` to enable the input of BAM files which have chromosomes encoded as `chr1` instead of `1`
+- Added rule `rename_chrs` to enable the input of BAM files which have chromosomes encoded as `chr1` instead of `1`
+- Added rule `reheader_vcf` to prevent different ordering of chromosomes errors
 - Added fixes by Roy Oelen and Dan Kaptijn improving performance of `souporcell` including reduced memory usage and allowing gzipped barcodes as input
+- Added additional fix build upon work from Roy Oelen and Dan Kaptijn to make `souporcell` also use the filtered BAM file
 - Added parallel (re-)processing of all method with fully dynamic settings per run without overwriting previous results
 - Added `plot_DoubletDetection`, `plot_DoubletFinder` and `plot_Scrublet` rule to create combined plots for multiple runs 
 - Added demultiplexing rules from the `Imputation` pipeline
@@ -90,6 +93,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Moved all filepaths to settings file
 - Moved all settings to settings file
 - Reduced amount of temporary files
+- Mark temporary files as `temp()` so they will be removed after use
 - Switched from singularity to Docker
 - Updated all software versions
 - Merged singularity image with `Imputation`
