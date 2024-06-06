@@ -22,6 +22,8 @@ poolsheet = pd.read_csv(args.poolsheet, sep="\t", dtype=str)
 data = {}
 outfiles = ["combined_results.tsv.gz", "combined_results_demultiplexing_summary.tsv.gz", "combined_results_w_combined_assignments.tsv.gz", "Final_Assignments_demultiplexing_doublets.tsv.gz"]
 for outfile in outfiles:
+    print("  Processing {}".format(outfile))
+
     pool_df_list = []
     for _, row in poolsheet.iterrows():
         inpath = os.path.join(args.main_dir, row["Pool"], "CombinedResults", outfile)
@@ -33,14 +35,20 @@ for outfile in outfiles:
         pool_df_list.append(pool_df)
 
     if len(pool_df_list) == 0:
+        print("\tNo input files found")
         continue
 
     df = pd.concat(pool_df_list, axis=0)
+    if df.shape[0] == 0:
+        print("\tNo data in input files")
+        continue
     df.to_csv(os.path.join(args.out, outfile), sep="\t", header=True, index=False, compression="gzip")
-    print("\tSaved combined {}".format(outfile))
+    print("\tSaved combined {} with shape: {}".format(outfile, df.shape))
 
 outfiles = ["combined_results_summary.tsv.gz"]
 for outfile in outfiles:
+    print("  Processing {}".format(outfile))
+
     df = None
     pools = []
     for _, row in poolsheet.iterrows():
@@ -55,5 +63,9 @@ for outfile in outfiles:
             df = df.merge(pool_df, on=[column for column in pool_df if column.endswith("_DropletType")])
         pools.append(row["Pool"])
     df["N"] = df.loc[:, pools].sum(axis=1)
+    if df.shape[0] == 0:
+        print("\tNo data in input files")
+        continue
+
     df.to_csv(os.path.join(args.out, outfile), sep="\t", header=True, index=False, compression="gzip")
-    print("\tSaved combined {}".format(outfile))
+    print("\tSaved combined {} with shape: {}".format(outfile, df.shape))

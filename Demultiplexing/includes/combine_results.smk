@@ -43,7 +43,7 @@ rule combine_results:
         scrublet = lambda wildcards: "--scrublet " + config["outputs"]["output_dir"] + "{pool}/ScrubletRun{run}/Scrublet_doublets_singlets.tsv.gz".format(pool=wildcards.pool,run=SCRUBLET_SELECTION[wildcards.pool]) if "Scrublet" in METHODS else [],
         pct_agreement = config["combine_results_extra"]["pct_agreement"],
         method = config["combine_results_extra"]["method"],
-        assignment = lambda wildcards: "--assignment " + ASSIGNMENT_COUPLING[wildcards.pool] if wildcards.pool in ASSIGNMENT_COUPLING else "",
+        assignment = lambda wildcards: "--assignment " + ASSIGNMENT_COUPLING[wildcards.pool] if ASSIGNMENT_COUPLING[wildcards.pool] != "NA" else "",
         out = config["outputs"]["output_dir"] + "{pool}/CombinedResults/"
     log: config["outputs"]["output_dir"] + "log/combine_results.{pool}.log"
     shell:

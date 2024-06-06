@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import json
-import os
 
 #########################################
 ############# PREPROCESSING #############
@@ -12,8 +11,8 @@ rule combine_vcfs_all:
     input:
         vcfs = config["inputs"]["vcf"],
     output:
-        vcf = config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38.vcf.gz",
-        index = config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38.vcf.gz.csi"
+        vcf = temp(config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38.vcf.gz"),
+        index = temp(config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38.vcf.gz.csi")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["combine_vcfs_all_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["combine_vcfs_all_memory"],
@@ -29,13 +28,19 @@ rule combine_vcfs_all:
         singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
         """
 
+def get_input_vcf(wildcards):
+    if len(config["inputs"]["vcf"]) == 1:
+        return config["inputs"]["vcf"][0]
+    else:
+        return config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38.vcf.gz"
+
 
 # Add all the info fields
 # Filter the Imputed SNP Genotype by Minor Allele Frequency (MAF) and INFO scores
 # TODO: maybe this fails if the input VCF is not gzipped?
 rule filter4demultiplexing:
     input:
-        vcf = config["inputs"]["vcf"][0] if len(config["inputs"]["vcf"]) == 1 else config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38.vcf.gz",
+        vcf = get_input_vcf,
         bed = config["refs"]["ref_dir"] + config["refs_extra"]["relative_hg38_exons_ucsc_bed_path"]
     output:
         info_filled = temp(config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_info_filled.vcf.gz"),
@@ -74,11 +79,97 @@ rule filter4demultiplexing:
         """
 
 
+rule rename_chrs:
+    input:
+        vcf = config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_qc_filtered_exons_complete_cases.recode.vcf.gz",
+        fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"]
+    output:
+        vcf = temp(config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/imputed_hg38_qc_filtered_exons_complete_cases.recode.rename.vcf.gz"),
+        fasta = temp(config["outputs"]["output_dir"] + "ref_genome_QC/assembly.fa"),
+        fai = temp(config["outputs"]["output_dir"] + "ref_genome_QC/assembly.fa.fai")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["rename_chrs_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["rename_chrs_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["demultiplex_preprocessing"]["rename_chrs_time"]]
+    threads: config["demultiplex_preprocessing"]["rename_chrs_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"],
+        script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/rename_fasta_chrs.py",
+        chr_name_conv = config["refs"]["ref_dir"] + config["refs_extra"]["relative_chr_name_conv_path"]
+    log: config["outputs"]["output_dir"] + "log/rename_chrs.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} bcftools annotate \
+            --rename-chrs {params.chr_name_conv} \
+            -Oz \
+             --output {output.vcf} \
+            {input.vcf}
+            
+        singularity exec --bind {params.bind} {params.sif} python {params.script} \
+            --fasta {input.fasta} \
+            --chr_name_conv {params.chr_name_conv} \
+            --ignore_missing_conv \
+            --out {output.fasta}
+        singularity exec --bind {params.bind} {params.sif} samtools faidx {output.fasta}
+        """
+
+
+def get_reheader_vcf(wildcards):
+    if config["settings"]["rename_chrs"]:
+        return config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/imputed_hg38_qc_filtered_exons_complete_cases.recode.rename.vcf.gz"
+    else:
+        return config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_qc_filtered_exons_complete_cases.recode.vcf.gz"
+
+
+rule reheader_vcf:
+    input:
+        vcf = get_reheader_vcf,
+        fai = config["refs"]["alignment_fai"]
+    output:
+        ori_header = config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/reheader/imputed_hg38_qc_filtered_exons_complete_cases.recode.old.hr",
+        new_header = config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/reheader/imputed_hg38_qc_filtered_exons_complete_cases.recode.new.hr",
+        vcf = temp(config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/imputed_hg38_qc_filtered_exons_complete_cases.recode.reheader.vcf.gz")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["reheader_vcf_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["reheader_vcf_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["demultiplex_preprocessing"]["reheader_vcf_time"]]
+    threads: config["demultiplex_preprocessing"]["reheader_vcf_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"],
+        script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/reheader_vcf.py",
+        out = config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/reheader/imputed_hg38_qc_filtered_exons_complete_cases.recode"
+    log: config["outputs"]["output_dir"] + "log/reheader_vcf.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} python {params.script} \
+            --vcf {input.vcf} \
+            --fai {input.fai} \
+            --out {params.out}
+            
+        singularity exec --bind {params.bind} {params.sif} bcftools reheader \
+            --header {output.new_header} \
+            --output {output.vcf} \
+            {input.vcf}
+        """
+
+
+def get_complete_cases_vcf(wildcards):
+    if config["settings"]["reheader_vcf"]:
+        return config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/imputed_hg38_qc_filtered_exons_complete_cases.recode.reheader.vcf.gz"
+    elif config["settings"]["rename_chrs"]:
+        return config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/imputed_hg38_qc_filtered_exons_complete_cases.recode.rename.vcf.gz"
+    else:
+        return config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_qc_filtered_exons_complete_cases.recode.vcf.gz"
+
+
 rule sort4demultiplexing:
     input:
-        complete_cases = config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_qc_filtered_exons_complete_cases.recode.vcf.gz"
+        complete_cases = get_complete_cases_vcf
     output:
-        complete_cases_sorted = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz"
+        complete_cases_sorted = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz",
+        complete_cases_sorted_index = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz.tbi"
     resources:
         java_mem_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["sort4demultiplexing_memory"] * config["demultiplex_preprocessing"]["sort4demultiplexing_threads"] - config["settings_extra"]["java_memory_buffer"],
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["sort4demultiplexing_memory"],
@@ -98,67 +189,40 @@ rule sort4demultiplexing:
         """
 
 
-rule rename4demultiplexing:
-    input:
-        bam = lambda wildcards: POOL_DF.loc[wildcards.pool, "Bam"]
-    output:
-        bam = config["outputs"]["output_dir"] + "{pool}/bam/renamed_possorted_genome_bam.bam"
-    resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["rename4demultiplexing_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["rename4demultiplexing_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["demultiplex_preprocessing"]["rename4demultiplexing_time"]]
-    threads: config["demultiplex_preprocessing"]["rename4demultiplexing_threads"]
-    params:
-        sif = config["inputs"]["singularity_image"],
-        bind = config["inputs"]["bind_path"],
-    log: config["outputs"]["output_dir"] + "log/rename4demultiplexing.{pool}.log"
-    shell:
-        """
-        singularity exec --bind {params.bind} {params.sif} samtools view -H {input.bam} | \
-            sed -e 's/SN:chr\([0-9XY]*\)/SN:\\1/' -e 's/SN:chrM/SN:MT/' | \
-            singularity exec --bind {params.bind} {params.sif} samtools reheader - {input.bam} > {output.bam}
-        """
-
-
-def get_bam(wildcards):
-    if config["settings"]["rename_bam"]:
-        return config["outputs"]["output_dir"] + "{pool}/bam/renamed_possorted_genome_bam.bam"
+def get_reference_fasta(wildcards):
+    if config["settings"]["rename_chrs"]:
+        return config["outputs"]["output_dir"] + "ref_genome_QC/assembly.fa"
     else:
-        return POOL_DF.loc[wildcards.pool, "Bam"]
+        return config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"]
 
-def get_bam_index(wildcards):
-    return get_bam(wildcards)[0] + ".bai"
-
-
-###################################
-############# POPSCLE #############
-###################################
+def get_reference_fasta_index(wildcards):
+    return get_reference_fasta(wildcards) + ".fai"
 
 
 # samtools view --tag-file does not accept gzipped text file.
 # I added a check for the number of reads in the output BAM file since other programs will continue
 # without an error even if it is empty.
-rule popscle_bam_filter:
+rule filter_bam:
     input:
         vcf = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz",
         barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
-        bam = get_bam
+        bam = lambda wildcards: POOL_DF.loc[wildcards.pool, "Bam"]
     output:
-        bed = temp(config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/snpfiltered_alignment.bed"),
-        bam = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/snpfiltered_alignment.bam",
-        bai = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/snpfiltered_alignment.bam.bai"
+        bed = temp(config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bed"),
+        bam = temp(config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam"),
+        bai = temp(config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam.bai")
     resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_bam_filter_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_bam_filter_memory"],
-        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["popscle"]["popscle_bam_filter_time"]]
-    threads: config["popscle"]["popscle_bam_filter_threads"]
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["filter_bam_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["filter_bam_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["demultiplex_preprocessing"]["filter_bam_time"]]
+    threads: config["demultiplex_preprocessing"]["filter_bam_threads"]
     params:
-        out_dir = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/",
+        out_dir = config["outputs"]["output_dir"] + "{pool}/bam/",
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        tag_group = config["popscle"]["popscle_pileup_tag_group"],
+        tag_group = config["settings_extra"]["tag_group"],
         tag_file = lambda wildcards, input: "<(zcat {})".format(input.barcodes) if input.barcodes.endswith(".gz") else input.barcodes
-    log: config["outputs"]["output_dir"] + "log/popscle_bam_filter.{pool}.log"
+    log: config["outputs"]["output_dir"] + "log/filter_bam.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bedtools merge -i {input.vcf} > {output.bed}
@@ -169,23 +233,29 @@ rule popscle_bam_filter:
             --write-index \
             --threads {threads} \
             {input.bam}
-        
+
         if [[ "$(singularity exec --bind {params.bind} {params.sif} samtools view -c {output.bam})" -eq "0" ]]; 
         then
            echo "Error, total number of reads in output bam is 0"
            rm {output.bam}
+           rm {output.bai}
         fi
         """
 
 
+###################################
+############# POPSCLE #############
+###################################
+
+
 rule popscle_pileup:
     input:
-        bam = config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/snpfiltered_alignment.bam",
+        bam = config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam",
         sm_list = lambda wildcards: POOL_DF.loc[wildcards.pool, "Individuals"],
         vcf = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz",
         barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
     output:
-        pileup = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup.var.gz",
+        pileup = temp(config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup.var.gz")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_pileup_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_pileup_memory"],
@@ -194,8 +264,8 @@ rule popscle_pileup:
     params:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
-        tag_group = config["popscle"]["popscle_pileup_tag_group"],
-        tag_UMI = config["popscle"]["popscle_pileup_tag_UMI"],
+        tag_group = config["settings_extra"]["tag_group"],
+        tag_UMI = config["settings_extra"]["tag_UMI"],
         exclude_flag = config["popscle_extra"]["exclude_flag"],
         out = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup",
         sam_verbose = config["popscle_extra"]["sam_verbose"],
@@ -252,7 +322,7 @@ rule popscle_demuxlet:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         plp = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup",
-        field = config["popscle"]["popscle_demuxlet_field"],
+        field = config["settings_extra"]["genotype_field"],
         geno_error_offset = config["popscle_extra"]["geno_error_offset"],
         geno_error_coeff = config["popscle_extra"]["geno_error_coeff"],
         r2_info = config["popscle_extra"]["r2_info"],
@@ -314,9 +384,9 @@ wildcard_constraints:
 
 rule souporcell_preflights:
     input:
-        bam = get_bam,
+        bam = config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam",
         barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
-        fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
+        fasta = get_reference_fasta,
         common_variants = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz"
     output:
         settings = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_settings.json"
@@ -341,8 +411,8 @@ rule souporcell_preflights:
         restarts = config["souporcell_extra"]["restarts"],
         no_umi = config["souporcell_extra"]["no_umi"],
         umi_tag = config["souporcell_extra"]["umi_tag"],
-        cell_tag = "CB"
-    log: config["outputs"]["output_dir"] + "log/souporcell_define_remap_bam_regions.{pool}.log"
+        cell_tag = config["settings_extra"]["tag_group"]
+    log: config["outputs"]["output_dir"] + "log/souporcell_preflights.{pool}.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} {params.python} {params.script} \
@@ -368,7 +438,7 @@ rule souporcell_preflights:
 rule souporcell_define_remap_bam_regions:
     input:
         settings = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_settings.json",
-        bam = get_bam
+        bam = config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam"
     output:
         bam_regions = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/bam_remap_regions.json")
     resources:
@@ -404,11 +474,11 @@ def get_remap_bam_region_info(wildcards):
 
 rule souporcell_make_fastqs:
     input:
-        bam = get_bam,
-        bam_index = get_bam_index,
+        bam = config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam",
+        bam_index = config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam.bai",
         barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool,"Barcodes"],
-        fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
-        fasta_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"] + ".fai",
+        fasta = get_reference_fasta,
+        fasta_index = get_reference_fasta_index,
         region = config["outputs"]["output_dir"] + "{pool}/souporcell/bam_remap_regions.json"
     output:
         tmpfq = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/tmp_{index}.fq.gz")
@@ -425,7 +495,7 @@ rule souporcell_make_fastqs:
         region_array = get_remap_bam_region_info,
         no_umi = config["souporcell_extra"]["no_umi"],
         umi_tag = config["souporcell_extra"]["umi_tag"],
-        cell_tag = "CB",
+        cell_tag = config["settings_extra"]["tag_group"]
     log: config["outputs"]["output_dir"] + "log/souporcell_make_fastqs.{pool}.{index}.log"
     shell:
         """
@@ -476,7 +546,7 @@ rule souporcell_make_fastqs:
 # it is fine.
 rule souporcell_remap:
     input:
-        fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
+        fasta = get_reference_fasta,
         tmpfq = config["outputs"]["output_dir"] + "{pool}/souporcell/tmp_{index}.fq.gz",
     output:
         samfile = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tmp_{index}.sam")
@@ -516,7 +586,7 @@ rule souporcell_retag:
         script = "/opt/souporcell/retag.py",
         no_umi = config["souporcell_extra"]["no_umi"],
         umi_tag = config["souporcell_extra"]["umi_tag"],
-        cell_tag = "CB",
+        cell_tag = config["settings_extra"]["tag_group"]
     log: config["outputs"]["output_dir"] + "log/souporcell_retag.{pool}.{index}.log"
     shell:
         """
@@ -533,7 +603,7 @@ rule souporcell_retag:
 
 rule souporcell_samtools_merge:
     input:
-        retag_sorted_bams = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_retag_sorted_tmp_{index}.bam", pool=wildcards.pool, index=range(config["souporcell"]["souporcell_remap_splits"]))
+        retag_sorted_bams = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_retag_sorted_tmp_{index}.bam", index=range(config["souporcell"]["souporcell_remap_splits"]), allow_missing=True)
     output:
         final_bam = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam"),
         final_index = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam.bai")
@@ -550,18 +620,25 @@ rule souporcell_samtools_merge:
         """
         singularity exec --bind {params.bind} {params.sif} samtools merge {output.final_bam} {input.retag_sorted_bams}
         singularity exec --bind {params.bind} {params.sif} samtools index {output.final_bam}
+        
+        if [[ "$(singularity exec --bind {params.bind} {params.sif} samtools view -c {output.final_bam})" -eq "0" ]]; 
+        then
+           echo "Error, total number of reads in output bam is 0"
+           rm {output.final_bam}
+           rm {output.final_index}
+        fi
         """
 
 
 def get_souporcell_bam(wildcards):
     if config["souporcell_extra"]["skip_remap"]:
-        return get_bam(wildcards)
+        return config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam"
     else:
         return config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam"
 
 
 def get_souporcell_bam_index(wildcards):
-    return get_souporcell_bam(wildcards)[0] + ".bai"
+    return get_souporcell_bam(wildcards) + ".bai"
 
 
 rule souporcell_define_bam_regions:
@@ -610,7 +687,7 @@ rule souporcell_freebayes:
     input:
         bam = get_souporcell_bam,
         index = get_souporcell_bam_index,
-        fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"],
+        fasta = get_reference_fasta,
         region = config["outputs"]["output_dir"] + "{pool}/souporcell/bam_regions.json"
     output:
         bed = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/depth_{index}.bed"),
@@ -631,6 +708,7 @@ rule souporcell_freebayes:
         """
         singularity exec --bind {params.bind} {params.sif} touch -c {input.index}
         
+        singularity exec --bind {params.bind} {params.sif} echo "{params.region_args}"
         singularity exec --bind {params.bind} {params.sif} samtools view -hb {input.bam} {params.region_args} | \
             singularity exec --bind {params.bind} {params.sif} samtools depth - | \
             singularity exec --bind {params.bind} {params.sif} awk '{{ if ($3 >= {params.min_cov} && $3 < {params.max_cov}) {{ print $1 "\t" $2 "\t" $2+1 "\t" $3 }} }}' > {output.bed}
@@ -641,7 +719,7 @@ rule souporcell_freebayes:
 
 rule souporcell_freebayes_combine:
     input:
-        bed = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/souporcell/depth_{index}_merged.bed", pool=POOLS, index=range(config["souporcell"]["souporcell_freebayes_splits"]))
+        bed = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/souporcell/depth_{index}_merged.bed", index=range(config["souporcell"]["souporcell_freebayes_splits"]), allow_missing=True)
     output:
         bed = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/depth_merged.bed")
     resources:
@@ -681,6 +759,12 @@ rule souporcell_common_variants:
             -wa \
             -a {input.common_variants} \
             -b {input.bed} | gzip -c >> {output.final_vcf}
+            
+        if [[ "$(singularity exec --bind {params.bind} {params.sif} zcat {output.final_vcf} | grep -v "^#" | wc -l)" -eq "0" ]]; 
+        then
+           echo "Error, total number of SNPs in output VCF is 0"
+           rm {output.final_vcf}
+        fi
         """
 
 
@@ -695,8 +779,8 @@ rule souporcell_vartrix:
         final_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/common_variants_covered.vcf.gz",
         final_bam = get_souporcell_bam,
         final_index = get_souporcell_bam_index,
-        barcodes= lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
-        fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"]
+        barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
+        fasta = get_reference_fasta
     output:
         ref_mtx = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/ref.mtx"),
         alt_mtx = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/alt.mtx")
@@ -742,7 +826,7 @@ rule souporcell_souporcell:
         alt_mtx = config["outputs"]["output_dir"] + "{pool}/souporcell/alt.mtx",
         barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"]
     output:
-        cluster_file = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/clusters_tmp.tsv.gz"),
+        cluster_file = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/clusters_tmp.tsv.gz")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_souporcell_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_souporcell_memory"],
@@ -908,6 +992,7 @@ rule souporcell_pool_vcf:
 
 
 rule souporcell_correlate_genotypes:
+    priority: 100
     input:
         reference_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/Individual_genotypes_subset.vcf.gz",
         cluster_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/cluster_genotypes.vcf.gz",
@@ -941,15 +1026,16 @@ rule souporcell_correlate_genotypes:
 def get_verifybamid_bam(wildcards):
     # This can use the remapped bam of souporcell if you want.
     if config["verifybamid_extra"]["skip_remap"]:
-        return config["outputs"]["output_dir"] + "{pool}/popscle/bam_filter/snpfiltered_alignment.bam",
+        return config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam",
     else:
         return config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam"
 
 
 def get_verifybamid_bam_index(wildcards):
-    return get_verifybamid_bam(wildcards)[0] + ".bai"
+    return get_verifybamid_bam(wildcards) + ".bai"
 
 
+# TODO: make not required output files temp.
 rule verifybamid:
     input:
         vcf = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz",
@@ -1027,7 +1113,7 @@ rule combine_verifybamid:
         read_group_match = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.selfRG", pool=SS_POOLS) if not config["verifybamid_extra"]["ignore_rg"] else "",
         read_group_depth = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.depthRG", pool=SS_POOLS) if not config["verifybamid_extra"]["ignore_rg"] else "",
         read_group_best_match = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.bestRG", pool=SS_POOLS) if config["verifybamid_extra"]["ind_to_compare"] == "best" and not config["verifybamid_extra"]["ignore_rg"] else "",
-        ind_coupling = config["inputs"]["individual_coupling"] if config["inputs"]["individual_coupling"] is not None and os.path.exists(config["settings"]["is_multiplexed"]) else [],
+        ind_coupling = config["inputs"]["individual_coupling"] if config["inputs"]["individual_coupling"] is not None else [],
     output:
         sample_match = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.selfSM",
         sample_depth = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.depthSM",
@@ -1046,9 +1132,9 @@ rule combine_verifybamid:
         sif = config["inputs"]["singularity_image"],
         script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/combine_verifybamid.py",
         main_dir = config["outputs"]["output_dir"],
-        ind_coupling = "--ind_coupling " + config["inputs"]["individual_coupling"] if config["inputs"]["individual_coupling"] is not None and os.path.exists(config["inputs"]["individual_coupling"]) else "",
+        ind_coupling = "--ind_coupling " + config["inputs"]["individual_coupling"] if config["inputs"]["individual_coupling"] is not None else "",
         out = config["outputs"]["output_dir"]
-    log: config["outputs"]["output_dir"] + "log/verifybamid.log"
+    log: config["outputs"]["output_dir"] + "log/combine_verifybamid.log"
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \

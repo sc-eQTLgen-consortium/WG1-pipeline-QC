@@ -47,6 +47,9 @@ for file_extension in ["selfSM", "depthSM", "bestSM", "selfRG", "depthRG", "best
     del df
 
 man_select_df["#SEQ_ID"] = man_select_df["#SEQ_ID"].astype(str)
+man_select_df["CHIP_ID"] = man_select_df["CHIP_ID"].astype(str)
+man_select_df["FREEMIX"] = man_select_df["FREEMIX"].round(5)
+man_select_df["CHIPMIX"] = man_select_df["CHIPMIX"].round(5)
 if args.ind_coupling is not None:
     print("Loading individual coupling file")
     ind_coupling_df = pd.read_csv(args.ind_coupling, sep="\t", dtype=str)
@@ -55,9 +58,9 @@ if args.ind_coupling is not None:
     ind_coupling_df.columns = ["#SEQ_ID", "ASSIGNMENT"]
     man_select_df = man_select_df.merge(ind_coupling_df, on="#SEQ_ID", how="inner")
 else:
-    man_select_df["ASSIGNMENT"] = man_select_df["NA"]
+    man_select_df["ASSIGNMENT"] = "NA"
 
-print("\tFilling in recommendations using threshold == {}".format(args.threshold))
+print("\tFilling in recommendations using threshold = {}".format(args.threshold))
 man_select_df["NOTE"] = ""
 man_select_df.loc[(man_select_df["CHIPMIX"] > args.threshold) | (man_select_df["FREEMIX"] > args.threshold), "NOTE"] = "CONTAMINATION"
 man_select_df.loc[(man_select_df["CHIPMIX"] > (1 - args.threshold)) & (man_select_df["FREEMIX"] < args.threshold), "NOTE"] = "SAMPLE SWAP"
@@ -68,6 +71,7 @@ man_select_df.loc[man_select_df["ASSIGNMENT"] == man_select_df["CHIP_ID"], "MATC
 
 man_select_df["UPDATE/REMOVE/KEEP"] = ""
 man_select_df.loc[(man_select_df["NOTE"] == "USE CHIP_ID") & man_select_df["MATCH"], "UPDATE/REMOVE/KEEP"] = "KEEP"
+man_select_df.loc[(man_select_df["NOTE"] == "USE CHIP_ID") & (man_select_df["ASSIGNMENT"] == "NA"), "UPDATE/REMOVE/KEEP"] = "UPDATE"
 print("\tFound {:,} issues out of {:,} samples".format((man_select_df["UPDATE/REMOVE/KEEP"] == "").sum(), man_select_df.shape[0]))
 
 outfile = "verifyBamID_manual_selection.tsv"

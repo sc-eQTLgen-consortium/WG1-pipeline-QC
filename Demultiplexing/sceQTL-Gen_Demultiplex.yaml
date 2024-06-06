@@ -7,12 +7,14 @@ inputs:
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
   repo_dir: /path/to/repo/dir/ ### Path to the GitHub repository directory
   poolsheet_path: /path/to/sample/metadata/file.tsv ### tab separated file that has a header. Each line has a pool name used for the scRNA-seq directories, the BAM file, the barcode files, and the number of individuals in each pool
+  samplesheet_path: /path/to/sample/metadata/file.tsv ### tab separated file that has a header. Each line has a pool name used for the scRNA-seq directories and the number of individuals in each pool
   individual_list_dir: /path/to/individual_list/directory/ ### Directory that has a different file for each pool. Each file contains a list of the individuals IDs that are in the pool separated by line (match the genotype individual IDs)
   individual_coupling: /path/to/individual/coupling/file.tsv ### tab separated file that has a header. Each line has the pool identifier and the genotype identifier. Only use if the data is not multiplxed.
   vcf: [] ### the path to the genotype file(s) per ancestry
 
 refs:
   ref_dir: /path/to/provided/ref/dir ### This is the path to the directory containing the imputation references provided for the SNP processing and imputation
+  alignment_fai: /path/to/alignment/fai ### This is needed to reorder the VCF file in the same order of the aligned BAM.
 
 outputs: 
   output_dir: /path/to/parent/out/dir ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
@@ -20,8 +22,9 @@ outputs:
 settings:
   is_multiplexed: True ### Whether or not the dataset is multiplexed (i.e. multiple samples per pool)
   sc_data_type: "single-cell" ### The single-cell data type of the input dataset
-  rename_bam: False ### Whether or not to rename the chromosomes from chr1 to 1 of all input BAMs
-  check_sample_swaps: True ### Whether or not to run verifyBamID
+  rename_chrs: False ### Whether or not to rename the chromosomes from chr1 to 1 of all input BAMs
+  reheader_vcf: False ### Whether or not to reorder the chromosomes based on the alignemnt_fai.
+  check_sample_swaps: False ### Whether or not to run verifyBamID
 
 cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"} ### Options for dynamic time usage for cluster submissions of jobs
 
@@ -37,31 +40,40 @@ demultiplex_preprocessing:
   filter4demultiplexing_threads: 1 ### Number of threads to use
   filter4demultiplexing_time: 0 ### The time setting to use
 
+  rename_chrs_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  rename_chrs_threads: 1 ### Number of threads to use
+  rename_chrs_time: 0 ### The time setting to use
+
+  reheader_vcf_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  reheader_vcf_threads: 1 ### Number of threads to use
+  reheader_vcf_time: 0 ### The time setting to use
+
   sort4demultiplexing_memory: 10 ### Amount of gigs that will be used for memory and disk space per thread
   sort4demultiplexing_threads: 1 ### Number of threads to use
   sort4demultiplexing_time: 0 ### The time setting to use
 
-  rename4demultiplexing_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
-  rename4demultiplexing_threads: 1 ### Number of threads to use
-  rename4demultiplexing_time: 0 ### The time setting to use
+  rename_bam_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  rename_bam_threads: 1 ### Number of threads to use
+  rename_bam_time: 0 ### The time setting to use
+
+  filter_bam_memory: 5 ### This is the number of gigs that will be used for memory when subsetting the bam file.
+  filter_bam_threads: 2 ### This is the number of threads that will be used for memory when subsetting the bam file.
+  filter_bam_time: 0 ### The time setting to use
 
 popscle:
-  popscle_bam_filter_memory: 5 ### This is the number of gigs that will be used for memory when subsetting the bam file.
-  popscle_bam_filter_threads: 2 ### This is the number of threads that will be used for memory when subsetting the bam file.
-  popscle_bam_filter_time: 0 ### The time setting to use
-
   popscle_pileup_memory: 10 ### This is the number of gigs that will be used for memory and disk space per thread for the pileup step.
   popscle_pileup_threads: 10 ### The number threads that will be used for the pileup step
   popscle_pileup_time: 0 ### The time setting to use
-  popscle_pileup_tag_group: "CB" ### Tag representing readgroup or cell barcodes, in the case to partition the BAM file into multiple groups. For 10x genomics, use CB
-  popscle_pileup_tag_UMI: "UB" ### Tag representing UMIs. For 10x genomiucs, use UB
 
   popscle_demuxlet_memory: 5 ### This is the number of gigs that will be used for memory and disk space per thread for the demuxlet step
   popscle_demuxlet_threads: 2 ### The number threads that will be used for the demuxlet step
   popscle_demuxlet_time: 0 ### The time setting to use
-  popscle_demuxlet_field: "GP" ### FORMAT field to extract the genotype, likelihood, or posterior from
 
 souporcell:
+  souporcell_memory: 8 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell preflights step
+  souporcell_threads: 4 ### The number threads that will be used for the souporcell preflights step
+  souporcell_time: 0 ### The time setting to use
+
   souporcell_preflights_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell preflights step
   souporcell_preflights_threads: 1 ### The number threads that will be used for the souporcell preflights step
   souporcell_preflights_time: 0 ### The time setting to use
@@ -200,14 +212,20 @@ combine_results:
 refs_extra:
   relative_fasta_path: "hg38/ref_genome_QC/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
   relative_hg38_exons_ucsc_bed_path: "hg38exonsUCSC.bed"
+  relative_chr_name_conv_path: "chr_name_conv.txt"
 
 settings_extra:
+  ignore_file_checks: False ### Boolean to ignore missing file errors in the Snakefile.
   r_memory_buffer: 1 ### Buffer to prevent R memory overflow, available memory is reduced by this amount in GB
   java_memory_buffer: 2 ### Buffer to prevent Java memory overflow, available memory is reduced by this amount in GB
   multiplexing_methods: ["popscle", "souporcell"] ### Methods to be run for demultiplexing
   sc_doubletdetection_methods: ["DoubletDetection", "scds", "Scrublet"] ### Methods to be run for single-cell input data
   sn_doubletdetection_methods: ["DoubletFinder", "scDblFinder"] ### Methods to be run for single-nucleus input data
   expected_doublet_scaling_factor: 8e-06 ### Proportion of expected doublets. For example see the Chromium User Guide
+
+  tag_group: "CB" ### Tag representing readgroup or cell barcodes, in the case to partition the BAM file into multiple groups. For 10x genomics, use CB
+  tag_UMI: "UB" ### Tag representing UMIs. For 10x genomiucs, use UB
+  genotype_field: "GP" ### FORMAT field to extract the genotype, likelihood, or posterior from
 
 demultiplex_preprocessing_extra:
   filter4demultiplexing_maf: 0.05 ### The Minor Allele Frequency to filter on before demultiplexing
