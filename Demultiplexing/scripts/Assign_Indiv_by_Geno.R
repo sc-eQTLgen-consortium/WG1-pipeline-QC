@@ -228,6 +228,12 @@ write_delim(pearson_correlations_out, file=gzfile(paste0(args$out, "/ref_clust_p
 
 ########## Create correlation figures ##########
 col_fun <- colorRampPalette(c("white", "red"))(101)
+if (nrow(pearson_correlations) == 1 & ncol(pearson_correlations) == 1) {
+    # Edge case when a pool only consists of one individual ColorRamp2 will give an 'Error: You
+    # should have at least two distinct break values.' error. I resolved this by selecting a single
+    # color based on the correlation value instead of giving the whole color gradient to Heatmap.
+    col_fun <- col_fun[round(pearson_correlations[1, 1] * 100, digits = 0)]
+}
 pPearsonCorrelations <- Heatmap(as.matrix(pearson_correlations), cluster_rows=TRUE, col=col_fun)
 
 ########## Save the correlation figures ##########

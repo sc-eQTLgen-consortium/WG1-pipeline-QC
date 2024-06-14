@@ -236,7 +236,7 @@ rule filter_bam:
 
         if [[ "$(singularity exec --bind {params.bind} {params.sif} samtools view -c {output.bam})" -eq "0" ]]; 
         then
-           echo "Error, total number of reads in output bam is 0"
+           echo "Error, total number of reads in the output bam is 0"
            rm {output.bam}
            rm {output.bai}
         fi
@@ -623,7 +623,7 @@ rule souporcell_samtools_merge:
         
         if [[ "$(singularity exec --bind {params.bind} {params.sif} samtools view -c {output.final_bam})" -eq "0" ]]; 
         then
-           echo "Error, total number of reads in output bam is 0"
+           echo "Error, total number of reads in the output bam is 0"
            rm {output.final_bam}
            rm {output.final_index}
         fi
@@ -762,7 +762,7 @@ rule souporcell_common_variants:
             
         if [[ "$(singularity exec --bind {params.bind} {params.sif} zcat {output.final_vcf} | grep -v "^#" | wc -l)" -eq "0" ]]; 
         then
-           echo "Error, total number of SNPs in output VCF is 0"
+           echo "Error, total number of SNPs in the output VCF is 0"
            rm {output.final_vcf}
         fi
         """
@@ -988,6 +988,12 @@ rule souporcell_pool_vcf:
                     -S {params.individuals} \
                     -Oz \
                     -o {output.filtered_refs} - 2> {log}
+                    
+        if [[ "$(singularity exec --bind {params.bind} {params.sif} bcftools query -l {output.filtered_refs} | wc -l)" -eq "0" ]]; 
+        then
+           echo "Error, total number of samples in the output VCF is 0"
+           rm {output.filtered_refs}
+        fi
         """
 
 

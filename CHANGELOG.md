@@ -26,9 +26,8 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Fixed issue where the MAF per ancestry selection was limited to two ancestries and any subsequent ancestries overwrote the setting of previous ancestries
 - Fixed issue where `F_MISSING` was missing for rule `filter_preimpute_vcf` to filter on. Fixed by upgrading `bcftools` version to 1.18
 - Fixed issue in `prune_1000g` where the variants in LD were extracted instead of the variants NOT in LD
-- Fixed issue in `Singlet_QC_Figures.R` where combining pools from CellRanger v>=6.0.0 (i.e. containing variable numer of genes) results in a `number of rows of matrices must match` error
-- Fixed issue where some R scripts had hard-coded `future.globals.maxSize`
-- Fixed issue in `scds.R` where `bcds()` would fail if some barcodes had zero counts for the selected genes
+- Fixed issue in `filter_het.R` where the heterozygosity passed samples included sampels below -N standard deviations
+
 
 #### Changes
 - Refactor code to (mostly) PEP8
@@ -77,15 +76,19 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Added `skip_remap` for `souporcell`
 - Made parameter `expected_doublet_rate` for `DoubletFinder` and `Scrublet` variable dependend on expected doublet rate
 - Added rule `verifyBamID`, optionally using the `remap` functionality of `souporcell`, to check for sample swaps
+- Added multiple checks verifying that output files are not empty to prevent running subsequent rules 
 
 #### Fixes
 - Fixed issue where some rules did not have dynamic time / memory usage
 - Fixed issue where naive BAM file search can return temporary bam file in `CellRanger` v7.0.1
 - Fixed issue where `Scrublet` uses `min_cells` value as parameter for `min_counts`
+- Fixed issue where some R scripts had hard-coded `future.globals.maxSize`
+- Fixed issue in `scds.R` where `bcds()` would fail if some barcodes had zero counts for the selected genes
+- Fixed issue in `Assign_Indiv_by_Geno.R` where `Heatmap` would fail if there was only a single cluster / individual in the pool
 - Fixed edge case where the Demuxafy `combine_results` rule fails if only one doublet detection method was run
 - Fixed issue in `Singlet_QC_Figures.R` where gene symbols were stored as ENSG
-- Fixed issue in `expected_observed_individuals_doublets.R` where the figure width exceeds the maximum if there are too many pools 
-- Fixed issue in `filter_het.R` where the heterozygosity passed samples included sampels below -N standard deviations
+- Fixed issue in `Singlet_QC_Figures.R` where combining pools from CellRanger v>=6.0.0 (i.e. containing variable numer of genes) results in a `number of rows of matrices must match` error
+- Fixed issue in `expected_observed_individuals_doublets.R` where the figure width exceeds the maximum if there are too many pools
 
 #### Changes
 - Refactor code to (mostly) PEP8
