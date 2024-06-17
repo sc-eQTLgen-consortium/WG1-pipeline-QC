@@ -1032,7 +1032,7 @@ rule souporcell_correlate_genotypes:
 def get_verifybamid_bam(wildcards):
     # This can use the remapped bam of souporcell if you want.
     if config["verifybamid_extra"]["skip_remap"]:
-        return config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam",
+        return config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam"
     else:
         return config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam"
 
