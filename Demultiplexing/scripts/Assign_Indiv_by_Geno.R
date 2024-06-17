@@ -228,13 +228,17 @@ write_delim(pearson_correlations_out, file=gzfile(paste0(args$out, "/ref_clust_p
 
 ########## Create correlation figures ##########
 col_fun <- colorRampPalette(c("white", "red"))(101)
+show_heatmap_legend <- TRUE
 if (nrow(pearson_correlations) == 1 & ncol(pearson_correlations) == 1) {
     # Edge case when a pool only consists of one individual ColorRamp2 will give an 'Error: You
     # should have at least two distinct break values.' error. I resolved this by selecting a single
     # color based on the correlation value instead of giving the whole color gradient to Heatmap.
     col_fun <- col_fun[round(pearson_correlations[1, 1] * 100, digits = 0)]
+    if (is.na(pearson_correlations[1, 1])) {
+        show_heatmap_legend <- FALSE
+    }
 }
-pPearsonCorrelations <- Heatmap(as.matrix(pearson_correlations), cluster_rows=TRUE, col=col_fun)
+pPearsonCorrelations <- Heatmap(as.matrix(pearson_correlations), cluster_rows=TRUE, col=col_fun, show_heatmap_legend=show_heatmap_legend)
 
 ########## Save the correlation figures ##########
 png(filename=paste0(args$out, "/ref_clust_pearson_correlation.png"), width=500)
@@ -246,7 +250,7 @@ key <- as.data.frame(matrix(nrow=ncol(pearson_correlations), ncol=3))
 colnames(key) <- c("Genotype_ID","Cluster_ID","Correlation")
 key$Genotype_ID <- colnames(pearson_correlations)
 for (id in key$Genotype_ID){
-    if (max(pearson_correlations[,id]) == max(pearson_correlations[rownames(pearson_correlations)[which.max(pearson_correlations[,id])],])){
+    if (!is.na(max(pearson_correlations[,id])) & (max(pearson_correlations[,id]) == max(pearson_correlations[rownames(pearson_correlations)[which.max(pearson_correlations[,id])],]))) {
         key$Cluster_ID[which(key$Genotype_ID == id)] <- rownames(pearson_correlations)[which.max(pearson_correlations[,id])]
         key$Correlation[which(key$Genotype_ID == id)] <- max(pearson_correlations[,id])
     } else {
