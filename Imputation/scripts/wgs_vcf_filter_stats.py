@@ -24,6 +24,13 @@ if not os.path.isdir(os.path.dirname(args.output_path)):
     os.mkdir(os.path.dirname(args.output_path))
 
 
+def gzopen(file, mode="r"):
+    if file.endswith(".gz"):
+        return gzip.open(file, mode + 't')
+    else:
+        return open(file, mode)
+
+
 def read_filter_logfile(filepath, thresh_maf, thresh_cr, thresh_hwe):
     variants = -1
     multi_allelic = 0
@@ -42,7 +49,7 @@ def read_filter_logfile(filepath, thresh_maf, thresh_cr, thresh_hwe):
     monomorphic_post_filter = 0
     pass_qc = 0
     try:
-        with gzip.open(filepath, 'rt') as f:
+        with gzopen(filepath, mode='r') as f:
             for line in f:
                 variants += 1
                 (_, reason, pre_filter_stats, post_filter_stats) = line.split("\t")

@@ -3,6 +3,7 @@
 import argparse
 import re
 import os
+import gzip
 
 parser = argparse.ArgumentParser(
     description="wrapper for DoubletDetection for doublet detection from transcriptomic data.")
@@ -15,6 +16,14 @@ for arg in vars(args):
     print("  --{} {}".format(arg, getattr(args, arg)))
 print("")
 
+
+def gzopen(file, mode="r"):
+    if file.endswith(".gz"):
+        return gzip.open(file, mode + 't')
+    else:
+        return open(file, mode)
+
+
 info = {}
 samples = set()
 chromosomes = set()
@@ -23,7 +32,7 @@ for log_file in args.logs:
     chromosomes.add(chr)
     print("Loading phase_confidence from chr{}".format(chr))
     flag = False
-    with open(log_file, "r") as f:
+    with gzopen(log_file, mode="r") as f:
         for line in f:
             if line == "ID\tPHASE_CONFIDENCE\n":
                 flag = True
@@ -86,7 +95,7 @@ chromosomes += ["avg"]
 samples += ["avg"]
 
 print("Saving stats to {}".format(args.out))
-with open(args.out, "w") as f:
+with gzopen(args.out, mode="w") as f:
     f.write("\t".join(chromosomes) + "\n")
     for sample in samples:
         row = []

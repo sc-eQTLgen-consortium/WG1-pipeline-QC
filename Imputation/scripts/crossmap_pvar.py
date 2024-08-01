@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Author: M.Vochteloo
 import argparse
+import gzip
 
 parser = argparse.ArgumentParser(
     description="wrapper for DoubletDetection for doublet detection from transcriptomic data.")
@@ -15,10 +16,18 @@ for arg in vars(args):
     print("  --{} {}".format(arg, getattr(args, arg)))
 print("")
 
+
+def gzopen(file, mode="r"):
+    if file.endswith(".gz"):
+        return gzip.open(file, mode + 't')
+    else:
+        return open(file, mode)
+
+
 crossmapped_info = {}
 error = False
 print("Loading variants from {}".format(args.bed))
-with open(args.bed, "r") as f:
+with gzopen(args.bed, mode="r") as f:
     for line in f:
         values = line.strip("\n").split("\t")
         if values[3] in crossmapped_info:
@@ -32,9 +41,9 @@ if error:
     exit()
 
 print("Loading variants from {}".format(args.pvar))
-fh = open(args.pvar, "r")
-fho_pvar = open(args.out_pvar, "w")
-fho_excl = open(args.out_exclude, "w")
+fh = gzopen(args.pvar, mode="r")
+fho_pvar = gzopen(args.out_pvar, mode="w")
+fho_excl = gzopen(args.out_exclude, mode="w")
 
 variants = set()
 n_written = 0

@@ -41,6 +41,14 @@ print("")
 if not os.path.isdir(os.path.dirname(args.output_path)):
     os.mkdir(os.path.dirname(args.output_path))
 
+
+def gzopen(file, mode="r"):
+    if file.endswith(".gz"):
+        return gzip.open(file, mode + 't')
+    else:
+        return open(file, mode)
+
+
 sample_filter_set = args.sample_filter_set
 if isinstance(sample_filter_set, list):
     sample_filter_set = set(sample_filter_set)
@@ -48,7 +56,7 @@ if isinstance(sample_filter_set, list):
 ismale_dict = None
 if args.sex_path is not None:
     ismale_dict = {}
-    fs = open(args.sex_path, 'r')
+    fs = gzopen(args.sex_path, mode='r')
     iid_index = None
     sex_index = None
     for line_num, line in enumerate(fs):
@@ -506,9 +514,9 @@ def calculate_hwe(obs_hets, obs_hom1, obs_hom2):
         p_hwe = 1
     return p_hwe
 
-fh = gzip.open(args.input_path, 'rt')
-fho = gzip.open(args.output_path, 'wt')
-fhlog = gzip.open(args.log_path, 'wt')
+fh = gzopen(args.input_path, mode='r')
+fho = gzopen(args.output_path, mode='w')
+fhlog = gzopen(args.log_path, mode='w')
 fhlog.write("Id\tReason\tPreFilterStats\tPostFilterStats\n")
 
 sample_mask = []
