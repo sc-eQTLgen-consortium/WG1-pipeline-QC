@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import argparse
+import gzip
+import re
 
 parser = argparse.ArgumentParser(description="")
 parser.add_argument("--vcf", required=True, type=str, help="")
@@ -7,28 +9,25 @@ parser.add_argument("--fai", required=True, type=str, help="")
 parser.add_argument("--out", required=True, type=str, help="")
 args = parser.parse_args()
 
-import gzip
-import re
 
-fhi = None
-if args.vcf.endswith(".vcf.gz"):
-    fhi = gzip.open(args.vcf, "rt")
-elif args.vcf.endswith(".vcf"):
-    fhi = open(args.vcf, "r")
-else:
-    print("Error, expect input VCF to end with .vcf(.gz).")
-    exit()
+def gzopen(file, mode="r"):
+    if file.endswith(".gz"):
+        return gzip.open(file, mode + 't')
+    else:
+        return open(file, mode)
+
 
 # Read the fasta index.
 fai_contig_order = []
-with open(args.fai, "r") as f:
+with gzopen(args.fai, mode="r") as f:
     for line in f:
         name, length, offset, linebases, linewidth = line.rstrip("\n").split("\t")
         fai_contig_order.append(name)
 f.close()
 
 # Load and save the original header.
-fho_ori = open(args.out + ".old.hr", "w")
+fhi = gzopen(args.vcf, mode="r")
+fho_ori = gzopen(args.out + ".old.hr", mode="w")
 vcf_contigs = {}
 valid = False
 for line in fhi:
@@ -59,8 +58,8 @@ fho_ori.close()
 if not valid:
     exit()
 
-fho_ori = open(args.out + ".old.hr", "r")
-fho_new = open(args.out + ".new.hr", "w")
+fho_ori = gzopen(args.out + ".old.hr", mode="r")
+fho_new = gzopen(args.out + ".new.hr", mode="w")
 ordered_contigs = [vcf_contigs[contig_id] for contig_id in fai_contig_order if contig_id in vcf_contigs]
 contig_index = 0
 for line in fho_ori:

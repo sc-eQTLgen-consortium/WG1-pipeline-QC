@@ -68,7 +68,30 @@ pearson_correlation <- function(df, ref_df, clust_df){
 ref_geno <- read.vcfR(args$reference_vcf)
 cluster_geno <- read.vcfR(args$cluster_vcf)
 
+vcfR.samples <- function(object) {
+    if (ncol(object@gt) > 1){
+        colnames <- colnames(object@gt)
+        return(colnames[2:length(colnames)])
+    }
+    return(vector())
+}
 
+if (length(vcfR.samples(ref_geno)) == 0) {
+    message("No samples present in reference VCF. Saving empty output files.")
+
+    ########## Save the correlation dataframes ##########
+    write_delim(data.frame("Cluster"=vcfR.samples(cluster_geno)), file=gzfile(paste0(args$out, "/ref_clust_pearson_correlations.tsv.gz")), delim="\t" )
+
+    ########## Save the correlation figures ##########
+    png(filename=paste0(args$out, "/ref_clust_pearson_correlation.png"), width=500)
+    plot(NULL, xlab="", ylab="", xaxt="n", yaxt="n", xlim=c(0, 10), ylim=c(0, 10))
+    dev.off()
+
+    ########## Assign individual to cluster based on highest correlating individual ##########
+    write_delim(data.frame("Genotype_ID"=character(), "Cluster_ID"=integer(), "Correlation"=double()), file=gzfile(paste0(args$out, "/Genotype_ID_key.txt.gz")), delim="\t")
+
+    quit()
+}
 
 ########## Convert to tidy data frame ##########
 ####### Identify which genotype FORMAT to use #######

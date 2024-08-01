@@ -988,12 +988,6 @@ rule souporcell_pool_vcf:
                     -S {params.individuals} \
                     -Oz \
                     -o {output.filtered_refs} - 2> {log}
-                    
-        if [[ "$(singularity exec --bind {params.bind} {params.sif} bcftools query -l {output.filtered_refs} | wc -l)" -eq "0" ]]; 
-        then
-           echo "Error, total number of samples in the output VCF is 0"
-           rm {output.filtered_refs}
-        fi
         """
 
 

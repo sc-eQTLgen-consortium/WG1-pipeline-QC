@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+import gzip
 
 parser = argparse.ArgumentParser(description="")
 parser.add_argument("--fasta", required=True, type=str, help="")
@@ -8,24 +9,25 @@ parser.add_argument("--ignore_missing_conv", action="store_true", default=False)
 parser.add_argument("--out", required=True, type=str, help="")
 args = parser.parse_args()
 
-import gzip
 
-def open_file(fpath, mode):
-    if fpath.endswith(".gz"):
-        return gzip.open(fpath, mode + "t")
-    return open(fpath, mode)
+def gzopen(file, mode="r"):
+    if file.endswith(".gz"):
+        return gzip.open(file, mode + 't')
+    else:
+        return open(file, mode)
+
 
 # Load the rename dictionary.
 chr_trans = {}
-fhi = open_file(args.chr_name_conv, mode='r')
+fhi = gzopen(args.chr_name_conv, mode='r')
 for line in fhi:
     old, new = line.rstrip("\n").split(" ")
     chr_trans[old] = new
 fhi.close()
 
 # Parse the fasta.
-fhi = open_file(args.fasta, mode='r')
-fho = open_file(args.out, mode='w')
+fhi = gzopen(args.fasta, mode='r')
+fho = gzopen(args.out, mode='w')
 valid = True
 for line in fhi:
     if line.startswith(">"):

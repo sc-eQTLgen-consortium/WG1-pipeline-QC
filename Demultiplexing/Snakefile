@@ -82,12 +82,15 @@ if config["inputs"]["individual_coupling"] is not None and not os.path.exists(co
     logger.info("Error, the individual coupling file does not exist.\n\nExiting.")
     stop("InvalidIndividualCouplingFile")
 
+def gzopen(file, mode="r"):
+    if file.endswith(".gz"):
+        return gzip.open(file, mode + 't')
+    else:
+        return open(file, mode)
+
 def get_individuals_from_vcf(vcf_filepath):
     individuals = None
-    if vcf_filepath.endswith(".gz"):
-        fh = gzip.open(vcf_filepath, 'rt')
-    else:
-        fh = open(vcf_filepath, 'r')
+    fh = gzopen(vcf_filepath, mode='r')
     for line in fh:
         if line.startswith("#CHROM"):
             individuals = [column for column in line.strip("\n").split("\t") if column not in ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"]]
@@ -97,10 +100,7 @@ def get_individuals_from_vcf(vcf_filepath):
 
 def get_individuals_from_individual_file(fpath):
     individuals = []
-    if fpath.endswith(".gz"):
-        fh = gzip.open(fpath, 'rt')
-    else:
-        fh = open(fpath, 'r')
+    fh = gzopen(fpath, mode='r')
     for i, line in enumerate(fh):
         individuals.append(line.strip("\n"))
     fh.close()
@@ -116,9 +116,11 @@ default_columns = {
     'N_Individuals': (False, True, False)
 }
 input_vcf_individuals = []
+requirements = set()
 required_columns = {}
 for method in METHODS:
     for requirement in supp_methods[method]:
+        requirements.add(requirement)
         if requirement in default_columns:
             required_columns[requirement] = default_columns[requirement]
         elif requirement == "INPUT_VCF":
@@ -211,6 +213,9 @@ if not os.path.exists(full_poolsheet_path):
 
             individuals = get_individuals_from_individual_file(individuals_fpath)
 
+            if len(individuals) == 0:
+                logger.info("Warning, found no individuals in {} file.".format(individuals_fpath))
+
             for individual in individuals:
                 if individual not in input_vcf_individuals:
                     logger.info("Could not find {} in the input VCF(s). Please check that the sample exists.".format(individual))
@@ -283,10 +288,14 @@ if config["inputs"]["individual_coupling"] is not None and os.path.exists(config
         stop("InvalidIndividualCouplingFile")
 
     valid_individual_coupling = True
-    for individual in ind_coupling_df["Assignment"]:
-        if individual not in input_vcf_individuals:
-            logger.info("\tCould not find {} in the input VCF(s). Please check that the individual exists.".format(individual))
-            valid_individual_coupling = False
+    if "INPUT_VCF" in requirements:
+        for individual in ind_coupling_df["Assignment"]:
+            # TODO: this fails if verifybamid is not run because the VCF samples are not loaded.
+            if individual not in input_vcf_individuals:
+                logger.info("\tCould not find {} in the input VCF(s). Please check that the individual exists.".format(individual))
+                valid_individual_coupling = False
+    else:
+        logger.warning("\tWarning, the individual coupling cannot be checked since the input VCF is not used be the selected methods. Assuming everything is okay.")
 
     if not valid_individual_coupling:
         logger.info("Error, the individual coupling is invalid.\n\nExiting.")
@@ -295,7 +304,7 @@ if config["inputs"]["individual_coupling"] is not None and os.path.exists(config
         logger.info("\tValid.")
 
     SS_POOLS = ind_coupling_df["Pool"]
-    ASSIGNMENT_COUPLING = dict(zip(ind_coupling_df["Pool"], ind_coupling_df["Assignment"]))
+    ASSIGNMENT_COUPLING.update(dict(zip(ind_coupling_df["Pool"], ind_coupling_df["Assignment"])))
 
 def process_manual_selection_method(name, settings=None, extra_settings=None, settings_dtype=None, max_manual_runs=25):
     """

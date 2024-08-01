@@ -28,7 +28,6 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Fixed issue in `prune_1000g` where the variants in LD were extracted instead of the variants NOT in LD
 - Fixed issue in `filter_het.R` where the heterozygosity passed samples included sampels below -N standard deviations
 
-
 #### Changes
 - Refactor code to (mostly) PEP8
 - Improved clarity of rules by making input / ouput of rules more explicit

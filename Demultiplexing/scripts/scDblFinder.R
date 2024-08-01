@@ -131,7 +131,7 @@ sce <- scDblFinder(
 )
 
 ### Make a dataframe of the results ###
-results <- data.frame("Barcode" = rownames(colData(sce)), "scDblFinder_DropletType" = sce$scDblFinder.class, "scDblFinder_Score" = sce$scDblFinder.score)
+results <- data.frame("Barcode" = rownames(colData(sce)), "scDblFinder_DropletType" = sce$scDblFinder.class, "scDblFinder_score" = sce$scDblFinder.score)
 
 message(paste0("Writing results to ", args$out, "scDblFinder_doublets_singlets.tsv.gz."))
 write_delim(results, file=gzfile(paste0(args$out, "scDblFinder_doublets_singlets.tsv.gz")), delim="\t")
