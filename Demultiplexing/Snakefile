@@ -378,7 +378,7 @@ def process_manual_selection_method(name, settings=None, extra_settings=None, se
 
         # Check if each pool has exactly one FINISHED run with a PASSED flag, if so: we are done.
         passed_select_df = select_df.loc[(select_df["FINISHED"]) & (select_df["PASSED"]), :].copy()
-        if passed_select_df.shape[0] == len(POOLS) and len(set(passed_select_df["Pool"].values).symmetric_difference(set(POOLS))) == 0:
+        if passed_select_df.shape[0] >= len(POOLS) and len(set(POOLS).difference(set(passed_select_df["Pool"].values))) == 0:
             settings = {row["Pool"]: {} for _, row in select_df.iterrows()}
             for _, row in select_df.iterrows():
                 settings[row["Pool"]][str(row["Run"])] = row[all_settings].to_dict()

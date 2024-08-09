@@ -20,7 +20,7 @@ print("Loading data")
 poolsheet = pd.read_csv(args.poolsheet, sep="\t", dtype=str)
 
 data = {}
-outfiles = ["combined_results.tsv.gz", "combined_results_demultiplexing_summary.tsv.gz", "combined_results_w_combined_assignments.tsv.gz", "Final_Assignments_demultiplexing_doublets.tsv.gz"]
+outfiles = ["combined_results.tsv.gz", "combined_results_w_combined_assignments.tsv.gz", "Final_Assignments_demultiplexing_doublets.tsv.gz"]
 for outfile in outfiles:
     print("  Processing {}".format(outfile))
 
@@ -45,24 +45,28 @@ for outfile in outfiles:
     df.to_csv(os.path.join(args.out, outfile), sep="\t", header=True, index=False, compression="gzip")
     print("\tSaved combined {} with shape: {}".format(outfile, df.shape))
 
-outfiles = ["combined_results_summary.tsv.gz"]
+outfiles = ["combined_results_summary.tsv.gz", "combined_results_demultiplexing_summary.tsv.gz"]
 for outfile in outfiles:
     print("  Processing {}".format(outfile))
 
-    df = None
-    pools = []
+    pool_df_list = []
+    methods = set()
     for _, row in poolsheet.iterrows():
         inpath = os.path.join(args.main_dir, row["Pool"], "CombinedResults", outfile)
         if not os.path.exists(inpath):
             continue
         pool_df = pd.read_csv(inpath, sep="\t", header=0, index_col=None)
-        pool_df.columns = [row["Pool"] if column == "N" else column for column in pool_df.columns]
-        if df is None:
-            df = pool_df
-        else:
-            df = df.merge(pool_df, on=[column for column in pool_df if column.endswith("_DropletType")])
-        pools.append(row["Pool"])
-    df["N"] = df.loc[:, pools].sum(axis=1)
+        methods.update(pool_df.columns)
+        pool_df = pool_df.rename(columns={"N": row["Pool"]})
+        pool_df_list.append(pool_df)
+    df = pd.concat(pool_df_list, axis=0).fillna(0)
+    methods.remove("N")
+
+    # Group overlapping values and sort by the total.
+    df = df.groupby(list(methods)).sum().reset_index(drop=False)
+    df["N"] = df.loc[:, [col for col in df.columns if col not in methods]].sum(axis=1)
+    df.sort_values(by="N", ascending=False, inplace=True)
+
     if df.shape[0] == 0:
         print("\tNo data in input files")
         continue

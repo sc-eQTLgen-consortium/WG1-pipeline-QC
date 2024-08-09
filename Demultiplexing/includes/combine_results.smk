@@ -156,6 +156,5 @@ rule plot_singlet_doublet:
         """
         singularity exec --bind {params.bind} {params.sif} python {params.script} \
             --assignments {input.assignments} \
-            --poolsheet {input.poolsheet} \
             --out {params.out}
         """

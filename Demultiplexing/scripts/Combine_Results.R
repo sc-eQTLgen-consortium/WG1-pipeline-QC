@@ -31,7 +31,7 @@ parser$add_argument("-b", "--ref", required=FALSE, type="character", default=NUL
 parser$add_argument("-p", "--pct_agreement", required=FALSE, type="double", default=0.7, help="The proportion of a cluster that match the 'ref' assignment to assign that cluster the individual assignment from the reference. Can be between 0.5 and 1. Default is 0.9.")
 parser$add_argument("-m", "--method", required=FALSE, type="character", default=NULL, help="Combination method. Options are 'MajoritySinglet'. 'AtLeastHalfSinglet', 'AnySinglet' or 'AnyDoublet'. We have found that 'MajoritySinglet' provides the most accurate results in most situations and therefore recommend this method. See https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/latest/CombineResults.html for detailed explanation of each intersectional method. Leave blank if you just want all the softwares to be merged into a single dataframe.")
 parser$add_argument("-y", "--pool", required=TRUE, type="character", help="")
-parser$add_argument("-z", "--assignment", required=FALSE, type="character", default="NA", help="")
+parser$add_argument("-z", "--assignment", required=FALSE, type="character", default=NULL, help="")
 parser$add_argument("-o", "--out", required=TRUE, type="character", help="The folder where results will be saved")
 
 # get command line options, if help option encountered print help and exit,
@@ -94,8 +94,12 @@ if (!dir.exists(gsub(basename(args$out), "", args$out))){
 
 
 ### Check to make sure user has provided at least two softwares to combine ###
-if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(args$scSplit), !is.null(args$souporcell), !is.null(args$verifybamid), !is.null(args$vireo),!is.null(args$DoubletDecon), !is.null(args$DoubletDetection), !is.null(args$DoubletFinder), !is.null(args$scDblFinder), !is.null(args$scds), !is.null(args$scrublet), !is.null(args$solo)))) < 1){
+if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(args$scSplit), !is.null(args$souporcell), !is.null(args$vireo),!is.null(args$DoubletDecon), !is.null(args$DoubletDetection), !is.null(args$DoubletFinder), !is.null(args$scDblFinder), !is.null(args$scds), !is.null(args$scrublet), !is.null(args$solo)))) < 1){
 	message("You didn't provide any software results to combine. Please try again - this time providing at least one inputs.")
+	q()
+}
+if (length(which(c(!is.null(args$demuxlet), !is.null(args$freemuxlet), !is.null(args$scSplit), !is.null(args$souporcell), !is.null(args$vireo)))) > 0 & !is.null(args$assignment)){
+	message("using --assignment is only allowed if no other individual assignment software results are used. Please remove the assignment input.")
 	q()
 }
 
@@ -190,10 +194,10 @@ if (!is.null(args$scSplit)) {
 if (!is.null(args$souporcell)) {
 	message("Reading in souporcell results.")
 	if (file_test("-f", args$souporcell)) {
-		results_list[["Souporcell"]] <- fread(args$souporcell, sep = "\t")
+		results_list[["Souporcell"]] <- fread(args$souporcell, sep = "\t", colClasses = 'character')
 	} else {
 		tryCatch({
-			results_list[["Souporcell"]] <- fread(paste0(args$souporcell, "/clusters.tsv.gz"), sep = "\t")
+			results_list[["Souporcell"]] <- fread(paste0(args$souporcell, "/clusters.tsv.gz"), sep = "\t", colClasses = 'character')
 		},
 			error = function(e) {
 				message(e)
@@ -482,6 +486,7 @@ if (!is.null(args$freemuxlet_assignments) |
 		message("Adding assignments to souporcell dataframe")
 		results_list[["Souporcell"]] <- results_assignments_list[["Souporcell"]][results_list[["Souporcell"]], on = "Souporcell_Cluster"]
 
+        results_list[["Souporcell"]]$Souporcell_Individual_Assignment <- "unassigned"
 		results_list[["Souporcell"]]$Souporcell_Individual_Assignment <- as.character(ifelse(results_list[["Souporcell"]]$Souporcell_DropletType == "doublet", "doublet", ifelse(results_list[["Souporcell"]]$Souporcell_DropletType == "unassigned", "unassigned", results_list[["Souporcell"]]$Souporcell_Individual_Assignment)))
 		results_list[["Souporcell"]]$Souporcell_Individual_Assignment <- as.character(ifelse(is.na(results_list[["Souporcell"]]$Souporcell_Individual_Assignment), results_list[["Souporcell"]]$Souporcell_Cluster, results_list[["Souporcell"]]$Souporcell_Individual_Assignment))
 
@@ -489,7 +494,6 @@ if (!is.null(args$freemuxlet_assignments) |
 		if (length(which(is.na(results_list[["Souporcell"]]$Freemuxlet_Individual_Assignment))) / nrow(results_list[["Souporcell"]]) >= 0.5) {
 			message("WARNING: There are more than 50% NA assignments after joining the cluster-to-individual assignments for souporcell. Please double check your files if this is unexpected.")
 		}
-		print(results_list[["Souporcell"]])
 	}
 
 }
@@ -699,7 +703,7 @@ if (is.null(args$method)) {
 
 		if (any(grepl("Individual_Assignment", colnames(combined_results)))) {
 
-			individual_assignment_list <- future_apply(combined_results[, .SD, .SDcols = grep("Individual_Assignment", colnames(combined_results), value = TRUE)], 1, function(y) table(y)[!(rownames(table(y)) %in% c("unassigned", "doublet"))])
+			individual_assignment_list <- future_apply(combined_results[, .SD, .SDcols = grep("Individual_Assignment", colnames(combined_results), value = TRUE)], 1, function(y) table(y)[!(rownames(table(y)) %in% c("unassigned", "doublet"))], simplify=FALSE)
 
 			individual_assignment <- data.table(ID = unlist(lapply(individual_assignment_list, function(y) ifelse(is.null(names(which.max.simple(y[names(y) != "doublet"]))), NA, names(which.max.simple(y[names(y) != "doublet"]))))),
 												N = unlist(lapply(individual_assignment_list, function(y) ifelse(is.null(names(which.max.simple(y[names(y) != "doublet"]))), NA, max(y[names(y) != "doublet"]))))) ## Need to remove doublet count from table
@@ -731,7 +735,11 @@ if (is.null(args$method)) {
 				combined_results$MajoritySinglet_Individual_Assignment <- ifelse(combined_results$MajoritySinglet_DropletType == "singlet" & combined_results$MajoritySinglet_Individual_Assignment == "doublet", "unassigned", combined_results$MajoritySinglet_Individual_Assignment)
 			} else {
 				### method when no demultiplexing softwares
-				combined_results$MajoritySinglet_Individual_Assignment <- args$assignment
+				default_assignment <- args$pool
+				if (!is.null(args$assignment)) {
+				    default_assignment <- args$assignment
+				}
+				combined_results$MajoritySinglet_Individual_Assignment <- default_assignment
 				combined_results$MajoritySinglet_DropletType <- ifelse(rowSums(combined_results[, .SD, .SDcols = grep("DropletType", colnames(combined_results), value = TRUE)] == "singlet") > length(grep("DropletType", colnames(combined_results))) / 2, "singlet", "doublet")
 			}
 		} else if (args$method == "AtLeastHalfSinglet") { ### Only call a singlet if at least half of softwares call a singlet AND at least half of demultiplexing (if present) call the same donor
@@ -745,7 +753,11 @@ if (is.null(args$method)) {
 				combined_results$AtLeastHalfSinglet_Individual_Assignment <- ifelse(combined_results$AtLeastHalfSinglet_DropletType == "singlet" & combined_results$AtLeastHalfSinglet_Individual_Assignment == "doublet", "unassigned", combined_results$AtLeastHalfSinglet_Individual_Assignment)
 			} else {
 				### method when no demultiplexing softwares
-				combined_results$AtLeastHalfSinglet_Individual_Assignment <- args$assignment
+				default_assignment <- args$pool
+				if (!is.null(args$assignment)) {
+				    default_assignment <- args$assignment
+				}
+				combined_results$AtLeastHalfSinglet_Individual_Assignment <- default_assignment
 				combined_results$AtLeastHalfSinglet_DropletType <- ifelse(rowSums(combined_results[, .SD, .SDcols = grep("DropletType", colnames(combined_results), value = TRUE)] == "singlet") >= length(grep("DropletType", colnames(combined_results))) / 2, "singlet", "doublet")
 			}
 		} else if (args$method == "AnySinglet") { ### Call a singlet if any softwares calls that droplet a singlet AND using the donor with the most consensus (call doublet if no consensus)
@@ -759,7 +771,11 @@ if (is.null(args$method)) {
 				combined_results$AnySinglet_Individual_Assignment <- ifelse(combined_results$AnySinglet_DropletType == "singlet" & combined_results$AnySinglet_Individual_Assignment == "doublet", "unassigned", combined_results$AnySinglet_Individual_Assignment)
 			} else {
 				### method when no demultiplexing softwares
-				combined_results$AnySinglet_Individual_Assignment <- args$assignment
+				default_assignment <- args$pool
+				if (!is.null(args$assignment)) {
+				    default_assignment <- args$assignment
+				}
+				combined_results$AnySinglet_Individual_Assignment <- default_assignment
 				combined_results$AnySinglet_DropletType <- ifelse(rowSums(combined_results[, .SD, .SDcols = grep("DropletType", colnames(combined_results), value = TRUE)] == "singlet") > 0, "singlet", "doublet")
 			}
 		} else if (args$method == "AnyDoublet") { ### Call a singlet if all softwares calls that droplet a singlet AND all softwares call the same donor
@@ -773,7 +789,11 @@ if (is.null(args$method)) {
 				combined_results$AnyDoublet_Individual_Assignment <- ifelse(combined_results$AnyDoublet_DropletType == "singlet" & combined_results$AnyDoublet_Individual_Assignment == "doublet", "unassigned", combined_results$AnyDoublet_Individual_Assignment)
 			} else {
 				### method when no demultiplexing softwares
-				combined_results$AnyDoublet_Individual_Assignment <- args$assignment
+				default_assignment <- args$pool
+				if (!is.null(args$assignment)) {
+				    default_assignment <- args$assignment
+				}
+				combined_results$AnyDoublet_Individual_Assignment <- default_assignment
 				combined_results$AnyDoublet_DropletType <- ifelse(rowSums(combined_results[, .SD, .SDcols = grep("DropletType", colnames(combined_results), value = TRUE)] == "doublet") > 0, "doublet", "singlet")
 			}
 		}

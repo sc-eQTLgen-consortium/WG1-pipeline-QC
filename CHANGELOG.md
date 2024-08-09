@@ -71,6 +71,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Added `plot_DoubletDetection`, `plot_DoubletFinder` and `plot_Scrublet` rule to create combined plots for multiple runs 
 - Added demultiplexing rules from the `Imputation` pipeline
 - Added adaptive `combine_results` rule from [Demuxafy](https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/v0.0.4/) v0.0.4 using the results of whichever doublet detection methods was used
+- added `--assignment` option to `combine_results` rule from [Demuxafy](https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/v0.0.4/) v0.0.4 that assigns all cells to a single individual
 - Split `souporcell_pipeline.py` into separate rules and refactored to use gzipped files for computational efficiency
 - Added `skip_remap` for `souporcell`
 - Made parameter `expected_doublet_rate` for `DoubletFinder` and `Scrublet` variable dependend on expected doublet rate
@@ -85,6 +86,9 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Fixed issue in `scds.R` where `bcds()` would fail if some barcodes had zero counts for the selected genes
 - Fixed issue in `Assign_Indiv_by_Geno.R` where `Heatmap` would fail if there was only a single cluster / individual in the pool
 - Fixed edge case where the Demuxafy `combine_results` rule fails if only one doublet detection method was run
+- Fixed issue in the Demuxafy `combine_results` rule where it reads the souporcell cluster column in as integer instead of character if there are no unassigned / doublet cells
+- Fixed issue in the Demuxafy `combine_results` rule where no souporcell assignments are not filled in with `unassigned` if no assignments could be made
+- Fixed issue in the Demuxafy `combine_results` rule where `individual_assignment_list` is simplified if each cell has the same value
 - Fixed issue in `Singlet_QC_Figures.R` where gene symbols were stored as ENSG
 - Fixed issue in `Singlet_QC_Figures.R` where combining pools from CellRanger v>=6.0.0 (i.e. containing variable numer of genes) results in a `number of rows of matrices must match` error
 - Fixed issue in `expected_observed_individuals_doublets.R` where the figure width exceeds the maximum if there are too many pools
@@ -112,3 +116,12 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 #### Known issues
 - option `assignment` in rule `combine_results`  (i.e. checking for sample swaps) only works if there is no demultiplexing method applied.
 - due to the way the input_files for rule `all` depend on the status of the pipeline (multiple runs), options like `--delete-temp-output` to remove old temp files will not work since old rules are not rechecked
+- scDblFinder may give the follow error:
+```{r}
+Training model...
+Error in if (length(expected) > 1 && x > min(expected) && x < max(expected)) return(0) : 
+  missing value where TRUE/FALSE needed
+Calls: scDblFinder ... .optimThreshold -> optimize -> <Anonymous> -> f -> .prop.dev
+Execution halted
+```
+This can be resolved by increasing `nfeatures` from `1000` (default before Nov 14, 2022) to `1352` (new default)
