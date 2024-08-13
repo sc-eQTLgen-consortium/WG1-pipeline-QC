@@ -4,7 +4,6 @@
 #################################
 ######## COMBINE RESULTS ########
 #################################
-# TODO: --assignment only works if there are no demultiplexing methods applied. Not sure how to implement this for multiplexed data yet.
 rule combine_results:
     input:
         demuxlet = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best" if "popscle" in METHODS else [],

@@ -9,30 +9,30 @@ parser <- ArgumentParser()
 
 # specify our desired options
 # by default ArgumentParser will add an help option
-parser$add_argument("-d", "--demuxlet", required=FALSE, type="character", default=NULL, help="Path to demuxlet results. Only use this option if you want to include the demuxlet results.")
-parser$add_argument("-f", "--freemuxlet", required=FALSE, type="character", default=NULL, help="Path to freemuxlet results. Only use this option if you want to include the freemuxlet results.")
-parser$add_argument("-g", "--freemuxlet_assignments", required=FALSE, type="character", default=NULL, help="Path to freemuxlet cluster-to-individual assignments. Only use this option if have used reference SNP genotypes to assign individuals to clusters for the freemuxlet results.")
-parser$add_argument("-a", "--freemuxlet_correlation_limit", required=FALSE, type="double", default=0.7, help="The minimum correlation between the cluster and the individual SNP genotypes which should be considered as a valid assignment. If you want no limit, use 0. Default is 0.7.")
-parser$add_argument("-s", "--scSplit", required=FALSE, type="character", default=NULL, help="Path to scSplit results. Only use this option if you want to include the scSplit results.")
-parser$add_argument("-w", "--scSplit_assignments", required=FALSE, type="character", default=NULL, help="Path to scSplit cluster-to-individual assignments. Only use this option if you have used reference SNP genotypes to assign individuals to clusters for the scSplit results.")
-parser$add_argument("-j", "--scSplit_correlation_limit", required=FALSE, type="double", default=0.7, help="The minimum correlation between the cluster and the individual SNP genotypes which should be considered as a valid assignment. If you want no limit, use 0. Default is 0.7.")
-parser$add_argument("-u", "--souporcell", required=FALSE, type="character", default=NULL, help="Path to souporcell results. Only use this option if you want to include the souporcell results.")
-parser$add_argument("-x", "--souporcell_assignments", required=FALSE, type="character", default=NULL, help="Path to souporcell cluster-to-individual assignments. Only use this option if you have used reference SNP genotypes to assign individuals to clusters for the souporcell results.")
-parser$add_argument("-k", "--souporcell_correlation_limit", required=FALSE, type="double", default=0.7, help="The minimum correlation between the cluster and the individual SNP genotypes which should be considered as a valid assignment. If you want no limit, use 0. Default is 0.7.")
-parser$add_argument("-v", "--vireo", required=FALSE, type="character", default=NULL, help="Path to vireo results. Only use this option if you want to include the vireo results.")
-parser$add_argument("-e", "--DoubletDecon", required=FALSE, type="character", default=NULL, help="Path to DoubletDecon results. Only use this option if you want to include the DoubletDecon results.")
-parser$add_argument("-t", "--DoubletDetection", required=FALSE, type="character", default=NULL, help="Path to DoubletDetection results. Only use this option if you want to include the DoubletDetection results.")
-parser$add_argument("-i", "--DoubletFinder", required=FALSE, type="character", default=NULL, help="Path to DoubletFinder results. Only use this option if you want to include the DoubletFinder results.")
-parser$add_argument("-n", "--scDblFinder", required=FALSE, type="character", default=NULL, help="Path to scDblFinder results. Only use this option if you want to include the scDblFinder results.")
-parser$add_argument("-c", "--scds", required=FALSE, type="character", default=NULL, help="Path to scds results. Only use this option if you want to include the scds results.")
-parser$add_argument("-r", "--scrublet", required=FALSE, type="character", default=NULL, help="Path to scrublet results. Only use this option if you want to include the scrublet results.")
-parser$add_argument("-l", "--solo", required=FALSE, type="character", default=NULL, help="Path to solo results. Only use this option if you want to include the solo results.")
-parser$add_argument("-b", "--ref", required=FALSE, type="character", default=NULL, help="Which demultiplexing software to use as a reference for individuals when you do not have assignment key for all demultiplexing method. Options are 'Demuxlet', 'Freemuxlet', 'scSplit', 'Souporcell' and 'Vireo'. If blank when assignment keys are missing, default softwares to use if present are Vireo, then Demuxlet, then Freemuxlet, then Souporcell, then scSplit.")
-parser$add_argument("-p", "--pct_agreement", required=FALSE, type="double", default=0.7, help="The proportion of a cluster that match the 'ref' assignment to assign that cluster the individual assignment from the reference. Can be between 0.5 and 1. Default is 0.9.")
-parser$add_argument("-m", "--method", required=FALSE, type="character", default=NULL, help="Combination method. Options are 'MajoritySinglet'. 'AtLeastHalfSinglet', 'AnySinglet' or 'AnyDoublet'. We have found that 'MajoritySinglet' provides the most accurate results in most situations and therefore recommend this method. See https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/latest/CombineResults.html for detailed explanation of each intersectional method. Leave blank if you just want all the softwares to be merged into a single dataframe.")
-parser$add_argument("-y", "--pool", required=TRUE, type="character", help="")
-parser$add_argument("-z", "--assignment", required=FALSE, type="character", default=NULL, help="")
-parser$add_argument("-o", "--out", required=TRUE, type="character", help="The folder where results will be saved")
+parser$add_argument("--demuxlet", required=FALSE, type="character", default=NULL, help="Path to demuxlet results. Only use this option if you want to include the demuxlet results.")
+parser$add_argument("--freemuxlet", required=FALSE, type="character", default=NULL, help="Path to freemuxlet results. Only use this option if you want to include the freemuxlet results.")
+parser$add_argument("--freemuxlet_assignments", required=FALSE, type="character", default=NULL, help="Path to freemuxlet cluster-to-individual assignments. Only use this option if have used reference SNP genotypes to assign individuals to clusters for the freemuxlet results.")
+parser$add_argument("--freemuxlet_correlation_limit", required=FALSE, type="double", default=0.7, help="The minimum correlation between the cluster and the individual SNP genotypes which should be considered as a valid assignment. If you want no limit, use 0. Default is 0.7.")
+parser$add_argument("--scSplit", required=FALSE, type="character", default=NULL, help="Path to scSplit results. Only use this option if you want to include the scSplit results.")
+parser$add_argument("--scSplit_assignments", required=FALSE, type="character", default=NULL, help="Path to scSplit cluster-to-individual assignments. Only use this option if you have used reference SNP genotypes to assign individuals to clusters for the scSplit results.")
+parser$add_argument("--scSplit_correlation_limit", required=FALSE, type="double", default=0.7, help="The minimum correlation between the cluster and the individual SNP genotypes which should be considered as a valid assignment. If you want no limit, use 0. Default is 0.7.")
+parser$add_argument("--souporcell", required=FALSE, type="character", default=NULL, help="Path to souporcell results. Only use this option if you want to include the souporcell results.")
+parser$add_argument("--souporcell_assignments", required=FALSE, type="character", default=NULL, help="Path to souporcell cluster-to-individual assignments. Only use this option if you have used reference SNP genotypes to assign individuals to clusters for the souporcell results.")
+parser$add_argument("--souporcell_correlation_limit", required=FALSE, type="double", default=0.7, help="The minimum correlation between the cluster and the individual SNP genotypes which should be considered as a valid assignment. If you want no limit, use 0. Default is 0.7.")
+parser$add_argument("--vireo", required=FALSE, type="character", default=NULL, help="Path to vireo results. Only use this option if you want to include the vireo results.")
+parser$add_argument("--DoubletDecon", required=FALSE, type="character", default=NULL, help="Path to DoubletDecon results. Only use this option if you want to include the DoubletDecon results.")
+parser$add_argument("--DoubletDetection", required=FALSE, type="character", default=NULL, help="Path to DoubletDetection results. Only use this option if you want to include the DoubletDetection results.")
+parser$add_argument("--DoubletFinder", required=FALSE, type="character", default=NULL, help="Path to DoubletFinder results. Only use this option if you want to include the DoubletFinder results.")
+parser$add_argument("--scDblFinder", required=FALSE, type="character", default=NULL, help="Path to scDblFinder results. Only use this option if you want to include the scDblFinder results.")
+parser$add_argument("--scds", required=FALSE, type="character", default=NULL, help="Path to scds results. Only use this option if you want to include the scds results.")
+parser$add_argument("--scrublet", required=FALSE, type="character", default=NULL, help="Path to scrublet results. Only use this option if you want to include the scrublet results.")
+parser$add_argument("--solo", required=FALSE, type="character", default=NULL, help="Path to solo results. Only use this option if you want to include the solo results.")
+parser$add_argument("--ref", required=FALSE, type="character", default=NULL, help="Which demultiplexing software to use as a reference for individuals when you do not have assignment key for all demultiplexing method. Options are 'Demuxlet', 'Freemuxlet', 'scSplit', 'Souporcell' and 'Vireo'. If blank when assignment keys are missing, default softwares to use if present are Vireo, then Demuxlet, then Freemuxlet, then Souporcell, then scSplit.")
+parser$add_argument("--pct_agreement", required=FALSE, type="double", default=0.7, help="The proportion of a cluster that match the 'ref' assignment to assign that cluster the individual assignment from the reference. Can be between 0.5 and 1. Default is 0.9.")
+parser$add_argument("--method", required=FALSE, type="character", default=NULL, help="Combination method. Options are 'MajoritySinglet'. 'AtLeastHalfSinglet', 'AnySinglet' or 'AnyDoublet'. We have found that 'MajoritySinglet' provides the most accurate results in most situations and therefore recommend this method. See https://demultiplexing-doublet-detecting-docs.readthedocs.io/en/latest/CombineResults.html for detailed explanation of each intersectional method. Leave blank if you just want all the softwares to be merged into a single dataframe.")
+parser$add_argument("--pool", required=TRUE, type="character", help="")
+parser$add_argument("--assignment", required=FALSE, type="character", default=NULL, help="")
+parser$add_argument("--out", required=TRUE, type="character", help="The folder where results will be saved")
 
 # get command line options, if help option encountered print help and exit,
 # otherwise if options not found on command line then set defaults,
@@ -194,10 +194,10 @@ if (!is.null(args$scSplit)) {
 if (!is.null(args$souporcell)) {
 	message("Reading in souporcell results.")
 	if (file_test("-f", args$souporcell)) {
-		results_list[["Souporcell"]] <- fread(args$souporcell, sep = "\t", colClasses = 'character')
+		results_list[["Souporcell"]] <- fread(args$souporcell, sep = "\t")
 	} else {
 		tryCatch({
-			results_list[["Souporcell"]] <- fread(paste0(args$souporcell, "/clusters.tsv.gz"), sep = "\t", colClasses = 'character')
+			results_list[["Souporcell"]] <- fread(paste0(args$souporcell, "/clusters.tsv.gz"), sep = "\t")
 		},
 			error = function(e) {
 				message(e)
@@ -209,8 +209,7 @@ if (!is.null(args$souporcell)) {
 	### Update dataframe to just be categories of interest
 	results_list[["Souporcell"]] <- results_list[["Souporcell"]][, c("barcode", "status", "assignment")]
 	colnames(results_list[["Souporcell"]]) <- c("Barcode", "Souporcell_DropletType", "Souporcell_Cluster")
-	results_list[["Souporcell"]]$Souporcell_Cluster <- ifelse(results_list[["Souporcell"]]$Souporcell_DropletType == "doublet", "doublet", ifelse(results_list[["Souporcell"]]$Souporcell_DropletType == "unassigned", "unassigned", results_list[["Souporcell"]]$Souporcell_Cluster))
-
+	results_list[["Souporcell"]]$Souporcell_Cluster <- ifelse(results_list[["Souporcell"]]$Souporcell_DropletType == "doublet", "doublet", ifelse(results_list[["Souporcell"]]$Souporcell_DropletType == "unassigned", "unassigned", as.character(results_list[["Souporcell"]]$Souporcell_Cluster)))
 }
 
 if (!is.null(args$vireo)) {
@@ -486,7 +485,6 @@ if (!is.null(args$freemuxlet_assignments) |
 		message("Adding assignments to souporcell dataframe")
 		results_list[["Souporcell"]] <- results_assignments_list[["Souporcell"]][results_list[["Souporcell"]], on = "Souporcell_Cluster"]
 
-        results_list[["Souporcell"]]$Souporcell_Individual_Assignment <- "unassigned"
 		results_list[["Souporcell"]]$Souporcell_Individual_Assignment <- as.character(ifelse(results_list[["Souporcell"]]$Souporcell_DropletType == "doublet", "doublet", ifelse(results_list[["Souporcell"]]$Souporcell_DropletType == "unassigned", "unassigned", results_list[["Souporcell"]]$Souporcell_Individual_Assignment)))
 		results_list[["Souporcell"]]$Souporcell_Individual_Assignment <- as.character(ifelse(is.na(results_list[["Souporcell"]]$Souporcell_Individual_Assignment), results_list[["Souporcell"]]$Souporcell_Cluster, results_list[["Souporcell"]]$Souporcell_Individual_Assignment))
 

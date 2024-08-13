@@ -186,6 +186,17 @@ rule sort4demultiplexing:
         singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.java_mem_gb}g -Xms{resources.java_mem_gb}g -jar {params.jar} SortVcf \
             I={input.complete_cases} \
             O={output.complete_cases_sorted}
+        
+        if [[ "$(singularity exec --bind {params.bind} {params.sif} zcat {output.complete_cases_sorted} | grep -v "^#" | wc -l)" -eq "0" ]]; 
+        then
+           echo "Error, total number of SNPs in the output VCF is 0"
+           rm {output.complete_cases_sorted}
+        fi
+        if [[ "$(singularity exec --bind {params.bind} {params.sif} bcftools query -l {output.complete_cases_sorted} | wc -l)" -eq "0" ]]; 
+        then
+           echo "Error, total number of samples in the output VCF is 0"
+           rm {output.complete_cases_sorted}
+        fi
         """
 
 

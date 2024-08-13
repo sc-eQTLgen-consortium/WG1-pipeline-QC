@@ -114,7 +114,8 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 - Moved merging of the pools and related rule `barcode_qc_plots` to WG3, only keep merging of the droplet assignments metadata in this WG
 
 #### Known issues
-- option `assignment` in rule `combine_results`  (i.e. checking for sample swaps) only works if there is no demultiplexing method applied.
+- `Assign_Indiv_by_Geno.R` returns a `NA` correlation in the case where all variants have the same genotype call, even if the reference matches that call (i.e. all calls were correct). Most likely only happens with a very low number of non-missing variants.
+- option `assignment` in rule `combine_results`  (i.e. checking for sample swaps) only works if there is no demultiplexing method applied. This is intended behaviour since it is meant for assigning all cells to one individual in the case where the pool is not multiplexed.
 - due to the way the input_files for rule `all` depend on the status of the pipeline (multiple runs), options like `--delete-temp-output` to remove old temp files will not work since old rules are not rechecked
 - scDblFinder may give the follow error:
 ```{r}
