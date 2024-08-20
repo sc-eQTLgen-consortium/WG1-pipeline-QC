@@ -40,23 +40,23 @@ demultiplex_preprocessing:
   filter4demultiplexing_threads: 1 ### Number of threads to use
   filter4demultiplexing_time: 0 ### The time setting to use
 
-  rename_chrs_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  rename_chrs_memory: 16 ### Amount of gigs that will be used for memory and disk space per thread
   rename_chrs_threads: 1 ### Number of threads to use
   rename_chrs_time: 0 ### The time setting to use
 
-  reheader_vcf_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  reheader_vcf_memory: 16 ### Amount of gigs that will be used for memory and disk space per thread
   reheader_vcf_threads: 1 ### Number of threads to use
   reheader_vcf_time: 0 ### The time setting to use
 
-  sort4demultiplexing_memory: 10 ### Amount of gigs that will be used for memory and disk space per thread
+  sort4demultiplexing_memory: 32 ### Amount of gigs that will be used for memory and disk space per thread
   sort4demultiplexing_threads: 1 ### Number of threads to use
   sort4demultiplexing_time: 0 ### The time setting to use
 
-  rename_bam_memory: 5 ### Amount of gigs that will be used for memory and disk space per thread
+  rename_bam_memory: 32 ### Amount of gigs that will be used for memory and disk space per thread
   rename_bam_threads: 1 ### Number of threads to use
   rename_bam_time: 0 ### The time setting to use
 
-  filter_bam_memory: 5 ### This is the number of gigs that will be used for memory when subsetting the bam file.
+  filter_bam_memory: 8 ### This is the number of gigs that will be used for memory when subsetting the bam file.
   filter_bam_threads: 2 ### This is the number of threads that will be used for memory when subsetting the bam file.
   filter_bam_time: 0 ### The time setting to use
 
@@ -65,7 +65,7 @@ popscle:
   popscle_pileup_threads: 10 ### The number threads that will be used for the pileup step
   popscle_pileup_time: 0 ### The time setting to use
 
-  popscle_demuxlet_memory: 5 ### This is the number of gigs that will be used for memory and disk space per thread for the demuxlet step
+  popscle_demuxlet_memory: 8 ### This is the number of gigs that will be used for memory and disk space per thread for the demuxlet step
   popscle_demuxlet_threads: 2 ### The number threads that will be used for the demuxlet step
   popscle_demuxlet_time: 0 ### The time setting to use
 
@@ -113,19 +113,19 @@ souporcell:
   souporcell_common_variants_threads: 1 ### The number threads that will be used for the souporcell common variants step
   souporcell_common_variants_time: 0 ### The time setting to use
 
-  souporcell_vartrix_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell vartrix step
+  souporcell_vartrix_memory: 16 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell vartrix step
   souporcell_vartrix_threads: 1 ### The number threads that will be used for the souporcell vartrix step
-  souporcell_vartrix_time: 0 ### The time setting to use
+  souporcell_vartrix_time: 1 ### The time setting to use
 
   souporcell_souporcell_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell step
   souporcell_souporcell_threads: 1 ### The number threads that will be used for the souporcell step
-  souporcell_souporcell_time: 0 ### The time setting to use
+  souporcell_souporcell_time: 1 ### The time setting to use
 
   souporcell_doublets_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell doublets step
   souporcell_doublets_threads: 1 ### The number threads that will be used for the souporcell doublets step
   souporcell_doublets_time: 0 ### The time setting to use
 
-  souporcell_consensus_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell consensus step
+  souporcell_consensus_memory: 16 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell consensus step
   souporcell_consensus_threads: 1 ### The number threads that will be used for the souporcell consensus step
   souporcell_consensus_time: 0 ### The time setting to use
 
@@ -176,12 +176,12 @@ doubletdetection:
   plot_doubletdetection_time: 0 ### The time setting to use
 
 scdblfinder:
-  scfblfinder_memory: 8 ### The amount of memeory (GB) per thread for the scDblFinder step
+  scfblfinder_memory: 16 ### The amount of memeory (GB) per thread for the scDblFinder step
   scdblfinder_threads: 1 ### The number threads that will be used for the scDblFinder step
   scfblfinder_time: 0 ### The time setting to use
 
 doubletfinder:
-  doubletfinder_memory: 8 ### The amount of memeory (GB) per thread for the DoubletFinder step
+  doubletfinder_memory: 64 ### The amount of memeory (GB) per thread for the DoubletFinder step
   doubletfinder_threads: 1 ### The number threads that will be used for the DoubletFinder step
   doubletfinder_time: 0 ### The time setting to use
 
@@ -218,7 +218,7 @@ settings_extra:
   ignore_file_checks: False ### Boolean to ignore missing file errors in the Snakefile.
   r_memory_buffer: 1 ### Buffer to prevent R memory overflow, available memory is reduced by this amount in GB
   java_memory_buffer: 2 ### Buffer to prevent Java memory overflow, available memory is reduced by this amount in GB
-  multiplexing_methods: ["popscle", "souporcell"] ### Methods to be run for demultiplexing
+  demultiplexing_methods: ["popscle", "souporcell"] ### Methods to be run for demultiplexing
   sc_doubletdetection_methods: ["DoubletDetection", "scds", "Scrublet"] ### Methods to be run for single-cell input data
   sn_doubletdetection_methods: ["DoubletFinder", "scDblFinder"] ### Methods to be run for single-nucleus input data
   expected_doublet_scaling_factor: 8e-06 ### Proportion of expected doublets. For example see the Chromium User Guide

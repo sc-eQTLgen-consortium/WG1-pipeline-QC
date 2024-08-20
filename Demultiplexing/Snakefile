@@ -22,7 +22,7 @@ if not isinstance(config["inputs"]["vcf"], list):
 # Find which methods to run.
 METHODS = []
 if config["settings"]["is_multiplexed"]:
-    METHODS.extend(config["settings_extra"]["multiplexing_methods"])
+    METHODS.extend(config["settings_extra"]["demultiplexing_methods"])
 if config["settings"]["check_sample_swaps"]:
     METHODS.append("verifyBamID")
 if config["settings"]["sc_data_type"] is None:
