@@ -381,6 +381,32 @@ rule popscle_demuxlet:
             --min-snp {params.min_snp}
         """
 
+
+rule popscle_add_missing:
+    input:
+        best = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best",
+        barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"]
+    output:
+        out = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT_complete.best"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_add_missing_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_add_missing_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["popscle"]["popscle_add_missing_time"]]
+    threads: config["popscle"]["popscle_add_missing_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/popscle_add_missing.py",
+    log: config["outputs"]["output_dir"] + "log/popscle_add_missing.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} python {params.script} \
+            --best {input.best} \
+            --barcodes {input.barcodes} \
+            --out {output.out}
+        """
+
+
 ####################################
 ############ SOUPORCELL ############
 ####################################

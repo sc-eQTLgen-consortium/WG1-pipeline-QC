@@ -480,7 +480,7 @@ input_files = []
 all_passed = True
 if "popscle" in METHODS:
     logger.info("Running popscle.")
-    input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best", pool=POOLS))
+    input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT_complete.best", pool=POOLS))
 
 if "souporcell" in METHODS:
     logger.info("Running souporcell.")

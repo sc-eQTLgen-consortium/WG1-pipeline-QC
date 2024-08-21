@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import argparse
-import gzip
 
 parser = argparse.ArgumentParser(description="")
 parser.add_argument("--fasta", required=True, type=str, help="")
@@ -8,6 +7,15 @@ parser.add_argument("--chr_name_conv", required=True, type=str, help="")
 parser.add_argument("--ignore_missing_conv", action="store_true", default=False)
 parser.add_argument("--out", required=True, type=str, help="")
 args = parser.parse_args()
+
+print("Options in effect:")
+arguments = {}
+for arg in vars(args):
+    print("  --{} {}".format(arg, getattr(args, arg)))
+    arguments[arg] = getattr(args, arg)
+print("")
+
+import gzip
 
 
 def gzopen(file, mode="r"):

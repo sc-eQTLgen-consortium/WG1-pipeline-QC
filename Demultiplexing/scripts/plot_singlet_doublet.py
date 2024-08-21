@@ -10,6 +10,13 @@ args = parser.parse_args()
 if not os.path.isdir(args.out):
     os.makedirs(args.out, exist_ok=True)
 
+print("Options in effect:")
+arguments = {}
+for arg in vars(args):
+    print("  --{} {}".format(arg, getattr(args, arg)))
+    arguments[arg] = getattr(args, arg)
+print("")
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np

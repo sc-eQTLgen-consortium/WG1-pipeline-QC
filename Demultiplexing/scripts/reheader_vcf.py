@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 import argparse
-import gzip
-import re
 
 parser = argparse.ArgumentParser(description="")
 parser.add_argument("--vcf", required=True, type=str, help="")
@@ -9,6 +7,15 @@ parser.add_argument("--fai", required=True, type=str, help="")
 parser.add_argument("--out", required=True, type=str, help="")
 args = parser.parse_args()
 
+print("Options in effect:")
+arguments = {}
+for arg in vars(args):
+    print("  --{} {}".format(arg, getattr(args, arg)))
+    arguments[arg] = getattr(args, arg)
+print("")
+
+import gzip
+import re
 
 def gzopen(file, mode="r"):
     if file.endswith(".gz"):

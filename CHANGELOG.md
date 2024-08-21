@@ -81,6 +81,7 @@ Note that this branch is in beta and version 2.0.0 is not yet ready for release.
 #### Fixes
 - Fixed issue where some rules did not have dynamic time / memory usage
 - Fixed issue where naive BAM file search can return temporary bam file in `CellRanger` v7.0.1
+- Fixed issue in `popscle demuxlet` where cells were excluded in the final output leading to missing cells in the Demuxafy `combine_results` rule
 - Fixed issue where `Scrublet` uses `min_cells` value as parameter for `min_counts`
 - Fixed issue where some R scripts had hard-coded `future.globals.maxSize`
 - Fixed issue in `scds.R` where `bcds()` would fail if some barcodes had zero counts for the selected genes
@@ -125,4 +126,4 @@ Error in if (length(expected) > 1 && x > min(expected) && x < max(expected)) ret
 Calls: scDblFinder ... .optimThreshold -> optimize -> <Anonymous> -> f -> .prop.dev
 Execution halted
 ```
-This can be resolved by increasing `nfeatures` from `1000` (default before Nov 14, 2022) to `1352` (new default)
+This can be resolved by increasing `nfeatures` from `1000` (default before Nov 14, 2022) to `1352` (new default). Tip: use `scDblFinder_manual_run.tsv` to add a run for this pool with the updated settings.

@@ -6,7 +6,7 @@
 #################################
 rule combine_results:
     input:
-        demuxlet = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best" if "popscle" in METHODS else [],
+        demuxlet = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT_complete.best" if "popscle" in METHODS else [],
         souporcell = config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv.gz" if "souporcell" in METHODS else [],
         souporcell_assignments = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt.gz" if "souporcell" in METHODS else [],
         doubletfinder = lambda wildcards: config["outputs"]["output_dir"] + "{pool}/DoubletFinderRun{run}/DoubletFinder_doublets_singlets.tsv.gz".format(pool=wildcards.pool, run=DOUBLETFINDER_SELECTION[wildcards.pool]) if "DoubletFinder" in METHODS else [],
@@ -31,7 +31,7 @@ rule combine_results:
         bind = config["inputs"]["bind_path"],
         sif = config["inputs"]["singularity_image"],
         script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/Combine_Results.R",
-        demuxlet = "--demuxlet " + config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best" if "popscle" in METHODS else [],
+        demuxlet = "--demuxlet " + config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT_complete.best" if "popscle" in METHODS else [],
         souporcell = "--souporcell " + config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv.gz" if "souporcell" in METHODS else [],
         souporcell_assignments = "--souporcell_assignments " + config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt.gz" if "souporcell" in METHODS else [],
         souporcell_correlation_limit = config["combine_results_extra"]["souporcell_correlation_limit"],

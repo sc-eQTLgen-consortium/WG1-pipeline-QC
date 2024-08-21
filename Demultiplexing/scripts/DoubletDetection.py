@@ -24,7 +24,7 @@ parser.add_argument("--out", required=True, help="The output directory where res
 args = parser.parse_args()
 
 if not os.path.isdir(args.out):
-    os.mkdir(args.out)
+    os.makedirs(args.out, exist_ok=True)
 
 print("Options in effect:")
 arguments = {}

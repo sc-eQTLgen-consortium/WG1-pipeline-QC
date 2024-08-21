@@ -69,6 +69,10 @@ popscle:
   popscle_demuxlet_threads: 2 ### The number threads that will be used for the demuxlet step
   popscle_demuxlet_time: 0 ### The time setting to use
 
+  popscle_add_missing_memory: 4 ### This is the number of gigs that will be used for memory and disk space per thread for the demuxlet step
+  popscle_add_missing_threads: 1 ### The number threads that will be used for the demuxlet step
+  popscle_add_missing_time: 0 ### The time setting to use
+
 souporcell:
   souporcell_memory: 8 ### This is the number of gigs that will be used for memory and disk space per thread for the souporcell preflights step
   souporcell_threads: 4 ### The number threads that will be used for the souporcell preflights step
