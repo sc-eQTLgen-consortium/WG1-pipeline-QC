@@ -7,9 +7,9 @@ inputs:
   singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
   repo_dir: /path/to/repo/dir/ ### Path to the github repository directory
   genotype_path: /path/to/genotype/file ### path to directory that contains the genotype input files for pipeline on hg19. Include the filename without extension; accepted are .vcf.gz files or plink2 pgen, pvar and psam. In the cases of a splitted input use CHR to replace the chromosome.
-  psam: /path/to/genotype/file.psam
-  genome_build: "hg19"
-  dataset_samples: {dataset1: /path/to/dataset1/samples, dataset2: /path/to/dataset2/samples}
+  psam: /path/to/genotype/file.psam ### path to the plink sample information file with required metadata.
+  genome_build: "hg19" ### Genotype build of the unimputed genotypes (options: 'hg18', 'b36', 'hg19', 'b37', 'hg38',  or 'b38').
+  dataset_samples: {dataset1: /path/to/dataset1/samples, dataset2: /path/to/dataset2/samples} ### optional: dataset to samples files for splitting imputed genotypes.
 
 refs:
   ref_dir: /path/to/provided/ref/dir/ ### This is the path to the directory containing the imputation references provided for the SNP processing and imputation
