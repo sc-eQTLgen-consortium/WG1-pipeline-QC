@@ -181,23 +181,24 @@ if not config["inputs"]["genome_build"] in ['hg18', 'b36', 'hg19', 'b37', 'hg38'
 
 # Check if the dataset sample files exist and that the samples are present.
 DATASETS = []
-for dataset, samples_path in config["inputs"]["dataset_samples"].items():
-    if not os.path.exists(samples_path):
-        logger.info("Error, could not find the {} file. Please check that the file exists.\n\nExiting.".format(samples_path))
-        stop("WrongDatasetSamplesFile")
+if config["inputs"]["dataset_samples"] is not None:
+    for dataset, samples_path in config["inputs"]["dataset_samples"].items():
+        if not os.path.exists(samples_path):
+            logger.info("Error, could not find the {} file. Please check that the file exists.\n\nExiting.".format(samples_path))
+            stop("WrongDatasetSamplesFile")
 
-    missing_samples = []
-    with gzopen(samples_path, mode="r") as f:
-        for line in f:
-            sample = line.strip("\n")
-            if sample not in psam_samples:
-                missing_samples.append(sample)
+        missing_samples = []
+        with gzopen(samples_path, mode="r") as f:
+            for line in f:
+                sample = line.strip("\n")
+                if sample not in psam_samples:
+                    missing_samples.append(sample)
 
-    if len(missing_samples) > 0:
-        logger.info("Error, dataset subset called for sample(s) that does not exist in header: '{}'..\n\nExiting.".format(", ".join(missing_samples)))
-        stop("MissingSamplesInDatasetSubset")
+        if len(missing_samples) > 0:
+            logger.info("Error, dataset subset called for sample(s) that does not exist in header: '{}'..\n\nExiting.".format(", ".join(missing_samples)))
+            stop("MissingSamplesInDatasetSubset")
 
-    DATASETS.append(dataset)
+        DATASETS.append(dataset)
 
 # Check if the reference files exist.
 for extension in [".pgen", ".pvar", ".psam"]:
