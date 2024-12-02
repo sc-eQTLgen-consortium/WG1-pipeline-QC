@@ -77,9 +77,10 @@ man_select_df["MATCH"] = False
 man_select_df.loc[man_select_df["ASSIGNMENT"] == man_select_df["CHIP_ID"], "MATCH"] = True
 
 man_select_df["UPDATE/REMOVE/KEEP"] = ""
+man_select_df.loc[man_select_df["NOTE"] == "SAMPLE SWAP", "UPDATE/REMOVE/KEEP"] = "REMOVE"
 man_select_df.loc[(man_select_df["NOTE"] == "USE CHIP_ID") & man_select_df["MATCH"], "UPDATE/REMOVE/KEEP"] = "KEEP"
 man_select_df.loc[(man_select_df["NOTE"] == "USE CHIP_ID") & (man_select_df["ASSIGNMENT"] == "NA"), "UPDATE/REMOVE/KEEP"] = "UPDATE"
-print("\tFound {:,} issues out of {:,} samples".format((man_select_df["UPDATE/REMOVE/KEEP"] == "").sum(), man_select_df.shape[0]))
+print("\tFound {:,} issues out of {:,} samples".format(man_select_df.shape[0] - (man_select_df["UPDATE/REMOVE/KEEP"] == "KEEP").sum(), man_select_df.shape[0]))
 
 outfile = "verifyBamID_manual_selection.tsv"
 man_select_df.to_csv(os.path.join(args.out, "manual_selection", outfile), sep="\t", header=True, index=False)
