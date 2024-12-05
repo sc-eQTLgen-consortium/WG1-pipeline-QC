@@ -128,6 +128,10 @@ for outfile in outfiles:
         pool_df_list.append(pool_df)
     print("\tParsed {:,} / {:,} pools".format(i + 1, npools), end='\n')
 
+    if len(pool_df_list) == 0:
+        print("\tNo input files")
+        continue
+
     df = pd.concat(pool_df_list, axis=0).fillna(0)
     methods.remove("N")
 
