@@ -41,6 +41,7 @@ rule check_sex:
         sif = config["inputs"]["singularity_image"],
         out_conversion = config["outputs"]["output_dir"] + "check_sex/data",
         out_secheck = config["outputs"]["output_dir"] + "check_sex/check_sex",
+        script = config["inputs"]["repo_dir"] + "Imputation/scripts/check_sex.py"
     log: config["outputs"]["output_dir"] + "log/check_sex.log"
     shell:
         """
@@ -63,9 +64,10 @@ rule check_sex:
             --check-sex \
             --out {params.out_secheck}
         singularity exec --bind {params.bind} {params.sif} touch {output.nosex}
-        singularity exec --bind {params.bind} {params.sif} sed 's/^ \+//g; s/ \+/\t/g' {output.sexcheck} > {output.sex_check_tab}
-        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}NR==1{{print "#"$1,$2,$3,$4,$5,$6,"UPDATE/REMOVE/KEEP"}}' {output.sex_check_tab} > {output.man_sex_select}
-        singularity exec --bind {params.bind} {params.sif} grep "PROBLEM" {output.sex_check_tab} | awk 'BEGIN{{FS=OFS="\t"}}{{print $1,$2,$3,$4,$5,$6,""}}' >> {output.man_sex_select}
+                    
+        singularity exec --bind {params.bind} {params.sif} python {params.script} \
+            --input {output.sexcheck} \
+            --outfile {output.man_sex_select}
         """
 
 
