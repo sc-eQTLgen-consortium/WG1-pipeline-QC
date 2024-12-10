@@ -5,8 +5,7 @@ import re
 import os
 import gzip
 
-parser = argparse.ArgumentParser(
-    description="wrapper for DoubletDetection for doublet detection from transcriptomic data.")
+parser = argparse.ArgumentParser(description="")
 parser.add_argument("--logs", nargs="+", type=str, required=True, help="The input log files.")
 parser.add_argument("--out", type=str, required=True, help="The output file.")
 args = parser.parse_args()

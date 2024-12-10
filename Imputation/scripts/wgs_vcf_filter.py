@@ -5,8 +5,7 @@ import gzip
 import os
 
 
-parser = argparse.ArgumentParser(
-    description="wrapper for DoubletDetection for doublet detection from transcriptomic data.")
+parser = argparse.ArgumentParser(description="")
 parser.add_argument("-i", "--input", type=str, dest='input_path', required=True, help="The input VCF file.")
 parser.add_argument("-o", "--output", type=str, dest='output_path', required=True, help="The output VCF file.")
 parser.add_argument("-l", "--log", type=str, dest='log_path', required=True, help="The output logfile.")

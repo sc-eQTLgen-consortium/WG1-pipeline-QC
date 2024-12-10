@@ -3,8 +3,7 @@
 import argparse
 import gzip
 
-parser = argparse.ArgumentParser(
-    description="wrapper for DoubletDetection for doublet detection from transcriptomic data.")
+parser = argparse.ArgumentParser(description="")
 parser.add_argument("--pvar1", type=str, required=True, help="The primary pvar file.")
 parser.add_argument("--pvar2", type=str, required=True, help="The secondary pvar file.")
 parser.add_argument("--variants1", type=str, required=True, help="The overlapping variants from the primary.")

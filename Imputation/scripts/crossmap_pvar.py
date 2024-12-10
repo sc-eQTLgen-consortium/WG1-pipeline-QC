@@ -3,8 +3,7 @@
 import argparse
 import gzip
 
-parser = argparse.ArgumentParser(
-    description="wrapper for DoubletDetection for doublet detection from transcriptomic data.")
+parser = argparse.ArgumentParser(description="")
 parser.add_argument("--pvar", type=str, required=True, help="The input pvar file.")
 parser.add_argument("--bed", type=str, required=True, help="The crossmapped output bed file.")
 parser.add_argument("--out_pvar", type=str, required=True, help="The crossmapped pvar file.")

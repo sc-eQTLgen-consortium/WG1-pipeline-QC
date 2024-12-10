@@ -5,8 +5,7 @@ import json
 import os
 
 
-parser = argparse.ArgumentParser(
-    description="wrapper for DoubletDetection for doublet detection from transcriptomic data.")
+parser = argparse.ArgumentParser(description="")
 parser.add_argument("--counts", required=True, help="Path to the 10x filtered h5 file.")
 parser.add_argument("--barcodes", required=True, help="Path to the 10x droplet barcodes.")
 parser.add_argument("--boost_rate", required=False, default=0.25, type=float, help="Proportion of cell population size to produce as synthetic doublets.")

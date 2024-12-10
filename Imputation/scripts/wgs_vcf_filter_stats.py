@@ -6,8 +6,7 @@ import pandas as pd
 import gzip
 import os
 
-parser = argparse.ArgumentParser(
-    description="wrapper for DoubletDetection for doublet detection from transcriptomic data.")
+parser = argparse.ArgumentParser(description="")
 parser.add_argument("-i", "--input", nargs="*", type=str, dest='input_paths', required=True, help="The input VCF file.")
 parser.add_argument("-o", "--output", type=str, dest='output_path', required=True, help="The output VCF file.")
 parser.add_argument("-maf", "--minor_allele_frequency", type=float, dest='thresh_maf', default=0.01, help="The minor allele frequency threshold. Default: 0.01.")

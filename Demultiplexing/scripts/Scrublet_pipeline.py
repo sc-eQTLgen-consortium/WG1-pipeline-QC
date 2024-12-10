@@ -4,8 +4,7 @@ import argparse
 import os
 import json
 
-parser = argparse.ArgumentParser(
-    description="wrapper for scrublet for doublet detection of transcriptomic data.")
+parser = argparse.ArgumentParser(description="")
 parser.add_argument("--counts", required=True, help="Path to the 10x filtered h5 file.")
 parser.add_argument("--barcodes", required=True, help="barcodes.tsv or barcodes.tsv.gz from cellranger")
 parser.add_argument("--sim_doublet_ratio", required=False, default=2.0, type=float, help="Number of doublets to simulate relative to the number of observed transcriptomes.")
