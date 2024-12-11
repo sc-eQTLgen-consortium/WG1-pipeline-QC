@@ -62,7 +62,11 @@ sex_dt$Sex <- ifelse(sex_dt$Sex == 0, "unknown", ifelse(sex_dt$Sex == 1, "male",
 sex_dt$Sex <- factor(sex_dt$Sex, levels = c("female", "male"))
 sex_dt$ProvidedSNP <- factor(sex_dt$ProvidedSNP, levels = c("Provided", "Final"))
 
-sex_dt <- sex_decisions[, c('#FID', 'IID', 'UPDATE/REMOVE/KEEP')][sex_dt, on = c('#FID', 'IID')]
+if(nrow(sex_decisions) > 0){
+    sex_dt <- sex_decisions[, c('#FID', 'IID', 'UPDATE/REMOVE/KEEP')][sex_dt, on = c('#FID', 'IID')]
+} else {
+    sex_dt$'UPDATE/REMOVE/KEEP' <- NA
+}
 
 sex_dt <- sex_dt[(is.na(`UPDATE/REMOVE/KEEP`) | `UPDATE/REMOVE/KEEP` == "UPDATE" | `UPDATE/REMOVE/KEEP` == "KEEP") | (`UPDATE/REMOVE/KEEP` == "REMOVE" & ProvidedSNP == "Provided")]
 
