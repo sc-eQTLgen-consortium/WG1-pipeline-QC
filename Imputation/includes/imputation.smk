@@ -459,6 +459,7 @@ rule split_by_chr_for_prephasing:
 rule eagle_prephasing:
     input:
         vcf = config["outputs"]["output_dir"] + "split_by_chr_for_prephasing/{ancestry}_chr_{chr}.vcf.gz",
+        vcf_index = config["outputs"]["output_dir"] + "split_by_chr_for_prephasing/{ancestry}_chr_{chr}.vcf.gz.csi",
         phasing_bcf = config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"] + "chr{chr}.bcf",
         phasing_index = config["refs"]["ref_dir"] + config["refs_extra"]["relative_phasing_dir"] + "chr{chr}.bcf.csi",
         map_file = config["refs"]["ref_dir"] + config["refs_extra"]["relative_map_path"],
