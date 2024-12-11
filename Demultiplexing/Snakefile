@@ -16,6 +16,8 @@ if not config["refs"]["ref_dir"].endswith("/"):
     config["refs"]["ref_dir"] += "/"
 if not config["outputs"]["output_dir"].endswith("/"):
     config["outputs"]["output_dir"] += "/"
+if config["inputs"]["vcf"] is None:
+    config["inputs"]["vcf"] = []
 if not isinstance(config["inputs"]["vcf"], list):
     config["inputs"]["vcf"] = [config["inputs"]["vcf"]]
 
