@@ -13,7 +13,7 @@ rule split_input_vcf_by_chr:
         index = config["inputs"]["genotype_path"] + ".vcf.gz.tbi"
     output:
         vcf = temp(config["outputs"]["output_dir"] + "split_input_vcf_by_chr/chr_{chr}.vcf.gz"),
-        index = temp(config["outputs"]["output_dir"] + "split_input_vcf_by_chr/chr_{chr}.vcf.gz.csi")
+        index = temp(config["outputs"]["output_dir"] + "split_input_vcf_by_chr/chr_{chr}.vcf.gz.tbi")
     resources:
         mem_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["split_by_chr_memory"],
         disk_per_thread_gb = lambda wildcards, attempt: attempt * config["generic"]["split_by_chr_memory"],
@@ -26,7 +26,7 @@ rule split_input_vcf_by_chr:
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} bcftools view -r {wildcards.chr} {input.vcf} -Oz -o {output.vcf}
-        singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
+	    singularity exec --bind {params.bind} {params.sif} tabix -p vcf {output.vcf}
         """
 
 
