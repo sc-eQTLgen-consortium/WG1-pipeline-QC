@@ -126,7 +126,7 @@ rule input_vcf_to_pgen_per_chr:
         psam = config["inputs"]["psam"],
         split_par_flag = lambda wildcards: "--split-par " + config["inputs"]["genome_build"] if wildcards.chr == "X" else "",
         max_allele_len = config["pre_processing_extra"]["max_allele_len"],
-        out = config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data"
+        out = config["outputs"]["output_dir"] + "input_vcf_to_pgen_per_chr/data_{chr}"
     log: config["outputs"]["output_dir"] + "log/input_vcf_to_pgen_per_chr.chr_{chr}.log"
     shell:
         """
