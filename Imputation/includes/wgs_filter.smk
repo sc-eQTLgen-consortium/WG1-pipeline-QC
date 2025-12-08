@@ -92,7 +92,8 @@ rule wgs_filter:
         call_rate = config["wgs_filter_extra"]["call_rate"],
         hardy_weinberg_equilibrium = config["wgs_filter_extra"]["hardy_weinberg_equilibrium"],
         filtered_depth = config["wgs_filter_extra"]["filtered_depth"],
-        keep_info_column = "--keep_info_column" if config["wgs_filter_extra"]["keep_info_column"]  else ""
+        keep_info_column = "--keep_info_column" if config["wgs_filter_extra"]["keep_info_column"]  else "",
+        ignore_homref_stats = "--ignore_homref_stats" if config["wgs_filter_extra"]["ignore_homref_stats"]  else ""
     log: config["outputs"]["output_dir"] + "log/wgs_filter.chr_{chr}.log"
     shell:
         """
@@ -117,7 +118,8 @@ rule wgs_filter:
             --call_rate {params.call_rate} \
             --hardy_weinberg_equilibrium {params.hardy_weinberg_equilibrium} \
             --filtered_depth {params.filtered_depth} \
-            {params.keep_info_column}
+            {params.keep_info_column} \
+            {params.ignore_homref_stats}
         """
 
 
