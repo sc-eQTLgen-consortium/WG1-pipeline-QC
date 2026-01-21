@@ -1,0 +1,204 @@
+---
+##############################################################################################################
+##### The following arguments need to be changed by the user to indicating file locations on your system #####
+##############################################################################################################
+inputs:
+  bind_path: /path/to/bind/to/mount ### List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}
+  singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
+  repo_dir: /path/to/repo/dir/ ### Path to the github repository directory
+  genotype_path: /path/to/genotype/file ### path to directory that contains the genotype input files for pipeline on hg19. Include the filename without extension; accepted are .vcf.gz files or plink2 pgen, pvar and psam. In the cases of a splitted input use CHR to replace the chromosome.
+  psam: /path/to/genotype/file.psam ### path to the plink sample information file with required metadata.
+  genome_build: "hg19" ### Genotype build of the unimputed genotypes (options: 'hg18', 'b36', 'hg19', 'b37', 'hg38',  or 'b38').
+  dataset_samples: {dataset1: /path/to/dataset1/samples, dataset2: /path/to/dataset2/samples} ### optional: dataset to samples files for splitting imputed genotypes.
+
+refs:
+  ref_dir: /path/to/provided/ref/dir/ ### This is the path to the directory containing the imputation references provided for the SNP processing and imputation
+
+outputs:
+  output_dir: /path/to/parent/out/dir/ ### The path to the parent dir where you would like all outputs/results saved. This path must exist before running.
+
+settings:
+  is_wgs: False ### Whether or not the input genotype is from whole genome sequencing
+  force_ancestry: null ### Option to ignore 100G ancestry assignments and impute all individuals as ancestry 'X'. Use with caution.
+
+cluster_time: {0: "05:59:00", 1: "23:59:00", 2: "6-23:59:00"} ### Options for dynamic time usage for cluster submissions of jobs
+
+##############################################################################################################
+##### The following arguments are common parameters that may need to be changed depending on the dataset #####
+##############################################################################################################
+##### These are the options that will be used for plink QC steps #####
+generic:
+  split_by_chr_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  split_by_chr_threads: 1 ### Number of threads to use
+  split_by_chr_time: 0 ### The time setting to use
+  
+  vcf_to_plink_memory: 6 ### Amount of gigs that will be used for memory and disk space per thread
+  vcf_to_plink_threads: 1 ### Number of threads to use
+  vcf_to_plink_time: 0 ### The time setting to use
+
+  process_plink_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  process_plink_threads: 1 ### Number of threads to use
+  process_plink_time: 0 ### The time setting to use
+
+  plink_to_vcf_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  plink_to_vcf_threads: 1 ### Number of threads to use
+  plink_to_vcf_time: 0 ### The time setting to use
+
+  combine_vcfs_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  combine_vcfs_threads: 1 ### Number of threads to use
+  combine_vcfs_time: 0 ### The time setting to use
+
+wgs_filter:
+  bcftools_norm_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  bcftools_norm_threads: 1 ### Number of threads to use
+  bcftools_norm_time: 0 ### The time setting to use
+
+  wgs_filter_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  wgs_filter_threads: 1 ### Number of threads to use
+  wgs_filter_time: 1 ### The time setting to use
+
+  wgs_filter_stats_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  wgs_filter_stats_threads: 1 ### Number of threads to use
+  wgs_filter_stats_time: 0 ### The time setting to use
+
+crossmap:
+  crossmap_memory: 6 ### Amount of gigs that will be used for memory and disk space per thread
+  crossmap_threads: 1 ### Number of threads to use
+  crossmap_time: 0 ### The time setting to use
+
+##### These are the options that will be used for plink QC steps #####
+ancestry_sex_qc:
+  check_sex_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  check_sex_threads: 1 ### Number of threads to use
+  check_sex_time: 0 ### The time setting to use
+
+  prune_1000g_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  prune_1000g_threads: 1 ### Number of threads to use
+  prune_1000g_time: 0 ### The time setting to use
+
+  pca_1000g_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  pca_1000g_threads: 1 ### Number of threads to use
+  pca_1000g_time: 0 ### The time setting to use
+
+  pca_project_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  pca_project_threads: 1 ### Number of threads to use
+  pca_project_time: 0 ### The time setting to use
+
+  check_ancestry_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  check_ancestry_threads: 1 ### Number of threads to use
+  check_ancestry_time: 0 ### The time setting to use
+
+  summary_ancestry_sex_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  summary_ancestry_sex_threads: 1 ### Number of threads to use
+  summary_ancestry_sex_time: 0 ### The time setting to use
+
+##### These are the options that will be used for imputation steps #####
+imputation:
+  harmonize_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  harmonize_threads: 4 ### Number of threads to use
+  harmonize_time: 0 ### The time setting to use
+
+  fixref_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  fixref_threads: 1 ### Number of threads to use
+  fixref_time: 0 ### The time setting to use
+
+  filter_preimpute_vcf_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  filter_preimpute_vcf_threads: 1 ### Number of threads to use
+  filter_preimpute_vcf_time: 0 ### The time setting to use
+
+  het_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  het_threads: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  het_time: 0 ### The time setting to use
+
+  het_filter_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  het_filter_threads: 1 ### Number of threads to use
+  het_filter_time: 0 ### The time setting to use
+
+  calculate_missingness_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  calculate_missingness_threads: 1 ### Number of threads to use
+  calculate_missingness_time: 0 ### The time setting to use
+
+  genotype_donor_annotation_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  genotype_donor_annotation_threads: 1 ### Number of threads to use
+  genotype_donor_annotation_time: 0 ### The time setting to use
+
+  kinship_memory: 4 ### Amount of gigs that will be used for memory and disk space per thread
+  kinship_threads: 1 ### Number of threads to use
+  kinship_time: 0 ### The time setting to use
+
+  eagle_prephasing_memory: 8 ### Amount of gigs that will be used for memory and disk space per thread
+  eagle_prephasing_threads: 4 ### Number of threads to use
+  eagle_prephasing_time: 1 ### The time setting to use
+
+  merge_eagle_prephasing_stats_memory: 1 ### Amount of gigs that will be used for memory and disk space per thread
+  merge_eagle_prephasing_stats_threads: 1 ### Number of threads to use
+  merge_eagle_prephasing_stats_time: 0 ### The time setting to use
+
+  minimac_imputation_memory: 8 ### Amount of gigs that will be used for memory and disk space per thread
+  minimac_imputation_threads: 4 ### Number of threads to use
+  minimac_imputation_time: 1 ### The time setting to use
+
+  split_by_dataset_memory: 8 ### Amount of gigs that will be used for memory and disk space per thread
+  split_by_dataset_threads: 1 ### Number of threads to use
+  split_by_dataset_time: 0 ### The time setting to use
+
+############################################################################################################################################
+##### The following arguments in this section should not need to be changed/edited unless the default options do not work your dataset #####
+############################################################################################################################################
+refs_extra:
+  relative_1000g_files: "1000G/20220422_3202_phased_SNV_INDEL_SV_b38"
+  relative_grch37_to_grch38_chain_path: "GRCh37_to_GRCh38.chain"
+  relative_hg18_to_hg38_chain_path: "hg18ToHg38.over.chain"
+  relative_vcf_path: "hg38/ref_panel_QC/30x-GRCh38_NoSamplesSorted.vcf.gz"
+  relative_fasta_path: "hg38/ref_genome_QC/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+  relative_phasing_dir: "hg38/phasing/phasing_reference/"
+  relative_map_path: "hg38/phasing/genetic_map/genetic_map_hg38_withX.txt.gz"
+  relative_imputation_dir: "hg38/imputation/"
+
+settings_extra:
+  ignore_file_checks: False ### Boolean to ignore missing file errors in the Snakefile.
+  plink_memory_buffer: 1 ### Buffer to prevent plink memory overflow, available memory is reduced by this amount in GB
+  java_memory_buffer: 2  ### Buffer to prevent Java memory overflow, available memory is reduced by this amount in GB
+
+wgs_filter_extra:
+  genotype_quality: 20 ### The genotype quality threshold
+  allelic_balance_lower: 0.2 ### The allelic balance lower-bound threshold
+  allelic_balance_upper: 0.8 ### The allelic balance upper-bound threshold
+  inbreeding_coefficient: -0.3 ### The inbreeding coefficient threshold
+  no_snv_vqsr_check: False ### Add this flag to turn off the VQSR of SNV's
+  vqsr_snv: 99.8 ### The variant_quality_score_recalibration threshold
+  no_indel_vqsr_check: False ### Add this flag to turn off the VQSR of indel's
+  vqsr_indel: 99.95 ### The variant_quality_score_recalibration threshold
+  keep_multialleic: False ### Add this flag to remove multiallelic variants
+  keep_non_pass_snv: False ### Add this flag to remove SNV's without PASS label
+  keep_non_pass_indel: False ### Add this flag to remove indel's without PASS label
+  keep_low_complexity: False ### Add this flag to keep low complexity variants
+  minor_allele_frequency: 0.01 ### The minor allele frequency threshold
+  call_rate: 0.99 ### The call rate threshold
+  hardy_weinberg_equilibrium: 1e-6 ### The hardy weinberg equilibrium threshold
+  filtered_depth: 10 ### The filtered depth threshold
+  keep_info_column: False ### Add this flag to keep the INFO column
+
+pre_processing_extra:
+  mind: 0.03 ### Missingness rate threshold
+  max_allele_len: 500 ### When an allele name exceeds this many characters, it is automatically truncated
+
+ancestry_sex_qc_extra:
+  prune_1000g_indep_window_size: 50 ### a window size in variant count or kilobase (if the 'kb' modifier is present) units
+  prune_1000g_indep_step_size: 5 ### a variant count to shift the window at the end of each step
+  prune_1000g_pairwise_r2_threshold: 0.5 ### pairwise r2 threshold
+
+imputation_extra:
+  filter_preimpute_vcf_snp_hwe: 1e-6 ### the threshold used for calling a SNP outside of HWE
+  filter_preimpute_vcf_snp_missing_pct: 0.05 ### the minimum proportion that can be missing for a snp to be included (5% by default)
+
+  het_threshold: 3 ### the number of standard deviation that the proportion of non-homozygous sites can maximally deviate
+
+  kinship_maf: 0.05 ### filters out all variants with allele frequency below the provided threshold
+  kinship_hwe: 1e-6 ### filters out all variants which have Hardy-Weinberg equilibrium exact test p-value below the provided threshold
+  kinship_indep_window_size: 250 ### a window size in variant count or kilobase (if the 'kb' modifier is present) units
+  kinship_indep_step_size: 50 ### a variant count to shift the window at the end of each step
+  kinship_pairwise_r2_threshold: 0.2 ### pairwise r2 threshold
+
+  minimac_chunk: 20000000 ###  Maximum chunk length in base pairs to impute at once (default: 20000000)
+  minimac_overlap: 3000000 ### Size (in base pairs) of overlap before and after impute region to use as input to HMM (default: 3000000)

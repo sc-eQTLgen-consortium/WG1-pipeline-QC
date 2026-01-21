@@ -1,1 +1,0 @@
-Number of genes vs mitochondrial percent - colored by pool.

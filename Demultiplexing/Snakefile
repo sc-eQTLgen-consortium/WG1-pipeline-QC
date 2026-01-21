@@ -1,176 +1,683 @@
 #!/usr/bin/env python
-import os
-import sys
+import numpy as np
 import pandas as pd
-from glob import glob
-import subprocess
-import shutil
+import itertools
+import json
+import gzip
+import math
+import os
 
+# Add trailing /.
+if not config["inputs"]["repo_dir"].endswith("/"):
+    config["inputs"]["repo_dir"] += "/"
+if config["inputs"]["individual_list_dir"] is not None and not config["inputs"]["individual_list_dir"].endswith("/"):
+    config["inputs"]["individual_list_dir"] += "/"
+if not config["refs"]["ref_dir"].endswith("/"):
+    config["refs"]["ref_dir"] += "/"
+if not config["outputs"]["output_dir"].endswith("/"):
+    config["outputs"]["output_dir"] += "/"
+if config["inputs"]["vcf"] is None:
+    config["inputs"]["vcf"] = []
+if not isinstance(config["inputs"]["vcf"], list):
+    config["inputs"]["vcf"] = [config["inputs"]["vcf"]]
 
-# Import custom functions
-from mods import prepareArguments
-from mods import read10x
-
-
-### Extract variables from configuration file for use within the rest of the pipeline
-config = prepareArguments.parsePaths(config)
-input_dict = config["inputs"]
-output_dict = config["outputs"]
-ref_dict = config["refs"]
-bind_path = input_dict["bind_path"]
-
-
-# Rule-specific arguments
-popscle_dict = config["popscle"]
-popscle_extra_dict = config["popscle_extra"]
-souporcell_dict = config["souporcell"]
-souporcell_extra_dict = config["souporcell_extra"]
-DoubletDetection_dict = config["DoubletDetection"]
-DoubletDetection_manual_dict = config["DoubletDetection_manual"]
-DoubletDetection_extra_dict = config["DoubletDetection_extra"]
-scrublet_dict = config["scrublet"]
-scrublet_manual_dict = config["scrublet_manual"]
-scrublet_extra_dict = config["scrublet_extra"]
-scds_dict = config["scds"]
-CombineResults_dict = config["CombineResults"]
-
-
-# Use prepareArguments.py script to retrieve exact directories of single cell files
-scrnaseq_libs_df = prepareArguments.get_scrnaseq_dirs(config)
-scrnaseq_libs_df.to_csv(os.path.join(output_dict["output_dir"],'file_directories.txt'), sep = "\t", index = False)
-samples = pd.read_csv(input_dict["samplesheet_filepath"], sep = "\t")
-samples.columns = ["Pool", "N"]
-
-logger.info("read in sample info")
-
-fasta = prepareArguments.getFASTA(ref_dict["ref_dir"])
-
-if not fasta is None:
-    logger.info("using this reference fasta: " + fasta)
-
-
-    # If the scrublet_check output is present => all the contents are there that are needed to move past 
-    if os.path.exists(os.path.join(output_dict["output_dir"], "scrublet/scrublet_check.done")):
-        scrublet_decisions = pd.read_csv(os.path.join(output_dict["output_dir"], "manual_selections/scrublet_gene_pctl.txt"), sep = "\t")
-
-
-    # Import individual rules
-    include: "includes/Snakefile_popscle.smk"
-    include: "includes/Snakefile_scrublet.smk"
-    include: "includes/Snakefile_souporcell.smk"
-    include: "includes/Snakefile_scds.smk"
-    include: "includes/Snakefile_DoubletDetection.smk"
-    include: "includes/Snakefile_CombineResults.smk"
-
-
-    # Generate list of files to expect
-    ## Demuxlet
-    demuxlet_files = []
-    demuxlet_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/demuxlet_results.txt",  pool=samples.Pool))
-
-    ## Souporcell
-    souporcell_files = []
-    souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/souporcell_results.txt", pool=samples.Pool))
-    souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz", pool=samples.Pool))
-    souporcell_files.append(expand(output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz", pool=samples.Pool))
-
-    ## scds
-    scds_files = []
-    scds_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/scds_results.txt", pool=samples.Pool))
-
-    ## scrublet 
-    ## the scrublet files that will be run are dependent on user inputs in the yaml file
-    scrublet_files = []
-    scrublet_files.append(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv")
-    if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv"):
-        scrublet_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv", sep = "\t")
-        logger.info("Read in the scrublet manual selection file.")
-        if scrublet_selection["scrublet_Percentile"].count() == len(scrublet_selection):
-            logger.info("All the scrublet results have been selected. Will move to next steps.")
-            scrublet_selection["scrublet_Percentile"] = scrublet_selection["scrublet_Percentile"].astype(int)
-            scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/{pctl}_scrublet_results.txt", zip, pool=scrublet_selection.Pool, pctl = scrublet_selection.scrublet_Percentile))
-        elif scrublet_selection["scrublet_Percentile"].count() != len(scrublet_selection):
-            logger.info("The scrublets results did not all PASS. Waiting for them to be competed and thresholds selected.")
-            if scrublet_manual_dict["run_scrublet_manual"] == False:
-                logger.info("Running the default scrublet rules since 'run_scrublet_manual' is set to False.")
-                scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/default_run_variables.txt", pool = samples.Pool, pctl = scrublet_dict["percentile"]))
-            elif scrublet_manual_dict["run_scrublet_manual"] == True:
-                logger.info("Running scrublet rules with manual selections since 'run_scrublet_manual' is set to True.")
-                scrublet_files.append(expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables.txt",zip, pool = scrublet_manual_dict["scrublet_manual_threshold_pools"], pctl = scrublet_manual_dict["scrublet_manual_threshold_percentiles"]))
-                logger.info("Deleting the scrublet results and rerunning since 'run_scrublet_manual' is set to True but results exist.")
-                ### remove the files to force the rule to run if still needing to rerun (will only happen if manual selections aren't filled in all the way)
-                for f in expand(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables.txt",zip, pool = scrublet_manual_dict["scrublet_manual_threshold_pools"], pctl = scrublet_manual_dict["scrublet_manual_threshold_percentiles"]):
-                    fname = f.rstrip() 
-                    if os.path.isfile(fname): 
-                        os.remove(fname)
-        else:
-            missing_scrublet = set(scrublet_selection['Pool'].astype(str)[[not elem for elem in list(scrublet_selection['scrublet_Percentile'].between(99, 101))]])
-            missing_scrublet_string = "\n".join(missing_scrublet)
-
-            if len(missing_scrublet) > 0:
-                logger.info("\nERROR: The scrublet_Percentile column in the manual_selections/scrublet/scrublet_percentile_manual_selection.tsv file is not completed.\n\nSpecifically, these individuals do not have appropriate inputs for the scrublet_Percentile column in the 'DoubletDetection_manual_selection.tsv' file:\n" + missing_scrublet_string + "\nPlease fill in these selections for the pipeline to continue.")
-            
-            else:
-                logger.info("\nERROR: The scrublet_Percentile column in the manual_selections/scrublet/scrublet_percentile_manual_selection.tsv file is not completed.\n\nWe were unable to identify the exact pools that contained the issue.\n\nPlease fill in these selections for the pipeline to continue.")
-
-
-    ## DoubletDetection
-    DoubletDetection_files = []
-    DoubletDetection_files.append(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv")
-    if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
-        DoubletDetection_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv", sep = "\t")
-        logger.info("Read in the DoubletDetection manual selection file.")
-        if len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) == len(DoubletDetection_selection):
-            logger.info("All the DoubletDetection results have PASSED. Will move to next steps.")
-            DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/DoubletDetection_results.txt", pool=DoubletDetection_selection.Pool))
-        elif len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) != len(DoubletDetection_selection):
-            logger.info("The DoubletDetection results did not all PASS. Waiting for them to be competed and PASS.")
-            if DoubletDetection_manual_dict["run_DoubletDetection_manual"] == False:
-                logger.info("Running the default DoubletDetection rules since 'run_DoubletDetection_manual' is set to False.")
-                DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/default_run_variables.txt", pool = samples.Pool))
-            elif DoubletDetection_manual_dict["run_DoubletDetection_manual"] == True:
-                logger.info("Running DoubletDetection for specified rules since 'run_DoubletDetection_manual' is set to True.")
-                DoubletDetection_files.append(expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables.txt", pool = DoubletDetection_manual_dict["DoubletDetection_manual_pools"]))
-                logger.info("Deleting the DoubletDetection results and rerunning since 'run_DoubletDetection_manual' is set to True but results exist.")
-                ### remove the files to force the rule to run if still needing to rerun (will only happen if manual selections aren't filled in all the way)
-                for f in expand(output_dict["output_dir"] + "/{pool}/DoubletDetection/manual_rerun_variables.txt", pool = DoubletDetection_manual_dict["DoubletDetection_manual_pools"]):
-                    fname = f.rstrip() 
-                    if os.path.isfile(fname): 
-                        os.remove(fname)
-        else:
-            missing_DoubletDetection = set(DoubletDetection_selection['Pool'].astype(str)[[not elem for elem in list(DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).isin(pd.Series(['PASS', 'FAIL'])))]])
-            missing_DoubletDetection_string = "\n".join(missing_DoubletDetection)
-
-            if len(missing_DoubletDetection) > 0:
-                logger.info("\nERROR: The DoubletDetection_PASS_FAIL column in the manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv file is not completed.\n\nSpecifically, these individuals do not have appropriate inputs for the DoubletDetection_PASS_FAIL column in the 'DoubletDetection_manual_selection.tsv' file: " + missing_DoubletDetection_string + "\nPlease fill in these selections for the pipeline to continue.")
-            
-            else:
-                logger.info("\nERROR: The DoubletDetection_PASS_FAIL column in the manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv file is not completed.\n\nWe were unable to identify the exact pools that contained the issue.\n\nPlease fill in these selections for the pipeline to continue.")
-
-
-    ## Combined files at the end
-    combined_files = []
-    if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv") and os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
-        logger.info("Found the 'scrublet_percentile_manual_selection.tsv' and DoubletDetection_manual_selection.tsv files. Reading in.")
-        scrublet_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv", sep = "\t")
-        DoubletDetection_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv", sep = "\t")
-        if scrublet_selection["scrublet_Percentile"].count() == len(scrublet_selection) and len(DoubletDetection_selection[DoubletDetection_selection['DoubletDetection_PASS_FAIL'].astype(str).str.contains('PASS', na=False)]) == len(DoubletDetection_selection):
-            logger.info("All the DoubletDetection results have PASSED and thresholds selected for scrublet. Will move to next steps.")
-            combined_files.append(expand(output_dict["output_dir"] + "/{pool}/CombinedResults/Final_Assignments_demultiplexing_doublets.txt", pool = samples.Pool))
-            combined_files.append(output_dict["output_dir"] + "/QC_figures/UMI_vs_Genes_QC_scatter.png")
-            combined_files.append(output_dict["output_dir"] + "/QC_figures/expected_observed_individuals_classifications.png")
-        else:
-            logger.info("The DoubletDetection and scrublet results were not complete. Once they are complete, the results can be combined and downstream analyses completed.")
-
-    # Main rule - input will be all files generated at the top
-    rule all:
-        input:
-            demuxlet_files,
-            souporcell_files,
-            scds_files,
-            scrublet_files,
-            DoubletDetection_files,
-            combined_files
-
+# Find which methods to run.
+METHODS = []
+if config["settings"]["is_multiplexed"]:
+    METHODS.extend(config["settings_extra"]["demultiplexing_methods"])
+if config["settings"]["check_sample_swaps"]:
+    METHODS.append("verifyBamID")
+if config["settings"]["sc_data_type"] is None:
+    METHODS.extend(config["settings_extra"]["sc_doubletdetection_methods"])
+    METHODS.extend(config["settings_extra"]["sn_doubletdetection_methods"])
+elif config["settings"]["sc_data_type"] == "single-cell":
+    METHODS.extend(config["settings_extra"]["sc_doubletdetection_methods"])
+elif config["settings"]["sc_data_type"] == "single-nucleus":
+    METHODS.extend(config["settings_extra"]["sn_doubletdetection_methods"])
 else:
-    logger.info("Could not find the necessary fasta file.\n\n Exiting.")
+    logger.info("\nError: the 'sc_data_type' variable in the configuration file is not recognised. Please use 'single-cell' or 'single-nucleus'.\n\n Exiting.")
+    exit("UnrecognisedSCDataType")
+
+# Function that quits the program.
+# This is seperated so I can ignore errors if I want to.
+if config["settings_extra"]["ignore_file_checks"]:
+    logger.warning("Ignoring errors, please note that this may cause rules to crash!\n")
+
+def stop(message):
+    if config["settings_extra"]["ignore_file_checks"]:
+        return
+    exit(message)
+
+# Check if all methods are supported.
+supp_methods = {
+    "popscle": {"Barcodes", "Bam", "Individuals", "INPUT_VCF", "REF_BED"},
+    "souporcell": {"Barcodes", "Bam", "N_Individuals", "INPUT_VCF", "REF_FASTA", "REF_BED"},
+    "verifyBamID": {"Bam", "INPUT_VCF"},
+    "DoubletFinder": {"Counts"},
+    "scDblFinder": {"Counts"},
+    "DoubletDetection": {"Counts", "Barcodes"},
+    "scds": {"Counts"},
+    "Scrublet": {"Counts", "Barcodes"}
+}
+method_is_valid = True
+for method in METHODS:
+    if method not in supp_methods:
+        logger.info("Error, method {} is not supported".format(method))
+        method_is_valid = False
+
+if not method_is_valid:
+    logger.info("\n\nExiting.")
+    stop("InvalidMethod")
+
+# Check if the singularity image exists.
+if not os.path.exists(config["inputs"]["singularity_image"]):
+    logger.info("Error, the singularity image does not exist.\n\nExiting.")
+    stop("MissingSIFFile")
+
+# Check if the poolsheet exists.
+if not os.path.exists(config["inputs"]["poolsheet_path"]):
+    logger.info("Error, the poolsheet file does not exist.\n\nExiting.")
+    stop("MissingPoolSheetFile")
+
+# Check if the individual coupling exists.
+if config["inputs"]["individual_coupling"] is not None and not os.path.exists(config["inputs"]["individual_coupling"]):
+    logger.info("Error, the individual coupling file does not exist.\n\nExiting.")
+    stop("InvalidIndividualCouplingFile")
+
+def gzopen(file, mode="r"):
+    if file.endswith(".gz"):
+        return gzip.open(file, mode + 't')
+    else:
+        return open(file, mode)
+
+def get_individuals_from_vcf(vcf_filepath):
+    individuals = None
+    fh = gzopen(vcf_filepath, mode='r')
+    for line in fh:
+        if line.startswith("#CHROM"):
+            individuals = [column for column in line.strip("\n").split("\t") if column not in ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"]]
+            break
+    fh.close()
+    return individuals
+
+def get_individuals_from_individual_file(fpath):
+    individuals = []
+    fh = gzopen(fpath, mode='r')
+    for i, line in enumerate(fh):
+        individuals.append(line.strip("\n"))
+    fh.close()
+    return individuals
+
+# Check if the input poolsheet is valid.
+default_columns = {
+    'Pool': (True, False, False),
+    'Counts': (True, False, True),
+    'Barcodes': (True, False, True),
+    'Bam': (True, False, True),
+    'Individuals': (True, False, True),
+    'N_Individuals': (False, True, False)
+}
+input_vcf_individuals = []
+requirements = set()
+required_columns = {}
+for method in METHODS:
+    for requirement in supp_methods[method]:
+        requirements.add(requirement)
+        if requirement in default_columns:
+            required_columns[requirement] = default_columns[requirement]
+        elif requirement == "INPUT_VCF":
+            # Check if the input VCF exists.
+            if len(config["inputs"]["vcf"]) == 0:
+                logger.info("Error, no input VCF given. Please fill in the imputed VCF file in the settings file.\n\nExiting.")
+                stop("MissingVCFFile")
+            for vcf in config["inputs"]["vcf"]:
+                if os.path.exists(vcf):
+                    input_vcf_individuals.extend(get_individuals_from_vcf(vcf))
+                else:
+                    logger.info("Error, could not find the {} file. Please check that the file exists.\n\nExiting.".format(vcf))
+                    stop("MissingVCFFile")
+        elif requirement == "REF_FASTA":
+            # Check if the reference fasta exists.
+            if not os.path.exists(config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"]):
+                logger.info("Could not find the {} file. Please check that the file exists.\n\nExiting.".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"]))
+                stop("MissingReferenceFile")
+        elif requirement == "REF_BED":
+            # Check if the reference bed exists.
+            if not os.path.exists(config["refs"]["ref_dir"] + config["refs_extra"]["relative_hg38_exons_ucsc_bed_path"]):
+                logger.info("Could not find the {} file. Please check that the file exists.\n\nExiting.".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_hg38_exons_ucsc_bed_path"]))
+                stop("MissingReferenceFile")
+        else:
+            logger.info("Error, unexpected requirement for supported method.\n\nExiting.")
+            stop("UnexpectedMethodRequirement")
+
+# Check if the alignment fai exists.
+if config["settings"]["rename_chrs"] and not os.path.exists(config["refs"]["ref_dir"] + config["refs_extra"]["relative_chr_name_conv_path"]):
+    logger.info("Could not find the {} file. Please check that the file exists.\n\nExiting.".format(config["refs"]["ref_dir"] + config["refs_extra"]["relative_chr_name_conv_path"]))
+    stop("MissingChrNameConvFile")
+
+# Check if the alignment fasta index exists.
+if config["settings"]["reheader_vcf"] and not os.path.exists(config["refs"]["alignment_fai"]):
+    logger.info("Could not find the {} file. Please check that the file exists.\n\nExiting.".format(config["refs"]["alignment_fai"]))
+    stop("MissingAlignemntFAIFile")
+
+# Check if the cell tag is correct.
+if "souporcell" in METHODS and config["settings_extra"]["tag_group"] != "CB":
+    logger.info("Souporcell - vartrix doesnt support different cell tags, remake bam with cell tag as CB\n\nExiting.")
+    stop("InvalidCellTag")
+
+full_poolsheet_path = config["outputs"]["output_dir"] + "manual_selection/poolsheet.tsv"
+if not os.path.exists(full_poolsheet_path):
+    if not os.path.exists(os.path.dirname(full_poolsheet_path)):
+        os.makedirs(os.path.dirname(full_poolsheet_path))
+
+    # Loading the input poolsheet.
+    logger.info("Loading the input poolsheet")
+    POOL_DF = pd.read_csv(config["inputs"]["poolsheet_path"], sep="\t", dtype=str)
+    POOL_DF.fillna("NA", inplace=True)
+
+    # Loading in the individual list files.
+    valid_individual_info = True
+    if "Individuals" in required_columns or "N_Individuals" in required_columns:
+        logger.info("Adding the input samplesheet info")
+        if config["inputs"]["samplesheet_path"] is None or not os.path.exists(config["inputs"]["samplesheet_path"]):
+            logger.info("Error, the samplesheet file does not exist. Please check that it exists.\n\nExiting.")
+            stop("InvalidSampleSheetFile")
+
+        samplesheet_df = pd.read_csv(config["inputs"]["samplesheet_path"], sep="\t")
+        if samplesheet_df.columns.tolist() != ["Pool", "N_Individuals"]:
+            logger.info("Error, the samplesheet file does not have a header: 'Pool', 'N_Individuals'.\n\nExiting.")
+            stop("InvalidSampleSheetFile")
+
+        valid_sample_sheet = True
+        samplesheet_pools = set(samplesheet_df["Pool"])
+        for pool in POOL_DF["Pool"]:
+            if pool not in samplesheet_pools:
+                logger.info("Could not find {} in the sample sheet. Please check that it exists.".format(pool))
+                valid_sample_sheet = False
+
+        if samplesheet_df["N_Individuals"].min() < 1:
+            logger.info("Error N_Individuals value is below 1. Please make sure they are all 1 or higher.".format(pool))
+            valid_sample_sheet = False
+
+        if not valid_sample_sheet:
+            logger.info("Error, the sample sheet is invalid.\n\nExiting.")
+            stop("InvalidSampleSheetFile")
+
+        POOL_DF = POOL_DF.merge(samplesheet_df, on="Pool", how="inner")
+        POOL_DF["Individuals"] = "NA"
+        for index, row in POOL_DF.iterrows():
+            individuals_fpath = os.path.join(config["inputs"]["individual_list_dir"], row["Pool"] + ".txt")
+            # Check if the file exists.
+            if not os.path.exists(individuals_fpath):
+                logger.info("Could not find the {} file. Please check that the file exists.".format(individuals_fpath))
+                valid_individual_info = False
+                continue
+
+            individuals = get_individuals_from_individual_file(individuals_fpath)
+
+            if len(individuals) == 0:
+                logger.info("Warning, found no individuals in {} file.".format(individuals_fpath))
+
+            for individual in individuals:
+                if individual not in input_vcf_individuals:
+                    logger.info("Could not find {} in the input VCF(s). Please check that the sample exists.".format(individual))
+                    valid_individual_info = False
+                    continue
+
+            if len(individuals) > row["N_Individuals"]:
+                logger.info("Error, found more individuals in {} file than are expected based on the samplesheet 'N_Individuals' column.".format(individuals_fpath))
+                valid_individual_info = False
+                continue
+
+            POOL_DF.loc[index, "Individuals"] = individuals_fpath
+
+    if not valid_individual_info:
+        logger.info("\n\nExiting.")
+        stop("InvalidIndividualInfo")
+
+    POOL_DF.index = POOL_DF["Pool"]
+    POOL_DF.to_csv(full_poolsheet_path, sep="\t", index=False, header=True)
+    logger.info("Saved 'manual_selection/poolsheet.tsv'.")
+else:
+    logger.info("Loading the full poolsheet")
+    POOL_DF = pd.read_csv(full_poolsheet_path, sep="\t", dtype=str)
+    POOL_DF.fillna("NA", inplace=True)
+    POOL_DF.index = POOL_DF["Pool"]
+
+# Check for missing columns.
+missing_columns = [column for column in required_columns.keys() if not column in POOL_DF.columns]
+if len(missing_columns) > 0:
+    logger.info("\tError, missing columns {} in poolsheet file for the selected methods.".format(", ".join(missing_columns)))
+    stop("InvalidPoolsheet")
+
+# Check if the columns are valid.
+poolsheet_is_valid = True
+for column, (must_be_unique, must_be_numeric, must_exist) in required_columns.items():
+    if must_be_unique and not POOL_DF[column].is_unique:
+        logger.info("\tYour {} column contains duplicates, please make sure all values are unique.".format(column))
+        poolsheet_is_valid = False
+
+    if must_be_numeric:
+        for value in POOL_DF[column]:
+            if not str(value).isnumeric():
+                logger.info("\tYour {} column is not numeric, please make sure there are only numeric values in this column.".format(column))
+                poolsheet_is_valid = False
+                break
+
+    if must_exist:
+        for fpath in POOL_DF[column]:
+            if not os.path.exists(fpath) or not os.path.isfile(fpath):
+                logger.info("\tYour {} column contains a file {} that does not exist, please make sure all input files exist.".format(column, os.path.basename(fpath)))
+                poolsheet_is_valid = False
+                break
+
+if not poolsheet_is_valid:
+    logger.info("\nExiting.")
+    stop("InvalidPoolSheet")
+else:
+    logger.info("\tValid.")
+
+POOLS = POOL_DF["Pool"]
+
+# Check if the individual coupling file is valid and read in the couplings.
+SS_POOLS = POOLS
+ASSIGNMENT_COUPLING = {pool: "NA" for pool in SS_POOLS}
+if config["inputs"]["individual_coupling"] is not None and os.path.exists(config["inputs"]["individual_coupling"]):
+    logger.info("Loading individual coupling file.")
+    ind_coupling_df = pd.read_csv(config["inputs"]["individual_coupling"], sep="\t", dtype=str)
+    if ind_coupling_df.columns.tolist() != ["Pool", "Assignment"]:
+        logger.info("Error, the individual coupling file does not have a header: 'Pool', 'Assignment'.\n\nExiting.")
+        stop("InvalidIndividualCouplingFile")
+
+    valid_individual_coupling = True
+    if "INPUT_VCF" in requirements:
+        for individual in ind_coupling_df["Assignment"]:
+            # TODO: this fails if verifybamid is not run because the VCF samples are not loaded.
+            if individual not in input_vcf_individuals:
+                logger.info("\tCould not find {} in the input VCF(s). Please check that the individual exists.".format(individual))
+                valid_individual_coupling = False
+    else:
+        logger.warning("\tWarning, the individual coupling cannot be checked since the input VCF is not used be the selected methods. Assuming everything is okay.")
+
+    if not valid_individual_coupling:
+        logger.info("Error, the individual coupling is invalid.\n\nExiting.")
+        stop("InvalidIndividualCouplingFile")
+    else:
+        logger.info("\tValid.")
+
+    SS_POOLS = ind_coupling_df["Pool"]
+    ASSIGNMENT_COUPLING.update(dict(zip(ind_coupling_df["Pool"], ind_coupling_df["Assignment"])))
+
+def process_manual_selection_method(name, settings=None, extra_settings=None, settings_dtype=None, max_manual_runs=25):
+    """
+    This function allows for methods to be run with different settings in parallel without overwriting previous results.
+    """
+    if settings is None:
+        settings = []
+    if extra_settings is None:
+        extra_settings = []
+    small_dtype = {"Pool": object}
+    full_dtype = {"Pool": object, "Run": int, "FINISHED": bool, "PASSED": bool}
+    if settings_dtype is not None:
+        small_dtype.update(settings_dtype)
+        full_dtype.update(settings_dtype)
+    all_settings = settings + extra_settings
+
+    if not os.path.isdir(config["outputs"]["output_dir"] + "manual_selection"):
+        os.mkdir(config["outputs"]["output_dir"] + "manual_selection")
+
+    # Step 1. Load the manual selection file and validate the content. Check if all pools have one
+    # run that is finished and passed.
+    man_select_path = config["outputs"]["output_dir"] + "manual_selection/{name}_manual_selection.tsv".format(name=name)
+    if os.path.exists(man_select_path):
+        select_df = pd.read_csv(man_select_path, dtype=full_dtype, sep="\t", header=0, index_col=None)
+        for index, row in select_df.iterrows():
+            settings_path = config["outputs"]["output_dir"] + "{pool}/{name}Run{run}/{name}_settings.json".format(pool=row["Pool"], name=name, run=row["Run"])
+            # Load the settings file and check if it matches.
+            if not os.path.exists(settings_path):
+                # We assume it hasn't started yet.
+                continue
+
+            # TODO: code used in the case of list as input
+            # # Load settings. I need to force the type on the output since we can have lists as parameters but those
+            # # are interpreted as strings since Pandas does not work with lists in a DataFrame.
+            # fh = open(settings_path)
+            # used_settings = json.load(fh)
+            # used_settings_converted  = {}
+            # for parameter in row.index:
+            #     if parameter not in used_settings:
+            #         continue
+            #     value = used_settings[parameter]
+            #     dtype = settings_dtype[parameter]
+            #     if value is None and dtype == float:
+            #         value = np.nan
+            #     used_settings_converted[parameter] = dtype(value)
+            # used_settings = pd.DataFrame(used_settings_converted, index=[0]).astype(settings_dtype)
+            # fh.close()
+
+            # Load settings. I do this with pandas data frames to force the data type again.
+            fh = open(settings_path)
+            used_settings = pd.DataFrame(json.load(fh), index=[0]).astype(settings_dtype)
+            fh.close()
+
+            # Validate settings.
+            for setting in all_settings:
+                if setting not in used_settings or (row[setting] != used_settings.loc[0, setting]):
+                    if math.isnan(row[setting]) and math.isnan(used_settings.loc[0, setting]):
+                        # Edge case where nan == nan is False.
+                        continue
+                    logger.info("\tError, output directory {pool}/{name}Run{run}/{name}_settings.json contains unexpected settings.".format(pool=row["Pool"], name=name, run=row["Run"]))
+                    exit("UnexpectedSetting")
+
+            # Check if the run was completed.
+            results_path = config["outputs"]["output_dir"] + "{pool}/{name}Run{run}/{name}_doublets_singlets.tsv.gz".format(pool=row["Pool"], name=name, run=row["Run"])
+            select_df.loc[index, "FINISHED"] = os.path.exists(results_path)
+
+        if select_df["FINISHED"].all():
+            logger.info("\tAll expected output files are created.")
+        else:
+            logger.info("\tWaiting on expected output files.")
+
+        # Check if each pool has exactly one FINISHED run with a PASSED flag, if so: we are done.
+        passed_select_df = select_df.loc[(select_df["FINISHED"]) & (select_df["PASSED"]), :].copy()
+        if passed_select_df.shape[0] >= len(POOLS) and len(set(POOLS).difference(set(passed_select_df["Pool"].values))) == 0:
+            settings = {row["Pool"]: {} for _, row in select_df.iterrows()}
+            for _, row in select_df.iterrows():
+                settings[row["Pool"]][str(row["Run"])] = row[all_settings].to_dict()
+            return True, [], dict(zip(passed_select_df["Pool"], passed_select_df["Run"])), settings
+
+        if select_df["FINISHED"].all() and (passed_select_df.shape[0] < len(POOLS) or len(set(passed_select_df["Pool"].values).symmetric_difference(set(POOLS))) != 0):
+            logger.info("\tPlease select one accepted run for all pools in the manual_selection file or add additional runs in the manual rerun file.")
+        elif select_df["FINISHED"].all() and passed_select_df.shape[0] > len(POOLS):
+            logger.info("\tPlease select one accepted run for each pool in the manual_selection file or add additional runs in the manual rerun file.")
+        else:
+            pass
+
+        del passed_select_df
+    else:
+        # In case the manual_selection.tsv does not exist or got corrupted we can regenerate it based on the files we can find
+        # in the output directory.
+        select_data = []
+        for pool in POOLS:
+            for run_id in range(1, max_manual_runs):
+                results_path = config["outputs"]["output_dir"] + "{pool}/{name}Run{run}/{name}_doublets_singlets.tsv.gz".format(pool=pool,name=name,run=run_id)
+                settings_path = config["outputs"]["output_dir"] + "{pool}/{name}Run{run}/{name}_settings.json".format(pool=pool,name=name,run=run_id)
+                if os.path.exists(settings_path):
+                    # Load settings.
+                    fh = open(settings_path)
+                    used_settings = json.load(fh)
+                    fh.close()
+
+                    # Validate settings.
+                    valid = True
+                    for setting in all_settings:
+                        if setting not in used_settings.keys():
+                            valid = False
+                            break
+
+                    if not valid:
+                        logger.info("\tError, output directory {pool}/{name}Run{run}/{name}_settings.json contains unexpected settings.".format(pool=pool,name=name,run=run_id))
+                        exit("UnexpectedSetting")
+
+                    result_exists = os.path.exists(results_path)
+                    select_data.append([pool, run_id] + [used_settings[setting] for setting in all_settings] + [result_exists, False])
+        select_df = pd.DataFrame(select_data, columns=["Pool", "Run"] + all_settings + ["FINISHED", "PASSED"]).astype(full_dtype)
+
+    # Step 2a. Generate a new settings data frame based on default settings.
+    # Note that this only includes the pool and the settings (i.e. not Run, FINISHED, PASSED).
+    # Also, by using lists we can generate all possible combinations of default settings. Therefore, make sure that
+    # standard settings (i.e. settings that might change) are in a list while the extra settings (things the user shouldn't really change)
+    # are not lists.
+    default_select_data = []
+    default_settings = [config[name.lower()][name.lower() + "_" + setting] for setting in settings]
+    default_extra_settings = [config[name.lower() + "_extra"][setting] for setting in extra_settings]
+    for pool in POOLS:
+        for ds in list(itertools.product(*default_settings)):
+            default_select_data.append([pool] + list(ds) + default_extra_settings)
+    default_select_df = pd.DataFrame(default_select_data, columns=["Pool"] + all_settings).astype(small_dtype)
+    select_df = select_df.merge(default_select_df, how="outer")
+    del default_select_df
+
+    # Step 2b. Add the manual rerun settings data frame.
+    # Note that this only includes the pool and the settings (i.e. not Run, FINISHED, PASSED)
+    man_rerun_path = config["outputs"]["output_dir"] + "manual_selection/{name}_manual_run.tsv".format(name=name)
+    if os.path.exists(man_rerun_path):
+        man_rerun_df = pd.read_csv(man_rerun_path, dtype=small_dtype, sep="\t", header=0, index_col=None)
+        man_rerun_df = man_rerun_df.loc[man_rerun_df["Pool"] != "Example", :]
+
+        select_df = select_df.merge(man_rerun_df, how="outer")
+        del man_rerun_df
+    else:
+        pd.DataFrame([["Example"] + [config[name.lower() + "_extra"][setting] for setting in all_settings]], columns=["Pool"] + all_settings).to_csv(man_rerun_path, sep="\t", header=True, index=False)
+
+    # Step 3. Assign unique output directories (run IDs) to each run and reformat the data frame.
+    select_df = select_df.loc[:, ["Pool", "Run"] + all_settings + ["FINISHED", "PASSED"]]
+    select_df[["FINISHED", "PASSED"]] = select_df[["FINISHED", "PASSED"]].fillna(False)
+    for index, row in select_df.iterrows():
+        # Fill in the missing Run IDs.
+        if np.isnan(row["Run"]):
+            max_pool_id = select_df.loc[select_df["Pool"] == row["Pool"], "Run"].max()
+            if np.isnan(max_pool_id):
+                max_pool_id = 0
+            select_df.loc[index, "Run"] = max_pool_id + 1
+    select_df = select_df.astype(full_dtype)
+
+    # Step 4. Generate the input files.
+    output_folders = []
+    settings = {row["Pool"]: {} for _, row in select_df.iterrows()}
+    for _, row in select_df.iterrows():
+        output_folders.append(config["outputs"]["output_dir"] + "{pool}/{name}Run{run}/".format(pool=row["Pool"], name=name, run=row["Run"]))
+        settings[row["Pool"]][str(row["Run"])] = row[all_settings].to_dict()
+
+    # Step 5. Safe manual_selection_df.
+    select_df.to_csv(man_select_path, sep="\t", header=True, index=False)
+
+    return False, output_folders, {}, settings
+
+#####################
+######## ALL ########
+#####################
+input_files = []
+
+all_passed = True
+if "popscle" in METHODS:
+    logger.info("Running popscle.")
+    input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT_complete.best", pool=POOLS))
+
+if "souporcell" in METHODS:
+    logger.info("Running souporcell.")
+    input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv.gz", pool=POOLS))
+    input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_summary.tsv.gz", pool=POOLS))
+    input_files.extend(expand(config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt.gz", pool=POOLS))
+
+if config["settings"]["check_sample_swaps"]:
+    logger.info("Running verifyBamID.")
+    man_select_path = config["outputs"]["output_dir"] + "manual_selection/verifyBamID_manual_selection.tsv"
+    if not os.path.exists(man_select_path):
+        logger.info("\tWaiting on expected output files.")
+        input_files.append(man_select_path)
+        all_passed = False
+    else:
+        logger.info("\tAll expected output files are created.")
+        updated_coupling_path = config["outputs"]["output_dir"] + "manual_selection/updated_coupling.txt"
+        if not os.path.exists(updated_coupling_path):
+            updated_coupling_df = pd.Series(ASSIGNMENT_COUPLING).reset_index()
+            updated_coupling_df.columns = ["Pool", "Assignment"]
+
+            manual_coupling_select = pd.read_csv(man_select_path, sep="\t", header=0, index_col=None)
+            if not manual_coupling_select.loc[manual_coupling_select["UPDATE/REMOVE/KEEP"].isin(["UPDATE", "REMOVE", "KEEP"]), "UPDATE/REMOVE/KEEP"].count() == len(manual_coupling_select):
+                logger.info("\tPlease select UPDATE, REMOVE, or KEEP for each pool in the manual_selection file.")
+                all_passed = False
+            else:
+                logger.info("\tApplying manual selection in verifyBamID_manual_selection.tsv to update coupling file.")
+                remove_samples = []
+                if manual_coupling_select["UPDATE/REMOVE/KEEP"].str.contains("REMOVE").any():
+                    logger.info("\tYou indicated to remove the coupling of {:,} individual(s).".format(np.sum(manual_coupling_select["UPDATE/REMOVE/KEEP"] == "REMOVE")))
+                    updated_coupling_df.loc[updated_coupling_df["Pool"].isin(manual_coupling_select.loc[manual_coupling_select["UPDATE/REMOVE/KEEP"] == "REMOVE", "#SEQ_ID"].values.tolist()), "Assignment"] = "NA"
+
+                if manual_coupling_select["UPDATE/REMOVE/KEEP"].str.contains("UPDATE").any():
+                    logger.info("\tYou indicated to update the coupling of {:,} individual(s).".format(np.sum(manual_coupling_select["UPDATE/REMOVE/KEEP"] == "UPDATE")))
+                    for _, row in manual_coupling_select.loc[manual_coupling_select["UPDATE/REMOVE/KEEP"] == "UPDATE", :].iterrows():
+                        updated_coupling_df.loc[updated_coupling_df["Pool"] == row["#SEQ_ID"], "Assignment"] = row["CHIP_ID"]
+
+                updated_coupling_df.to_csv(updated_coupling_path, sep="\t", index=False, header=True)
+                logger.info("\tSaved 'manual_selection/updated_coupling.txt'.")
+        else:
+            updated_coupling_df = pd.read_csv(updated_coupling_path, sep="\t", dtype=str, keep_default_na=False)
+
+        ASSIGNMENT_COUPLING = dict(zip(updated_coupling_df["Pool"], updated_coupling_df["Assignment"]))
+
+def get_output_files(output_folders, filename):
+    files = []
+    for output_folder in output_folders:
+        # skip output folder if it is not part of POOLS.
+        if output_folder.split(os.sep)[-3] not in POOLS:
+            continue
+        files.append(output_folder + filename)
+    return files
+
+if "DoubletFinder" in METHODS:
+    logger.info("Running DoubletFinder.")
+    doubletfinder_passed, doubletfinder_output_folders, DOUBLETFINDER_SELECTION, DOUBLETFINDER_SETTINGS = process_manual_selection_method(
+        name="DoubletFinder",
+        settings=[],
+        extra_settings=["dims", "resolution", "expected_doublet_scaling_factor", "pn"],
+        settings_dtype={
+            "dims": int,
+            "resolution": float,
+            "expected_doublet_scaling_factor": float,
+            "pn": float
+        }
+    )
+
+    if not doubletfinder_passed:
+        input_files.extend(get_output_files(output_folders=doubletfinder_output_folders, filename="DoubletFinder_doublets_singlets.tsv.gz"))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletFinder_pKvBCmetrics.png", pool=POOLS))
+        all_passed = False
+
+if "scDblFinder" in METHODS:
+    logger.info("Running scDblFinder.")
+    scdblfinder_passed, scdblfinder_output_folders, SCDBLFINDER_SELECTION, SCDBLFINDER_SETTINGS = process_manual_selection_method(
+        name="scDblFinder",
+        settings=[],
+        extra_settings=["expected_doublet_scaling_factor", "stdev_doublet_rate", "nfeatures", "dims", "removeUnidentifiable", "include_pcs",
+                        "prop_markers", "score", "processing", "metric", "nrounds", "max_depth", "iter", "multi_sample_mode"],
+        settings_dtype={
+            "expected_doublet_scaling_factor": float,
+            "stdev_doublet_rate": float,
+            "nfeatures": int,
+            "dims": int,
+            "removeUnidentifiable": bool,
+            "include_pcs": int,
+            "prop_markers": int,
+            "score": object,
+            "processing": object,
+            "metric": object,
+            "nrounds": float,
+            "max_depth": int,
+            "iter": int,
+            "multi_sample_mode": object
+        }
+    )
+
+    if not scdblfinder_passed:
+        input_files.extend(get_output_files(output_folders=scdblfinder_output_folders, filename="scDblFinder_doublets_singlets.tsv.gz"))
+        all_passed = False
+
+doubletdetection_passed = False
+if "DoubletDetection" in METHODS:
+    logger.info("Running DoubletDetection.")
+    doubletdetection_passed, doubletdetection_output_folder, DOUBLETDETECTION_SELECTION, DOUBLETDETECTION_SETTINGS = process_manual_selection_method(
+        name="DoubletDetection",
+        settings=["n_iters"],
+        extra_settings=["boost_rate", "n_components", "n_top_var_genes", "replace", "clustering_algorithm",
+                        "pseudocount", "standard_scaling", "p_thresh", "voter_thresh"],
+        settings_dtype={
+            "boost_rate": float,
+            "n_components": int,
+            "n_top_var_genes": int,
+            "replace": bool,
+            "clustering_algorithm": str,
+            "n_iters": int,
+            "pseudocount": float,
+            "standard_scaling": bool,
+            "p_thresh": float,
+            "voter_thresh": float
+        }
+    )
+
+    if not doubletdetection_passed:
+        input_files.extend(get_output_files(output_folders=doubletdetection_output_folder, filename="DoubletDetection_doublets_singlets.tsv.gz"))
+        input_files.extend(expand(config["outputs"]["output_dir"] + "QC_figures/{pool}/DoubletDetection_convergence_and_threshold_test.png", pool=POOLS))
+        all_passed = False
+
+if "scds" in METHODS:
+    logger.info("Running scds.")
+    scds_passed, scds_output_folders, SCDS_SELECTION, SCDS_SETTINGS = process_manual_selection_method(
+        name="scds",
+        settings=[],
+        extra_settings=["bcds_ntop", "bcds_srat", "bcds_nmax", "cxds_ntop", "cxds_binthresh"],
+        settings_dtype={
+            "bcds_ntop": int,
+            "bcds_srat": int,
+            "bcds_nmax": object,
+            "cxds_ntop": int,
+            "cxds_binthresh": int
+        }
+    )
+
+    if not scds_passed:
+        input_files.extend(get_output_files(output_folders=scds_output_folders, filename="scds_doublets_singlets.tsv.gz"))
+        all_passed = False
+
+scrublet_passed = False
+if "Scrublet" in METHODS:
+    logger.info("Running Scrublet.")
+    scrublet_passed, scrublet_output_folders, SCRUBLET_SELECTION, SCRUBLET_SETTINGS = process_manual_selection_method(
+        name="Scrublet",
+        settings=["min_gene_variability_pctl"],
+        extra_settings=["sim_doublet_ratio", "n_neighbors", "expected_doublet_scaling_factor", "stdev_doublet_rate",
+                        "synthetic_doublet_umi_subsampling", "get_doublet_neighbor_parents", "min_counts", "min_cells",
+                        "log_transform", "mean_center", "normalize_variance", "n_prin_comps", "doublet_threshold"],
+        settings_dtype={
+            "sim_doublet_ratio": float,
+            "n_neighbors": float,
+            "expected_doublet_scaling_factor": float,
+            "stdev_doublet_rate": float,
+            "synthetic_doublet_umi_subsampling": float,
+            "get_doublet_neighbor_parents": bool,
+            "min_counts": int,
+            "min_cells": int,
+            "min_gene_variability_pctl": int,
+            "log_transform": bool,
+            "mean_center": bool,
+            "normalize_variance": bool,
+            "n_prin_comps": int,
+            "doublet_threshold": float
+        }
+    )
+
+    if not scrublet_passed:
+        input_files.extend(get_output_files(output_folders=scrublet_output_folders, filename="Scrublet_doublets_singlets.tsv.gz"))
+        all_passed = False
+
+# Note: combine_results rule is usefull if we only use one method.
+if all_passed and len(METHODS) > 1:
+    # End point of rule combine_pools.
+    input_files = [config["outputs"]["output_dir"] + "CombinedResults/combine_pools.done"]
+
+    # End point of rule expected_observed_numbers.
+    input_files.extend([config["outputs"]["output_dir"] + "QC_figures/expected_observed_individuals_classifications.png"])
+
+    # End point of rule plot_doublet.
+    input_files.extend([config["outputs"]["output_dir"] + "QC_figures/doublets_singlets.png"])
+
+
+rule all:
+    input:
+        combine_results = input_files
+
+# Import individual rules
+include: "includes/demultiplexing.smk"
+include: "includes/doublet_detection.smk"
+include: "includes/combine_results.smk"

@@ -1,0 +1,1182 @@
+#!/usr/bin/env python
+import json
+
+#########################################
+############# PREPROCESSING #############
+#########################################
+
+
+# In case of multiple inputs
+rule combine_vcfs_all:
+    input:
+        vcfs = config["inputs"]["vcf"],
+    output:
+        vcf = temp(config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38.vcf.gz"),
+        index = temp(config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38.vcf.gz.csi")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["combine_vcfs_all_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["combine_vcfs_all_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["demultiplex_preprocessing"]["combine_vcfs_all_time"]]
+    threads: config["demultiplex_preprocessing"]["combine_vcfs_all_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"],
+    log: config["outputs"]["output_dir"] + "log/combine_vcfs_all.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} bcftools merge -Oz {input.vcfs} > {output.vcf}
+        singularity exec --bind {params.bind} {params.sif} bcftools index {output.vcf}
+        """
+
+def get_input_vcf(wildcards):
+    if len(config["inputs"]["vcf"]) == 1:
+        return config["inputs"]["vcf"][0]
+    else:
+        return config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38.vcf.gz"
+
+
+# Add all the info fields
+# Filter the Imputed SNP Genotype by Minor Allele Frequency (MAF) and INFO scores
+# TODO: maybe this fails if the input VCF is not gzipped?
+rule filter4demultiplexing:
+    input:
+        vcf = get_input_vcf,
+        bed = config["refs"]["ref_dir"] + config["refs_extra"]["relative_hg38_exons_ucsc_bed_path"]
+    output:
+        info_filled = temp(config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_info_filled.vcf.gz"),
+        qc_filtered = temp(config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_qc_filtered.vcf.gz"),
+        location_filtered = temp(config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_qc_filtered_exons.recode.vcf.gz"),
+        complete_cases = config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_qc_filtered_exons_complete_cases.recode.vcf.gz"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["filter4demultiplexing_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["filter4demultiplexing_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["demultiplex_preprocessing"]["filter4demultiplexing_time"]]
+    threads: config["demultiplex_preprocessing"]["filter4demultiplexing_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        maf = config["demultiplex_preprocessing_extra"]["filter4demultiplexing_maf"],
+        r2 = config["demultiplex_preprocessing_extra"]["filter4demultiplexing_r2"]
+    log: config["outputs"]["output_dir"] + "log/filter4demultiplexing.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} bcftools +fill-tags -Oz --output {output.info_filled} {input.vcf}
+        singularity exec --bind {params.bind} {params.sif} bcftools filter --include 'MAF>={params.maf} & R2>={params.r2}' -Oz --output {output.qc_filtered} {output.info_filled}
+        singularity exec --bind {params.bind} {params.sif} vcftools \
+            --gzvcf {output.qc_filtered} \
+            --max-alleles 2 \
+            --remove-indels \
+            --bed {input.bed} \
+            --recode \
+            --recode-INFO-all \
+            --stdout | gzip -c > {output.location_filtered}
+        singularity exec --bind {params.bind} {params.sif} vcftools \
+            --recode \
+            --recode-INFO-all \
+            --gzvcf {output.location_filtered} \
+            --max-missing 1 \
+            --stdout | gzip -c > {output.complete_cases}
+        """
+
+
+rule rename_chrs:
+    input:
+        vcf = config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_qc_filtered_exons_complete_cases.recode.vcf.gz",
+        fasta = config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"]
+    output:
+        vcf = temp(config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/imputed_hg38_qc_filtered_exons_complete_cases.recode.rename.vcf.gz"),
+        fasta = temp(config["outputs"]["output_dir"] + "ref_genome_QC/assembly.fa"),
+        fai = temp(config["outputs"]["output_dir"] + "ref_genome_QC/assembly.fa.fai")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["rename_chrs_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["rename_chrs_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["demultiplex_preprocessing"]["rename_chrs_time"]]
+    threads: config["demultiplex_preprocessing"]["rename_chrs_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"],
+        script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/rename_fasta_chrs.py",
+        chr_name_conv = config["refs"]["ref_dir"] + config["refs_extra"]["relative_chr_name_conv_path"]
+    log: config["outputs"]["output_dir"] + "log/rename_chrs.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} bcftools annotate \
+            --rename-chrs {params.chr_name_conv} \
+            -Oz \
+             --output {output.vcf} \
+            {input.vcf}
+            
+        singularity exec --bind {params.bind} {params.sif} python {params.script} \
+            --fasta {input.fasta} \
+            --chr_name_conv {params.chr_name_conv} \
+            --ignore_missing_conv \
+            --out {output.fasta}
+        singularity exec --bind {params.bind} {params.sif} samtools faidx {output.fasta}
+        """
+
+
+def get_reheader_vcf(wildcards):
+    if config["settings"]["rename_chrs"]:
+        return config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/imputed_hg38_qc_filtered_exons_complete_cases.recode.rename.vcf.gz"
+    else:
+        return config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_qc_filtered_exons_complete_cases.recode.vcf.gz"
+
+
+rule reheader_vcf:
+    input:
+        vcf = get_reheader_vcf,
+        fai = config["refs"]["alignment_fai"]
+    output:
+        ori_header = config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/reheader/imputed_hg38_qc_filtered_exons_complete_cases.recode.old.hr",
+        new_header = config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/reheader/imputed_hg38_qc_filtered_exons_complete_cases.recode.new.hr",
+        vcf = temp(config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/imputed_hg38_qc_filtered_exons_complete_cases.recode.reheader.vcf.gz")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["reheader_vcf_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["reheader_vcf_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["demultiplex_preprocessing"]["reheader_vcf_time"]]
+    threads: config["demultiplex_preprocessing"]["reheader_vcf_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"],
+        script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/reheader_vcf.py",
+        out = config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/reheader/imputed_hg38_qc_filtered_exons_complete_cases.recode"
+    log: config["outputs"]["output_dir"] + "log/reheader_vcf.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} python {params.script} \
+            --vcf {input.vcf} \
+            --fai {input.fai} \
+            --out {params.out}
+            
+        singularity exec --bind {params.bind} {params.sif} bcftools reheader \
+            --header {output.new_header} \
+            --output {output.vcf} \
+            {input.vcf}
+        """
+
+
+def get_complete_cases_vcf(wildcards):
+    if config["settings"]["reheader_vcf"]:
+        return config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/imputed_hg38_qc_filtered_exons_complete_cases.recode.reheader.vcf.gz"
+    elif config["settings"]["rename_chrs"]:
+        return config["outputs"]["output_dir"] + "genotypes/vcf_pre_processed/imputed_hg38_qc_filtered_exons_complete_cases.recode.rename.vcf.gz"
+    else:
+        return config["outputs"]["output_dir"] + "genotypes/vcf_all_merged/imputed_hg38_qc_filtered_exons_complete_cases.recode.vcf.gz"
+
+
+rule sort4demultiplexing:
+    input:
+        complete_cases = get_complete_cases_vcf
+    output:
+        complete_cases_sorted = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz",
+        complete_cases_sorted_index = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz.tbi"
+    resources:
+        java_mem_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["sort4demultiplexing_memory"] * config["demultiplex_preprocessing"]["sort4demultiplexing_threads"] - config["settings_extra"]["java_memory_buffer"],
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["sort4demultiplexing_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["sort4demultiplexing_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["demultiplex_preprocessing"]["sort4demultiplexing_time"]]
+    threads: config["demultiplex_preprocessing"]["sort4demultiplexing_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"],
+        jar = "/opt/picard-3.1.0/build/libs/picard.jar"
+    log: config["outputs"]["output_dir"] + "log/sort4demultiplexing.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} java -Xmx{resources.java_mem_gb}g -Xms{resources.java_mem_gb}g -jar {params.jar} SortVcf \
+            I={input.complete_cases} \
+            O={output.complete_cases_sorted}
+        
+        if [[ "$(singularity exec --bind {params.bind} {params.sif} zcat {output.complete_cases_sorted} | grep -v "^#" | wc -l)" -eq "0" ]]; 
+        then
+           echo "Error, total number of SNPs in the output VCF is 0"
+           rm {output.complete_cases_sorted}
+        fi
+        if [[ "$(singularity exec --bind {params.bind} {params.sif} bcftools query -l {output.complete_cases_sorted} | wc -l)" -eq "0" ]]; 
+        then
+           echo "Error, total number of samples in the output VCF is 0"
+           rm {output.complete_cases_sorted}
+        fi
+        """
+
+
+def get_reference_fasta(wildcards):
+    if config["settings"]["rename_chrs"]:
+        return config["outputs"]["output_dir"] + "ref_genome_QC/assembly.fa"
+    else:
+        return config["refs"]["ref_dir"] + config["refs_extra"]["relative_fasta_path"]
+
+def get_reference_fasta_index(wildcards):
+    return get_reference_fasta(wildcards) + ".fai"
+
+
+# samtools view --tag-file does not accept gzipped text file.
+# I added a check for the number of reads in the output BAM file since other programs will continue
+# without an error even if it is empty.
+rule filter_bam:
+    input:
+        vcf = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz",
+        barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
+        bam = lambda wildcards: POOL_DF.loc[wildcards.pool, "Bam"]
+    output:
+        bed = temp(config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bed"),
+        bam = temp(config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam"),
+        bai = temp(config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam.bai")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["filter_bam_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["demultiplex_preprocessing"]["filter_bam_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["demultiplex_preprocessing"]["filter_bam_time"]]
+    threads: config["demultiplex_preprocessing"]["filter_bam_threads"]
+    params:
+        out_dir = config["outputs"]["output_dir"] + "{pool}/bam/",
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        tag_group = config["settings_extra"]["tag_group"],
+        tag_file = lambda wildcards, input: "<(zcat {})".format(input.barcodes) if input.barcodes.endswith(".gz") else input.barcodes
+    log: config["outputs"]["output_dir"] + "log/filter_bam.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} bedtools merge -i {input.vcf} > {output.bed}
+        singularity exec --bind {params.bind} {params.sif} samtools view \
+            --target-file {output.bed} \
+            --tag-file {params.tag_group}:{params.tag_file} \
+            --output {output.bam}##idx##{output.bai} \
+            --write-index \
+            --threads {threads} \
+            {input.bam}
+
+        if [[ "$(singularity exec --bind {params.bind} {params.sif} samtools view -c {output.bam})" -eq "0" ]]; 
+        then
+           echo "Error, total number of reads in the output bam is 0"
+           rm {output.bam}
+           rm {output.bai}
+        fi
+        """
+
+
+###################################
+############# POPSCLE #############
+###################################
+
+
+rule popscle_pileup:
+    input:
+        bam = config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam",
+        sm_list = lambda wildcards: POOL_DF.loc[wildcards.pool, "Individuals"],
+        vcf = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz",
+        barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
+    output:
+        pileup = temp(config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup.var.gz")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_pileup_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_pileup_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["popscle"]["popscle_pileup_time"]]
+    threads: config["popscle"]["popscle_pileup_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        tag_group = config["settings_extra"]["tag_group"],
+        tag_UMI = config["settings_extra"]["tag_UMI"],
+        exclude_flag = config["popscle_extra"]["exclude_flag"],
+        out = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup",
+        sam_verbose = config["popscle_extra"]["sam_verbose"],
+        vcf_verbose = config["popscle_extra"]["vcf_verbose"],
+        skip_umi = "--skip-umi" if config["popscle_extra"]["skip_umi"] else "",
+        cap_bq = config["popscle_extra"]["cap_bq"],
+        min_bq = config["popscle_extra"]["min_bq"],
+        min_mq = config["popscle_extra"]["min_mq"],
+        min_td = config["popscle_extra"]["min_td"],
+        excl_flag = config["popscle_extra"]["excl_flag"],
+        min_total = config["popscle_extra"]["min_total"],
+        min_uniq = config["popscle_extra"]["min_uniq"],
+        min_snp = config["popscle_extra"]["min_snp"],
+    log: config["outputs"]["output_dir"] + "log/popscle_pileup.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} popscle dsc-pileup \
+            --sam {input.bam} \
+            --tag-group {params.tag_group} \
+            --tag-UMI {params.tag_UMI} \
+            --exclude-flag {params.exclude_flag} \
+            --vcf {input.vcf} \
+            --sm-list {input.sm_list} \
+            --out {params.out} \
+            --sam-verbose {params.sam_verbose} \
+            --vcf-verbose {params.vcf_verbose} \
+            {params.skip_umi} \
+            --cap-BQ {params.cap_bq} \
+            --min-BQ {params.min_bq} \
+            --min-MQ {params.min_mq} \
+            --min-TD {params.min_td} \
+            --excl-flag {params.excl_flag} \
+            --group-list {input.barcodes} \
+            --min-total {params.min_total} \
+            --min-uniq {params.min_uniq} \
+            --min-snp {params.min_snp}
+        """
+
+
+rule popscle_demuxlet:
+    input:
+        pileup = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup.var.gz",
+        vcf = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz",
+        group_list = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
+        sm_list = lambda wildcards: POOL_DF.loc[wildcards.pool, "Individuals"]
+    output:
+        out = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_demuxlet_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_demuxlet_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["popscle"]["popscle_demuxlet_time"]]
+    threads: config["popscle"]["popscle_demuxlet_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        plp = config["outputs"]["output_dir"] + "{pool}/popscle/pileup/pileup",
+        field = config["settings_extra"]["genotype_field"],
+        geno_error_offset = config["popscle_extra"]["geno_error_offset"],
+        geno_error_coeff = config["popscle_extra"]["geno_error_coeff"],
+        r2_info = config["popscle_extra"]["r2_info"],
+        min_mac = config["popscle_extra"]["min_mac"],
+        min_callrate = config["popscle_extra"]["min_callrate"],
+        out = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT",
+        alpha = lambda wildcards: "" if config["popscle_extra"]["alpha"] is None else "--alpha " + str(config["popscle_extra"]["alpha"]),
+        doublet_prior = config["popscle_extra"]["doublet_prior"],
+        sam_verbose = config["popscle_extra"]["sam_verbose"],
+        vcf_verbose = config["popscle_extra"]["vcf_verbose"],
+        cap_bq = config["popscle_extra"]["cap_bq"],
+        min_bq = config["popscle_extra"]["min_bq"],
+        min_mq = config["popscle_extra"]["min_mq"],
+        min_td = config["popscle_extra"]["min_td"],
+        excl_flag = config["popscle_extra"]["excl_flag"],
+        min_total = config["popscle_extra"]["min_total"],
+        min_umi = config["popscle_extra"]["min_umi"],
+        min_snp = config["popscle_extra"]["min_snp"]
+    log: config["outputs"]["output_dir"] + "log/popscle_demuxlet.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} popscle demuxlet \
+            --plp {params.plp} \
+            --vcf {input.vcf} \
+            --field {params.field} \
+            --geno-error-offset {params.geno_error_offset} \
+            --geno-error-coeff {params.geno_error_coeff} \
+            --r2-info {params.r2_info} \
+            --min-mac {params.min_mac} \
+            --min-callrate {params.min_callrate} \
+            --sm-list {input.sm_list} \
+            --out {params.out} \
+            {params.alpha} \
+            --doublet-prior {params.doublet_prior} \
+            --sam-verbose {params.sam_verbose} \
+            --vcf-verbose {params.vcf_verbose} \
+            --cap-BQ {params.cap_bq} \
+            --min-BQ {params.min_bq} \
+            --min-MQ {params.min_mq} \
+            --min-TD {params.min_td} \
+            --excl-flag {params.excl_flag} \
+            --group-list {input.group_list} \
+            --min-total {params.min_total} \
+            --min-umi {params.min_umi} \
+            --min-snp {params.min_snp}
+        """
+
+
+rule popscle_add_missing:
+    input:
+        best = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT.best",
+        barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"]
+    output:
+        out = config["outputs"]["output_dir"] + "{pool}/popscle/demuxlet/demuxletOUT_complete.best"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_add_missing_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["popscle"]["popscle_add_missing_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["popscle"]["popscle_add_missing_time"]]
+    threads: config["popscle"]["popscle_add_missing_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/popscle_add_missing.py",
+    log: config["outputs"]["output_dir"] + "log/popscle_add_missing.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} python {params.script} \
+            --best {input.best} \
+            --barcodes {input.barcodes} \
+            --out {output.out}
+        """
+
+
+####################################
+############ SOUPORCELL ############
+####################################
+# Adapted from: https://github.com/wheaton5/souporcell/blob/master/souporcell_pipeline.py
+# Author: Martijn Vochteloo
+# Note: some functionality from the original souporcell_pipeline is not implemented if it isn't used by us.
+
+# To prevent AmbiguousRuleException between 'souporcell_freebayes' and 'souporcell_freebayes_combine'
+wildcard_constraints:
+    index="\d+"
+
+
+rule souporcell_preflights:
+    input:
+        bam = config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam",
+        barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
+        fasta = get_reference_fasta,
+        common_variants = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz"
+    output:
+        settings = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_settings.json"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_preflights_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_preflights_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_preflights_time"]]
+    threads: config["souporcell"]["souporcell_preflights_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"],
+        python = "/opt/conda/envs/souporcell/bin/python3.6",
+        script = "/opt/souporcell/souporcell_preflights.py",
+        n_remap_splits = config["souporcell"]["souporcell_remap_splits"],
+        n_freebayes_splits = config["souporcell"]["souporcell_freebayes_splits"],
+        out_dir = config["outputs"]["output_dir"] + "{pool}/souporcell/",
+        clusters = lambda wildcards: POOL_DF.loc[wildcards.pool, "N_Individuals"],
+        ploidy = config["souporcell_extra"]["ploidy"],
+        min_alt = config["souporcell_extra"]["min_alt"],
+        min_ref = config["souporcell_extra"]["min_ref"],
+        max_loci = config["souporcell_extra"]["max_loci"],
+        restarts = config["souporcell_extra"]["restarts"],
+        no_umi = config["souporcell_extra"]["no_umi"],
+        umi_tag = config["souporcell_extra"]["umi_tag"],
+        cell_tag = config["settings_extra"]["tag_group"]
+    log: config["outputs"]["output_dir"] + "log/souporcell_preflights.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} {params.python} {params.script} \
+            --bam {input.bam} \
+            --barcodes {input.barcodes} \
+            --fasta {input.fasta} \
+            --n_remap_splits {params.n_remap_splits} \
+            --n_freebayes_splits {params.n_freebayes_splits} \
+            --out_dir {params.out_dir} \
+            --clusters {params.clusters} \
+            --ploidy {params.ploidy} \
+            --min_alt {params.min_alt} \
+            --min_ref {params.min_ref} \
+            --max_loci {params.max_loci} \
+            --restarts {params.restarts} \
+            --common_variants {input.common_variants} \
+            --no_umi {params.no_umi} \
+            --umi_tag {params.umi_tag} \
+            --cell_tag {params.cell_tag}
+        """
+
+
+rule souporcell_define_remap_bam_regions:
+    input:
+        settings = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_settings.json",
+        bam = config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam"
+    output:
+        bam_regions = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/bam_remap_regions.json")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_get_bam_regions_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_get_bam_regions_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_get_bam_regions_time"]]
+    threads: config["souporcell"]["souporcell_get_bam_regions_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"],
+        python = "/opt/conda/envs/souporcell/bin/python3.6",
+        script = "/opt/souporcell/get_bam_regions.py",
+        n_splits = config["souporcell"]["souporcell_remap_splits"]
+    log: config["outputs"]["output_dir"] + "log/souporcell_define_remap_bam_regions.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} {params.python} {params.script} \
+            --bam {input.bam} \
+            --n_splits {params.n_splits} \
+            --out {output.bam_regions}
+        """
+
+
+def get_remap_bam_region_info(wildcards):
+    fh = open(config["outputs"]["output_dir"] + "{pool}/souporcell/bam_remap_regions.json".format(pool=wildcards.pool))
+    regions = json.load(fh)
+    fh.close()
+    combined_regions = []
+    for region in regions[wildcards.index]:
+        combined_regions.append('"{}:{}:{}"'.format(region["chr"], region["start"], region["stop"]))
+    return " ".join(combined_regions)
+
+
+rule souporcell_make_fastqs:
+    input:
+        bam = config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam",
+        bam_index = config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam.bai",
+        barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool,"Barcodes"],
+        fasta = get_reference_fasta,
+        fasta_index = get_reference_fasta_index,
+        region = config["outputs"]["output_dir"] + "{pool}/souporcell/bam_remap_regions.json"
+    output:
+        tmpfq = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/tmp_{index}.fq.gz")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_make_fastqs_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_make_fastqs_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_make_fastqs_time"]]
+    threads: config["souporcell"]["souporcell_make_fastqs_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        python = "/opt/conda/envs/souporcell/bin/python3.6",
+        script = "/opt/souporcell/renamer.py",
+        region_array = get_remap_bam_region_info,
+        no_umi = config["souporcell_extra"]["no_umi"],
+        umi_tag = config["souporcell_extra"]["umi_tag"],
+        cell_tag = config["settings_extra"]["tag_group"]
+    log: config["outputs"]["output_dir"] + "log/souporcell_make_fastqs.{pool}.{index}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} echo -n "" > {output.tmpfq}
+        for region in {params.region_array}
+        do
+            IFS=':' read -ra region_array <<< "$region"
+            singularity exec --bind {params.bind} {params.sif} echo ${{region_array[0]}} ${{region_array[1]}} ${{region_array[2]}}
+            singularity exec --bind {params.bind} {params.sif} {params.python} {params.script} \
+                --bam {input.bam} \
+                --barcodes {input.barcodes} \
+                --chrom ${{region_array[0]}} \
+                --start ${{region_array[1]}} \
+                --end ${{region_array[2]}} \
+                --no_umi {params.no_umi} \
+                --umi_tag {params.umi_tag} \
+                --cell_tag {params.cell_tag} | gzip -c >> {output.tmpfq}
+        done
+        """
+
+# Did not implement HISAT2 method here but it is not part of the image we use anyway.
+# Arguments:
+# -a = Generate CIGAR and output alignments in the SAM format. Minimap2 outputs in PAF by default.
+# -x splice = Long-read spliced alignment (-k15 -w5 --splice -g2k -G200k -A1 -B2 -O2,32 -E1,0 -b0 -C9 -z200 -ub --junc-bonus=9 --cap-sw-mem=0 --splice-flank=yes). In the splice mode, 1) long deletions are taken as introns and represented as the ‘N’ CIGAR operator; 2) long insertions are disabled; 3) deletion and insertion gap costs are different during chaining; 4) the computation of the ‘ms’ tag ignores introns to demote hits to pseudogenes.
+# -t = Number of threads [3]. Minimap2 uses at most three threads when indexing target sequences, and uses up to INT+1 threads when mapping (the extra thread is for I/O, which is frequently idle and takes little CPU time).
+# -G 50k = Stop chain enlongation if there are no minimizers within NUM-bp [10k].
+# -k 21 = Minimizer k-mer length [15]
+# -w 11 = Minimizer window size [2/3 of k-mer length]. A minimizer is the smallest k-mer in a window of w consecutive k-mers.
+# --sr = Enable short-read alignment heuristics. In the short-read mode, minimap2 applies a second round of chaining with a higher minimizer occurrence threshold if no good chain is found. In addition, minimap2 attempts to patch gaps between seeds with ungapped alignment.
+# -A 2 = Matching score [2]
+# -B 8 = Mismatching penalty [4]
+# -O 12,32 = If query sequence name/length are identical to the target name/length, ignore diagonal anchors. This option also reduces DP-based extension along the diagonal.
+# -E 2,1 = Gap extension penalty [2,1]. A gap of length k costs min{O1+k*E1,O2+k*E2}. In the splice mode, the second gap penalties are not used.
+# -r 200 = Bandwidth for chaining and base alignment [500,20k]. NUM1 is used for initial chaining and alignment extension; NUM2 for RMQ-based re-chaining and closing gaps in alignments.
+# -p .5 = Minimal secondary-to-primary score ratio to output secondary mappings [0.8]. Between two chains overlaping over half of the shorter chain (controlled by -M), the chain with a lower score is secondary to the chain with a higher score. If the ratio of the scores is below FLOAT, the secondary chain will not be outputted or extended with DP alignment later. This option has no effect when -X is applied.
+# -N 20 = Output at most INT secondary alignments [5]. This option has no effect when -X is applied.
+# -f 1000,5000 = If fraction, ignore top FLOAT fraction of most frequent minimizers [0.0002]. If integer, ignore minimizers occuring more than INT1 times. INT2 is only effective in the --sr or -xsr mode, which sets the threshold for a second round of seeding.
+# -n 2 = Discard chains consisting of <INT number of minimizers [3]
+# -m 20 = Discard chains with chaining score <INT [40]. Chaining score equals the approximate number of matching bases minus a concave gap penalty. It is computed with dynamic programming.
+# -s 40 = Minimal peak DP alignment score to output [40]. The peak score is computed from the final CIGAR. It is the score of the max scoring segment in the alignment and may be different from the total alignment score.
+# -g 2000 = Stop chain enlongation if there are no minimizers within NUM-bp [10k].
+# -2 = Use two I/O threads during mapping. By default, minimap2 uses one I/O thread. When I/O is slow (e.g. piping to gzip, or reading from a slow pipe), the I/O thread may become the bottleneck. Apply this option to use one thread for input and another thread for output, at the cost of increased peak RAM.
+# -K 50m = Number of bases loaded into memory to process in a mini-batch [500M]. Similar to option -I, K/M/G/k/m/g suffix is accepted. A large NUM helps load balancing in the multi-threading mode, at the cost of increased memory.
+# --secondary=no = Whether to output secondary alignments [yes]
+# -o = Output alignments to FILE [stdout].
+# Note: I use minimap2 v2.26, the same version as the authors of the souporcell pipeline, while the old sc-eQTLgen
+# used v2.7. The new version gives slightly different results but since this is the version that was intended for souporcell I assume
+# it is fine.
+rule souporcell_remap:
+    input:
+        fasta = get_reference_fasta,
+        tmpfq = config["outputs"]["output_dir"] + "{pool}/souporcell/tmp_{index}.fq.gz",
+    output:
+        samfile = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tmp_{index}.sam")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_remap_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_remap_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_remap_time"]]
+    threads: config["souporcell"]["souporcell_remap_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"]
+    log: config["outputs"]["output_dir"] + "log/souporcell_remap.{pool}.{index}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} minimap2 \
+            -ax splice -t {threads} -G50k -k 21 -w 11 --sr -A2 -B8 -O12,32 \
+            -E2,1 -r200 -p.5 -N20 -f1000,5000 -n2 -m20 -s40 -g2000 -2K50m --secondary=no \
+            {input.fasta} {input.tmpfq} -o {output.samfile}
+        """
+
+
+rule souporcell_retag:
+    input:
+        minimap_tmp_files = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tmp_{index}.sam",
+    output:
+        retag_bam = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_retag_tmp_{index}.bam"),
+        retag_sorted_bam = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_retag_sorted_tmp_{index}.bam")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_retag_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_retag_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_retag_time"]]
+    threads: config["souporcell"]["souporcell_retag_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        python = "/opt/conda/envs/souporcell/bin/python3.6",
+        script = "/opt/souporcell/retag.py",
+        no_umi = config["souporcell_extra"]["no_umi"],
+        umi_tag = config["souporcell_extra"]["umi_tag"],
+        cell_tag = config["settings_extra"]["tag_group"]
+    log: config["outputs"]["output_dir"] + "log/souporcell_retag.{pool}.{index}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} {params.python} {params.script} \
+            --sam {input.minimap_tmp_files} \
+            --out {output.retag_bam} \
+            --no_umi {params.no_umi} \
+            --umi_tag {params.umi_tag} \
+            --cell_tag {params.cell_tag}
+
+        singularity exec --bind {params.bind} {params.sif} samtools sort {output.retag_bam} -o {output.retag_sorted_bam}
+        """
+
+
+rule souporcell_samtools_merge:
+    input:
+        retag_sorted_bams = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_retag_sorted_tmp_{index}.bam", index=range(config["souporcell"]["souporcell_remap_splits"]), allow_missing=True)
+    output:
+        final_bam = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam"),
+        final_index = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam.bai")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_samtools_merge_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_samtools_merge_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_samtools_merge_time"]]
+    threads: config["souporcell"]["souporcell_samtools_merge_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"]
+    log: config["outputs"]["output_dir"] + "log/souporcell_samtools_merge.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} samtools merge {output.final_bam} {input.retag_sorted_bams}
+        singularity exec --bind {params.bind} {params.sif} samtools index {output.final_bam}
+        
+        if [[ "$(singularity exec --bind {params.bind} {params.sif} samtools view -c {output.final_bam})" -eq "0" ]]; 
+        then
+           echo "Error, total number of reads in the output bam is 0"
+           rm {output.final_bam}
+           rm {output.final_index}
+        fi
+        """
+
+
+def get_souporcell_bam(wildcards):
+    if config["souporcell_extra"]["skip_remap"]:
+        return config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam"
+    else:
+        return config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam"
+
+
+def get_souporcell_bam_index(wildcards):
+    return get_souporcell_bam(wildcards) + ".bai"
+
+
+rule souporcell_define_bam_regions:
+    input:
+        settings = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_settings.json",
+        bam = get_souporcell_bam,
+    output:
+        bam_regions = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/bam_regions.json")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_get_bam_regions_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_get_bam_regions_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_get_bam_regions_time"]]
+    threads: config["souporcell"]["souporcell_get_bam_regions_threads"]
+    params:
+        sif = config["inputs"]["singularity_image"],
+        bind = config["inputs"]["bind_path"],
+        python = "/opt/conda/envs/souporcell/bin/python3.6",
+        script = "/opt/souporcell/get_bam_regions.py",
+        n_splits = config["souporcell"]["souporcell_freebayes_splits"]
+    log: config["outputs"]["output_dir"] + "log/souporcell_define_bam_regions.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} {params.python} {params.script} \
+            --bam {input.bam} \
+            --n_splits {params.n_splits} \
+            --out {output.bam_regions}
+        """
+
+
+def get_bam_region_info(wildcards):
+    fh = open(config["outputs"]["output_dir"] + "{pool}/souporcell/bam_regions.json".format(pool=wildcards.pool))
+    regions = json.load(fh)
+    fh.close()
+    combined_regions = []
+    for region in regions[wildcards.index]:
+        combined_regions.append("{}:{}-{}".format(region["chr"], region["start"], region["stop"]))
+    return " ".join(combined_regions)
+
+
+# Note, did not implement option where common_variants == None
+# Touch the index file since I got some 'The index file is older than the data file:' errors.
+# Also, gives slightly different results when using old vs new image, syntax is correct
+# IMPORTANT: the old version of samtools depth defaults to a maximum coverage depth of 8000 while the newest version
+# has no limit.
+rule souporcell_freebayes:
+    input:
+        bam = get_souporcell_bam,
+        index = get_souporcell_bam_index,
+        fasta = get_reference_fasta,
+        region = config["outputs"]["output_dir"] + "{pool}/souporcell/bam_regions.json"
+    output:
+        bed = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/depth_{index}.bed"),
+        merged_bed = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/depth_{index}_merged.bed")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_freebayes_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_freebayes_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_freebayes_time"]]
+    threads: config["souporcell"]["souporcell_freebayes_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        region_args = get_bam_region_info,
+        min_cov = config["souporcell_extra"]["min_ref"] + config["souporcell_extra"]["min_alt"],
+        max_cov = 100000
+    log: config["outputs"]["output_dir"] + "log/souporcell_freebayes.{pool}.{index}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} touch -c {input.index}
+        
+        singularity exec --bind {params.bind} {params.sif} echo "{params.region_args}"
+        singularity exec --bind {params.bind} {params.sif} samtools view -hb {input.bam} {params.region_args} | \
+            singularity exec --bind {params.bind} {params.sif} samtools depth - | \
+            singularity exec --bind {params.bind} {params.sif} awk '{{ if ($3 >= {params.min_cov} && $3 < {params.max_cov}) {{ print $1 "\t" $2 "\t" $2+1 "\t" $3 }} }}' > {output.bed}
+
+        singularity exec --bind {params.bind} {params.sif} bedtools merge -i {output.bed} > {output.merged_bed}
+        """
+
+
+rule souporcell_freebayes_combine:
+    input:
+        bed = lambda wildcards: expand(config["outputs"]["output_dir"] + "{pool}/souporcell/depth_{index}_merged.bed", index=range(config["souporcell"]["souporcell_freebayes_splits"]), allow_missing=True)
+    output:
+        bed = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/depth_merged.bed")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_freebayes_combine_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_freebayes_combine_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_freebayes_combine_time"]]
+    threads: config["souporcell"]["souporcell_freebayes_combine_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+    log: config["outputs"]["output_dir"] + "log/souporcell_freebayes_combine.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} cat {input.bed} > {output.bed}
+        """
+
+
+rule souporcell_common_variants:
+    input:
+        bed = config["outputs"]["output_dir"] + "{pool}/souporcell/depth_merged.bed",
+        common_variants = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz"
+    output:
+        final_vcf = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/common_variants_covered.vcf.gz")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_common_variants_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_common_variants_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_common_variants_time"]]
+    threads: config["souporcell"]["souporcell_common_variants_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+    log: config["outputs"]["output_dir"] + "log/souporcell_common_variants.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} zcat {input.common_variants} | grep "#" | gzip -c > {output.final_vcf}
+        singularity exec --bind {params.bind} {params.sif} bedtools intersect \
+            -wa \
+            -a {input.common_variants} \
+            -b {input.bed} | gzip -c >> {output.final_vcf}
+            
+        if [[ "$(singularity exec --bind {params.bind} {params.sif} zcat {output.final_vcf} | grep -v "^#" | wc -l)" -eq "0" ]]; 
+        then
+           echo "Error, total number of SNPs in the output VCF is 0"
+           rm {output.final_vcf}
+        fi
+        """
+
+
+# NOTE: cell_tag: DOES NOT WORK, vartrix doesnt support this! https://github.com/wheaton5/souporcell/commit/6872d8803eebd5fd85d16370036aeb2a69942b22
+# Skipped parameters:
+# --out_variants
+# --out_barcodes
+# --primary_alignments
+# --no_duplicates
+rule souporcell_vartrix:
+    input:
+        final_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/common_variants_covered.vcf.gz",
+        final_bam = get_souporcell_bam,
+        final_index = get_souporcell_bam_index,
+        barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"],
+        fasta = get_reference_fasta
+    output:
+        ref_mtx = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/ref.mtx"),
+        alt_mtx = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/alt.mtx")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_vartrix_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_vartrix_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_vartrix_time"]]
+    threads: config["souporcell"]["souporcell_vartrix_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        padding = 100,
+        scoring_method = "coverage",
+        log_level = "error",
+        mapq = 30, # Default: 0
+        umi = "--umi" if not config["souporcell_extra"]["no_umi"] and config["souporcell_extra"]["umi_tag"] == "UB" else "",
+        bam_tag = "CB",
+        valid_chars = "ATGCatgc"
+    log: config["outputs"]["output_dir"] + "log/souporcell_vartrix.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} vartrix \
+            --vcf {input.final_vcf} \
+            --bam {input.final_bam} \
+            --fasta {input.fasta} \
+            --cell-barcodes {input.barcodes} \
+            --out-matrix {output.alt_mtx} \
+            --padding {params.padding} \
+            --scoring-method {params.scoring_method} \
+            --ref-matrix {output.ref_mtx} \
+            --log-level {params.log_level} \
+            --threads {threads} \
+            --mapq {params.mapq} \
+            {params.umi} \
+            --bam-tag {params.bam_tag} \
+            --valid-chars {params.valid_chars}
+        """
+
+
+rule souporcell_souporcell:
+    input:
+        ref_mtx = config["outputs"]["output_dir"] + "{pool}/souporcell/ref.mtx",
+        alt_mtx = config["outputs"]["output_dir"] + "{pool}/souporcell/alt.mtx",
+        barcodes = lambda wildcards: POOL_DF.loc[wildcards.pool, "Barcodes"]
+    output:
+        cluster_file = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/clusters_tmp.tsv.gz")
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_souporcell_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_souporcell_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_souporcell_time"]]
+    threads: config["souporcell"]["souporcell_souporcell_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        clusters = lambda wildcards: POOL_DF.loc[wildcards.pool, "N_Individuals"],
+        max_loci = config["souporcell_extra"]["max_loci"],
+        min_alt = config["souporcell_extra"]["min_alt"],
+        min_ref = config["souporcell_extra"]["min_ref"],
+        output_dir = config["outputs"]["output_dir"] + "{pool}/souporcell",
+        restarts = config["souporcell_extra"]["restarts"],
+        cluster_file = config["outputs"]["output_dir"] + "{pool}/souporcell/clusters_tmp.tsv",
+    log: config["outputs"]["output_dir"] + "log/souporcell_souporcell.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} souporcell \
+            --alt_matrix {input.alt_mtx} \
+            --ref_matrix {input.ref_mtx} \
+            --barcodes {input.barcodes} \
+            --num_clusters {params.clusters} \
+            --min_alt {params.min_alt} \
+            --min_ref {params.min_ref} \
+            --threads {threads} \
+            --restarts {params.restarts} 2> {log} 1> {params.cluster_file}
+        singularity exec --bind {params.bind} {params.sif} gzip {params.cluster_file}
+        """
+
+
+# Does not accept gzipped cluster_files.
+rule souporcell_doublets:
+    input:
+        ref_mtx = config["outputs"]["output_dir"] + "{pool}/souporcell/ref.mtx",
+        alt_mtx = config["outputs"]["output_dir"] + "{pool}/souporcell/alt.mtx",
+        cluster_file = config["outputs"]["output_dir"] + "{pool}/souporcell/clusters_tmp.tsv.gz"
+    output:
+        cluster_file = temp(config["outputs"]["output_dir"] + "{pool}/souporcell/clusters_tmp.tsv"),
+        doublet_file = config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv.gz"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_doublets_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_doublets_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_doublets_time"]]
+    threads: config["souporcell"]["souporcell_doublets_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        doublet_prior = 0.5,
+        doublet_threshold = 0.9,
+        singlet_threshold = 0.9,
+        doublet_file = config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv",
+    log: config["outputs"]["output_dir"] + "log/souporcell_doublets.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} gunzip -c {input.cluster_file} > {output.cluster_file}
+        singularity exec --bind {params.bind} {params.sif} troublet \
+            --alts {input.alt_mtx} \
+            --refs {input.ref_mtx} \
+            --clusters {output.cluster_file} \
+            --doublet_prior {params.doublet_prior} \
+            --doublet_threshold {params.doublet_threshold} \
+            --singlet_threshold {params.singlet_threshold} 2> {log} 1> {params.doublet_file}
+        singularity exec --bind {params.bind} {params.sif} gzip {params.doublet_file}
+        """
+
+
+rule souporcell_consensus:
+    input:
+        ref_mtx = config["outputs"]["output_dir"] + "{pool}/souporcell/ref.mtx",
+        alt_mtx = config["outputs"]["output_dir"] + "{pool}/souporcell/alt.mtx",
+        doublet_file = config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv.gz",
+        final_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/common_variants_covered.vcf.gz"
+    output:
+        soup_out = config["outputs"]["output_dir"] + "{pool}/souporcell/ambient_rna.txt",
+        vcf_out = config["outputs"]["output_dir"] + "{pool}/souporcell/cluster_genotypes.vcf.gz",
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_consensus_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_consensus_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_consensus_time"]]
+    threads: config["souporcell"]["souporcell_consensus_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        python = "/opt/conda/envs/souporcell/bin/python3.6",
+        script = "/opt/souporcell/consensus.py",
+        ploidy = config["souporcell_extra"]["ploidy"],
+        output_dir = config["outputs"]["output_dir"] + "{pool}/souporcell",
+    log: config["outputs"]["output_dir"] + "log/souporcell_consensus.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} {params.python} {params.script} \
+            --clusters {input.doublet_file} \
+            --alt_matrix {input.alt_mtx} \
+            --ref_matrix {input.ref_mtx} \
+            --ploidy {params.ploidy} \
+            --soup_out {output.soup_out} \
+            --vcf_out {output.vcf_out} \
+            --output_dir {params.output_dir} \
+            --vcf {input.final_vcf}
+        """
+
+
+rule souporcell_summary:
+    input:
+        clusters = config["outputs"]["output_dir"] + "{pool}/souporcell/clusters.tsv.gz"
+    output:
+        summary = config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_summary.tsv.gz"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_summary_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_summary_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_summary_time"]]
+    threads: config["souporcell"]["souporcell_summary_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"]
+    log: config["outputs"]["output_dir"] + "log/souporcell_summary.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print $3}}' <(gzip -dc {input.clusters}) \
+            | sed -E 's|[0-9]+/[0-9]+|doublet|g' \
+            | tail -n+2 \
+            | sort \
+            | uniq -c \
+            | sed -E 's/^ +//g' \
+            | sed 's/ /\t/g' \
+            | sed '1 i\Assignment N\tClassification' \
+            | awk 'BEGIN{{FS=OFS="\t"}}{{print($2,$1)}}' | gzip -c > {output.summary}
+        """
+
+
+rule souporcell_pool_vcf:
+    input:
+        vcf = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz",
+        cluster_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/cluster_genotypes.vcf.gz"
+    output:
+        filtered_refs = config["outputs"]["output_dir"] + "{pool}/souporcell/Individual_genotypes_subset.vcf.gz"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_pool_vcf_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_pool_vcf_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_pool_vcf_time"]]
+    threads: config["souporcell"]["souporcell_pool_vcf_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        min_overlap_of_a = 1.0,
+        individuals = lambda wildcards: POOL_DF.loc[wildcards.pool, "Individuals"]
+    log: config["outputs"]["output_dir"] + "log/souporcell_pool_vcf.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} bedtools intersect \
+            -a {input.vcf} \
+            -b {input.cluster_vcf} \
+            -f {params.min_overlap_of_a} \
+            -r \
+            -wa \
+            -header | \
+                singularity exec --bind {params.bind} {params.sif} bcftools view \
+                    -S {params.individuals} \
+                    -Oz \
+                    -o {output.filtered_refs} - 2> {log}
+        """
+
+
+rule souporcell_correlate_genotypes:
+    priority: 100
+    input:
+        reference_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/Individual_genotypes_subset.vcf.gz",
+        cluster_vcf = config["outputs"]["output_dir"] + "{pool}/souporcell/cluster_genotypes.vcf.gz",
+    output:
+        correlation_file = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/ref_clust_pearson_correlations.tsv.gz",
+        correlation_img = report(config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/ref_clust_pearson_correlation.png", category="Souporcell Genotype Correlations", subcategory="{pool}", caption=config["inputs"]["repo_dir"] + "Demultiplexing/scripts/souporcell.rst"),
+        assignments = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations/Genotype_ID_key.txt.gz"
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_correlations_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["souporcell"]["souporcell_correlations_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["souporcell"]["souporcell_correlations_time"]]
+    threads: config["souporcell"]["souporcell_correlations_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/Assign_Indiv_by_Geno.R",
+        out = config["outputs"]["output_dir"] + "{pool}/souporcell/genotype_correlations"
+    log: config["outputs"]["output_dir"] + "log/souporcell_correlate_genotypes.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} \
+            --reference_vcf {input.reference_vcf} \
+            --cluster_vcf {input.cluster_vcf} \
+            --out {params.out}
+        """
+
+####################################
+############ SAMPLE SWAPS ##########
+####################################
+
+def get_verifybamid_bam(wildcards):
+    # This can use the remapped bam of souporcell if you want.
+    if config["verifybamid_extra"]["skip_remap"]:
+        return config["outputs"]["output_dir"] + "{pool}/bam/snpfiltered_alignment.bam"
+    else:
+        return config["outputs"]["output_dir"] + "{pool}/souporcell/souporcell_minimap_tagged_sorted.bam"
+
+
+def get_verifybamid_bam_index(wildcards):
+    return get_verifybamid_bam(wildcards) + ".bai"
+
+
+# TODO: make not required output files temp.
+rule verifybamid:
+    input:
+        vcf = config["outputs"]["output_dir"] + "genotypes/vcf_4_demultiplex/imputed_hg38_qc_filtered_exons_sorted.vcf.gz",
+        bam = get_verifybamid_bam,
+        bai = get_verifybamid_bam_index
+    output:
+        sample_match = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.selfSM",
+        sample_depth = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.depthSM",
+        sample_best_match = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.bestSM",
+        read_group_match = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.selfRG" if not config["verifybamid_extra"]["ignore_rg"] else "",
+        read_group_depth = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.depthRG" if not config["verifybamid_extra"]["ignore_rg"] else "",
+        read_group_best_match = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.bestRG" if config["verifybamid_extra"]["ind_to_compare"] == "best" and not config["verifybamid_extra"]["ignore_rg"] else ""
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["verifybamid"]["verifybamid_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["verifybamid"]["verifybamid_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["verifybamid"]["verifybamid_time"]]
+    threads: config["verifybamid"]["verifybamid_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        verifybamid = "/opt/verifyBamID-1.1.3/bin/verifyBamID",
+        geno_error = config["verifybamid_extra"]["geno_error"],
+        min_af = config["verifybamid_extra"]["min_af"],
+        min_call_rate = config["verifybamid_extra"]["min_call_rate"],
+        ind_to_compare = "--" + config["verifybamid_extra"]["ind_to_compare"],
+        chip_free =  "--free-" + config["verifybamid_extra"]["chip_free"] if config["verifybamid_extra"]["chip_free"] != "mix" else "",
+        with_chip = "--chip-" + config["verifybamid_extra"]["with_chip"] if config["verifybamid_extra"]["with_chip"] != "mix" else "",
+        ignore_rg = "--ignoreRG" if config["verifybamid_extra"]["ignore_rg"] else "",
+        ignore_overlap_pair = "--ignoreOverlapPair" if config["verifybamid_extra"]["ignore_overlap_pair"] else "",
+        no_eof = "--noEOF" if config["verifybamid_extra"]["no_eof"] else "",
+        precise = "--precise" if config["verifybamid_extra"]["precise"] else "",
+        min_map_q = config["verifybamid_extra"]["min_map_q"],
+        max_depth = config["verifybamid_extra"]["max_depth"],
+        min_q = config["verifybamid_extra"]["min_q"],
+        max_q = config["verifybamid_extra"]["max_q"],
+        grid = config["verifybamid_extra"]["grid"],
+        ref_ref = config["verifybamid_extra"]["ref_ref"],
+        ref_het = config["verifybamid_extra"]["ref_het"],
+        ref_alt = config["verifybamid_extra"]["ref_alt"],
+        out = config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck",
+    log: config["outputs"]["output_dir"] + "log/verifybamid.{pool}.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} {params.verifybamid} \
+            --vcf {input.vcf} \
+            --bam {input.bam} \
+            --genoError {params.geno_error} \
+            --minAF {params.min_af} \
+            --minCallRate {params.min_call_rate} \
+            {params.ind_to_compare} \
+            {params.chip_free} \
+            {params.with_chip} \
+            {params.ignore_rg} \
+            {params.ignore_overlap_pair} \
+            {params.no_eof} \
+            {params.precise} \
+            --minMapQ {params.min_map_q} \
+            --maxDepth {params.max_depth} \
+            --minQ {params.min_q} \
+            --maxQ {params.max_q} \
+            --grid {params.grid} \
+            --refRef {params.ref_ref} \
+            --refHet {params.ref_het} \
+            --refAlt {params.ref_alt} \
+            --out {params.out}
+        """
+
+
+rule combine_verifybamid:
+    input:
+        poolsheet = config["outputs"]["output_dir"] + "manual_selection/poolsheet.tsv",
+        sample_match = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.selfSM", pool=SS_POOLS),
+        sample_depth = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.depthSM", pool=SS_POOLS),
+        sample_best_match = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.bestSM", pool=SS_POOLS),
+        read_group_match = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.selfRG", pool=SS_POOLS) if not config["verifybamid_extra"]["ignore_rg"] else "",
+        read_group_depth = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.depthRG", pool=SS_POOLS) if not config["verifybamid_extra"]["ignore_rg"] else "",
+        read_group_best_match = expand(config["outputs"]["output_dir"] + "{pool}/verifybamid/genoCheck.bestRG", pool=SS_POOLS) if config["verifybamid_extra"]["ind_to_compare"] == "best" and not config["verifybamid_extra"]["ignore_rg"] else "",
+        ind_coupling = config["inputs"]["individual_coupling"] if config["inputs"]["individual_coupling"] is not None else [],
+    output:
+        sample_match = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.selfSM",
+        sample_depth = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.depthSM",
+        sample_best_match = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.bestSM",
+        read_group_match = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.selfRG" if not config["verifybamid_extra"]["ignore_rg"] else "",
+        read_group_depth = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.depthRG" if not config["verifybamid_extra"]["ignore_rg"] else "",
+        read_group_best_match = config["outputs"]["output_dir"] + "CombinedResults/genoCheck.bestRG" if config["verifybamid_extra"]["ind_to_compare"] == "best" and not config["verifybamid_extra"]["ignore_rg"] else "",
+        man_select = config["outputs"]["output_dir"] + "manual_selection/verifyBamID_manual_selection.tsv",
+    resources:
+        mem_per_thread_gb = lambda wildcards, attempt: attempt * config["verifybamid"]["combine_verifybamid_memory"],
+        disk_per_thread_gb = lambda wildcards, attempt: attempt * config["verifybamid"]["combine_verifybamid_memory"],
+        time = lambda wildcards, attempt: config["cluster_time"][(attempt - 1) + config["verifybamid"]["combine_verifybamid_time"]]
+    threads: config["verifybamid"]["combine_verifybamid_threads"]
+    params:
+        bind = config["inputs"]["bind_path"],
+        sif = config["inputs"]["singularity_image"],
+        script = config["inputs"]["repo_dir"] + "Demultiplexing/scripts/combine_verifybamid.py",
+        main_dir = config["outputs"]["output_dir"],
+        ind_coupling = "--ind_coupling " + config["inputs"]["individual_coupling"] if config["inputs"]["individual_coupling"] is not None else "",
+        out = config["outputs"]["output_dir"]
+    log: config["outputs"]["output_dir"] + "log/combine_verifybamid.log"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} python {params.script} \
+            --poolsheet {input.poolsheet} \
+            --main_dir {params.main_dir} \
+            {params.ind_coupling} \
+            --out {params.out}
+        """

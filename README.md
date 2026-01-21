@@ -3,7 +3,13 @@
 
 Part of the sceQTL-Gen consortium pipeline. Step 1, where the QC is done.
 
-Please see the [documentation](https://wg1-pipeline-qc.readthedocs.io/en/latest/) for information on running the QC pipeline.
+Please see the [documentation](https://wg-pipeline-docs.readthedocs.io/en/latest/WG1-pipeline-QC/index.html) for information on running the pipeline.
 
 
+Please report any errors to
+
+-   Drew Neavin ([d.neavin\@garvan.org.au](mailto:d.neavin@garvan.org.au))
+-   Martijn Vochteloo ([m.vochteloo\@umcg.nl](mailto:m.vochteloo@umcg.nl))
+
+or open an issue.
 
